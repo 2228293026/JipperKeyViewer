@@ -30,12 +30,23 @@ namespace JipperKeyViewer.KeyViewer
         public static readonly byte[] BackSequence12 = new byte[] { 9, 8, 10, 11 };
         public static readonly byte[] BackSequence16 = new byte[] { 12, 13, 9, 8, 10, 11, 14, 15 };
         public static readonly byte[] BackSequence20 = new byte[] { 12, 13, 9, 8, 10, 11, 14, 15, 17, 16, 18, 19 };
+
+        static readonly string[] KeyLayoutNames = { "12K", "16K", "20K", "10K", "8K" };
+        static readonly string[] FootKeyLayoutNames = { "Off", "2K", "4K", "6K", "8K", "10K", "12K", "14K", "16K" };
+
+        // Cache once: avoid Enum.GetValues allocation every frame
+        static KeyViewer()
+        {
+            AllKeyCodes = (KeyCode[])Enum.GetValues(typeof(KeyCode));
+        }
+
         GameObject KeyViewerObject;
         GameObject KeyViewerSizeObject; // 缓存大小对象，用于调整大小
         Canvas Canvas;
         Key[] Keys;
         Key Kps;
         int lastKps;
+        int lastTotal;
         Key Total;
         ConcurrentQueue<long> PressTimes;
         Stopwatch Stopwatch;
@@ -62,6 +73,12 @@ namespace JipperKeyViewer.KeyViewer
         Sprite keyOutlineSprite;
         TMP_FontAsset defaultFont;
         public static KeyViewer instance;
+        private Stack<Rain> rainPool = new Stack<Rain>();
+        private static readonly KeyCode[] AllKeyCodes;
+        private KeyviewerStyle cachedKeyStyle = (KeyviewerStyle)(-1);
+        private KeyCode[] cachedMainKeys;
+        private FootKeyviewerStyle cachedFootStyle = (FootKeyviewerStyle)(-1);
+        private KeyCode[] cachedFootKeys;
         private TMP_FontAsset arialFont;
         private TMP_FontAsset mapleFont;
         private bool wasEnabled; // 用于跟踪上次状态
@@ -440,7 +457,7 @@ namespace JipperKeyViewer.KeyViewer
             }
             GUILayout.Label(I18n.Tr("key_layout") + ":");
             KeyviewerStyle newStyle = (KeyviewerStyle)GUILayout.SelectionGrid((int)Settings.KeyViewerStyle,
-                new[] { "12K", "16K", "20K", "10K", "8K" }, 3);
+                KeyLayoutNames, 3);
             if (newStyle != Settings.KeyViewerStyle)
             {
                 Settings.KeyViewerStyle = newStyle;
@@ -449,7 +466,7 @@ namespace JipperKeyViewer.KeyViewer
             // 脚键布局
             GUILayout.Label(I18n.Tr("foot_keys") + ":");
             FootKeyviewerStyle newFootStyle = (FootKeyviewerStyle)GUILayout.SelectionGrid((int)Settings.FootKeyViewerStyle,
-                new[] { "Off", "2K", "4K", "6K", "8K", "10K", "12K", "14K", "16K" }, 5);
+                FootKeyLayoutNames, 5);
             if (newFootStyle != Settings.FootKeyViewerStyle)
             {
                 Settings.FootKeyViewerStyle = newFootStyle;
@@ -886,7 +903,7 @@ namespace JipperKeyViewer.KeyViewer
             GUILayout.BeginHorizontal();
             GUILayout.Label(I18n.Tr("preview") + ":", GUILayout.Width(40));
             Rect previewRect = GUILayoutUtility.GetRect(100, 20);
-            EditorGUI.DrawRect(previewRect, currentColor);
+            GUIUtils.DrawRect(previewRect, currentColor);
             GUILayout.EndHorizontal();
             if (GUILayout.Button(I18n.Tr("reset_default")))
             {
@@ -1102,7 +1119,7 @@ namespace JipperKeyViewer.KeyViewer
             // 检查普通 KeyCode (Unity API)
             if (Input.anyKeyDown)
             {
-                foreach (KeyCode keyCode in Enum.GetValues(typeof(KeyCode)))
+                foreach (KeyCode keyCode in AllKeyCodes)
                 {
                     if (Input.GetKeyDown(keyCode))
                     {
@@ -1236,7 +1253,8 @@ namespace JipperKeyViewer.KeyViewer
             if (KeyViewerObject == null) return;
             Object.Destroy(KeyViewerObject);
             KeyViewerObject = null;
-            KeyViewerSizeObject = null; // 清空引用
+            KeyViewerSizeObject = null;
+            while (rainPool.Count > 0) Object.Destroy(rainPool.Pop().gameObject);
             Canvas = null;
             Keys = null;
             PressTimes = null;
@@ -1246,67 +1264,49 @@ namespace JipperKeyViewer.KeyViewer
         private void ProcessMainAndFootKeysInUpdate()
         {
             long elapsedMilliseconds = Stopwatch.ElapsedMilliseconds;
-            KeyCode[] mainKeyCodes = GetKeyCode();
-            KeyCode[] footKeyCodes = GetFootKeyCode();
-            // 检查主按键
-            for (int i = 0; i < mainKeyCodes.Length; i++)
+            // Cache key code arrays — only refresh when layout changes
+            if (cachedKeyStyle != Settings.KeyViewerStyle)
             {
-                if (i >= Keys.Length || Keys[i] == null) continue;
-                bool current = Input.GetKey(mainKeyCodes[i]);
-                // 只在按键状态变化时处理
-                if (current != Keys[i].isPressed)
+                cachedMainKeys = GetKeyCode();
+                cachedKeyStyle = Settings.KeyViewerStyle;
+            }
+            if (cachedFootStyle != Settings.FootKeyViewerStyle)
+            {
+                cachedFootKeys = GetFootKeyCode();
+                cachedFootStyle = Settings.FootKeyViewerStyle;
+            }
+            ProcessKeyGroup(cachedMainKeys, 0, elapsedMilliseconds);
+            if (cachedFootKeys != null)
+                ProcessKeyGroup(cachedFootKeys, 20, elapsedMilliseconds);
+            if (Total != null && Total.value != null && lastTotal != Settings.TotalCount)
+            {
+                lastTotal = Settings.TotalCount;
+                Total.value.text = lastTotal.ToString();
+            }
+        }
+        private void ProcessKeyGroup(KeyCode[] keyCodes, int baseIndex, long elapsedMs)
+        {
+            for (int i = 0; i < keyCodes.Length; i++)
+            {
+                int idx = baseIndex + i;
+                if (idx >= Keys.Length || Keys[idx] == null) continue;
+                bool current = Input.GetKey(keyCodes[i]);
+                if (current != Keys[idx].isPressed)
                 {
-                    UpdateKey(i, current);
-                    Keys[i].isPressed = current; // 更新按键状态
-                    if (current) // 只在按键刚刚按下时增加计数
+                    UpdateKey(idx, current);
+                    Keys[idx].isPressed = current;
+                    if (current)
                     {
-                        Settings.Count[i]++;
+                        Settings.Count[idx]++;
                         Settings.TotalCount++;
-                        if (Keys[i].value != null)
-                        {
-                            Keys[i].value.text = Settings.Count[i].ToString();
-                        }
-                        PressTimes.Enqueue(elapsedMilliseconds);
+                        if (Keys[idx].value != null)
+                            Keys[idx].value.text = Settings.Count[idx].ToString();
+                        PressTimes.Enqueue(elapsedMs);
                         Save = true;
-                        // 触发雨滴效果
                         if (Settings.EnableRainEffect)
-                        {
-                            TriggerRainEffect(i, Keys[i]);
-                        }
+                            TriggerRainEffect(idx, Keys[idx]);
                     }
                 }
-            }
-            // 检查脚键（类似处理）
-            if (footKeyCodes != null)
-            {
-                for (int i = 0; i < footKeyCodes.Length; i++)
-                {
-                    int index = i + 20;
-                    if (index >= Keys.Length || Keys[index] == null) continue;
-                    bool current = Input.GetKey(footKeyCodes[i]);
-                    // 只在按键状态变化时处理
-                    if (current != Keys[index].isPressed)
-                    {
-                        UpdateKey(index, current);
-                        Keys[index].isPressed = current; // 更新按键状态
-                        if (current) // 只在按键刚刚按下时增加计数
-                        {
-                            Settings.Count[index]++;
-                            Settings.TotalCount++;
-                            PressTimes.Enqueue(elapsedMilliseconds);
-                            Save = true;
-                            // 触发雨滴效果
-                            if (Settings.EnableRainEffect)
-                            {
-                                TriggerRainEffect(index, Keys[index]);
-                            }
-                        }
-                    }
-                }
-            }
-            if (Total != null && Total.value != null)
-            {
-                Total.value.text = Settings.TotalCount.ToString();
             }
         }
         private void ProcessKpsAndSaveInUpdate()
@@ -1368,6 +1368,32 @@ namespace JipperKeyViewer.KeyViewer
             if (keyIndex < 16) return Settings.EnableRainForRow2; // 第二排
             if (keyIndex < 20) return Settings.EnableRainForRow3; // 第三排
             return false; // 脚键不下雨
+        }
+
+        public Rain GetRainFromPool(Transform parent)
+        {
+            Rain r;
+            if (rainPool.Count > 0)
+            {
+                r = rainPool.Pop();
+                r.Init(parent);
+            }
+            else
+            {
+                GameObject go = new GameObject("Rain");
+                go.AddComponent<RectTransform>();
+                r = go.AddComponent<Rain>();
+                r.Init(parent);
+            }
+            return r;
+        }
+
+        public void ReturnRain(Rain r)
+        {
+            r.gameObject.SetActive(false);
+            r.rawRain = null;
+            r.transform.SetParent(null);
+            rainPool.Push(r);
         }
         #region 按键布局初始化
         private void Initialize12KeyViewer()
@@ -1948,7 +1974,7 @@ namespace JipperKeyViewer.KeyViewer
         public KeyCode[] key20 = {
         KeyCode.Tab, KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.E, KeyCode.P, KeyCode.Equals, KeyCode.Backspace, KeyCode.Backslash,
         KeyCode.Space, KeyCode.C, KeyCode.Comma, KeyCode.Period, KeyCode.CapsLock, KeyCode.LeftShift, KeyCode.Return, KeyCode.H,
-        KeyCode.CapsLock, KeyCode.D, KeyCode.RightShift, KeyCode.Semicolon
+        KeyCode.LeftControl, KeyCode.D, KeyCode.RightShift, KeyCode.Semicolon
     };
         public string[] key20Text = new string[20];
         public KeyCode[] footkey2 = { KeyCode.F8, KeyCode.F3 };
@@ -2012,7 +2038,7 @@ namespace JipperKeyViewer.KeyViewer
         MapleFont
     }
 
-    public static class EditorGUI
+    public static class GUIUtils
     {
         private static Texture2D _staticRectTexture;
         private static GUIStyle _staticRectStyle;
@@ -2032,5 +2058,5 @@ namespace JipperKeyViewer.KeyViewer
             GUI.Box(position, GUIContent.none, _staticRectStyle);
         }
     }
-}
     #endregion
+}

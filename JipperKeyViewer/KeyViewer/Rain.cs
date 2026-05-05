@@ -1,8 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -20,11 +15,22 @@ namespace JipperKeyViewer.KeyViewer
             image = gameObject.AddComponent<Image>();
         }
 
+        public void Init(Transform parent)
+        {
+            gameObject.SetActive(true);
+            transform.SetParent(parent);
+            transform.anchorMin = transform.anchorMax = transform.pivot = new Vector2(0.5f, 1);
+            transform.anchoredPosition = Vector2.zero;
+            transform.sizeDelta = Vector2.zero;
+            transform.localScale = Vector3.one;
+        }
+
         public void Update()
         {
             if (rawRain.removed)
             {
-                Destroy(gameObject);
+                rawRain = null;
+                KeyViewer.instance.ReturnRain(this);
                 return;
             }
             if (rawRain.sizeDelta != null)

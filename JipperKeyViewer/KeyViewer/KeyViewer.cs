@@ -80,9 +80,11 @@ namespace JipperKeyViewer.KeyViewer
         private KeyCode[] cachedMainKeys;
         private FootKeyviewerStyle cachedFootStyle = (FootKeyviewerStyle)(-1);
         private KeyCode[] cachedFootKeys;
-        private TMP_FontAsset arialFont;
         private TMP_FontAsset mapleFont;
-        private bool wasEnabled; // 用于跟踪上次状态
+        private Dictionary<TMP_FontAsset, Material> shadowMaterials = new Dictionary<TMP_FontAsset, Material>();
+        static readonly List<FontEntry> fontList = new List<FontEntry>();
+        bool fontListExpanded;
+        private bool wasEnabled;
 
         void Awake()
         {
@@ -99,6 +101,19 @@ namespace JipperKeyViewer.KeyViewer
         void Start()
         {
             EnableKeyViewer();
+        }
+        void TryRestoreFont()
+        {
+            if (string.IsNullOrEmpty(Settings.FontName)) return;
+            if (fontList.Exists(e => e.name == Settings.FontName)) return; // 已恢复
+            ScanGameFonts();
+            int idx = fontList.FindIndex(e => e.name == Settings.FontName);
+            if (idx >= 0)
+            {
+                Settings.FontIndex = idx;
+                UpdateAllFonts();
+                Debug.Log($"KeyViewer: 已恢复字体 {Settings.FontName}");
+            }
         }
         void OnEnable()
         {
@@ -130,6 +145,7 @@ namespace JipperKeyViewer.KeyViewer
         }
         void Update()
         {
+            TryRestoreFont();
             if (wasEnabled != Settings.Enabled)
             {
                 if (Settings.Enabled)
@@ -316,6 +332,7 @@ namespace JipperKeyViewer.KeyViewer
         #region 设置界面
         public void DrawSettingsWindow()
         {
+            ScanGameFonts();
             GUILayout.BeginVertical();
             GUILayout.BeginHorizontal();
             string langNow = I18n.Tr("language") + ": " + (Settings.Language == "en" ? "English" : "中文");
@@ -335,21 +352,35 @@ namespace JipperKeyViewer.KeyViewer
                 // 状态变化会在Update中处理
             }
             GUILayout.Label(I18n.Tr("font_style") + ":");
-            FontStyle newFontStyle = (FontStyle)GUILayout.SelectionGrid((int)Settings.FontStyle,
-                new[] { I18n.Tr("font_default"), I18n.Tr("font_arial"), I18n.Tr("font_maple") }, 3);
-            if (newFontStyle != Settings.FontStyle)
+            string curFont = fontList.Count > 0 ? fontList[Settings.FontIndex].name : "无";
+            if (GUILayout.Button((fontListExpanded ? "▼ " : "▶ ") + curFont, GUILayout.MinWidth(200)))
+                fontListExpanded = !fontListExpanded;
+            if (fontListExpanded && fontList.Count > 1)
             {
-                Settings.FontStyle = newFontStyle;
-                UpdateAllFonts();
-                SaveSettings();
+                int newIdx = Settings.FontIndex;
+                for (int i = 0; i < fontList.Count; i++)
+                {
+                    bool selected = i == Settings.FontIndex;
+                    string label = (selected ? "✓ " : "  ") + fontList[i].name;
+                    if (GUILayout.Button(label, GUILayout.MinWidth(200)))
+                        newIdx = i;
+                }
+                if (newIdx != Settings.FontIndex)
+                {
+                    Settings.FontIndex = newIdx;
+                    Settings.FontName = fontList[newIdx].name;
+                    UpdateAllFonts();
+                    SaveSettings();
+                }
             }
             // 基本设置
             bool newDownLocation = GUILayout.Toggle(Settings.DownLocation, I18n.Tr("place_below"));
             if (newDownLocation != Settings.DownLocation)
             {
                 Settings.DownLocation = newDownLocation;
-                ResetKeyViewer(); // 重新初始化按键位置
+                ResetKeyViewer();
                 ResetFootKeyViewer();
+                SaveSettings();
             }
             GUILayout.Space(10);
             bool newCustomPosition = GUILayout.Toggle(Settings.CustomPositionEnabled,
@@ -464,6 +495,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 Settings.KeyViewerStyle = newStyle;
                 ChangeKeyViewer();
+                SaveSettings();
             }
             // 脚键布局
             GUILayout.Label(I18n.Tr("foot_keys") + ":");
@@ -473,6 +505,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 Settings.FootKeyViewerStyle = newFootStyle;
                 ResetFootKeyViewer();
+                SaveSettings();
             }
             // 大小设置
             GUILayout.BeginHorizontal();
@@ -487,9 +520,8 @@ namespace JipperKeyViewer.KeyViewer
             {
                 Settings.Size = newSettingsSize;
                 if (KeyViewerSizeObject != null)
-                {
                     KeyViewerSizeObject.transform.localScale = new Vector3(Settings.Size, Settings.Size, 1);
-                }
+                SaveSettings();
             }
             GUILayout.EndHorizontal();
             GUILayout.Space(10);
@@ -619,36 +651,39 @@ namespace JipperKeyViewer.KeyViewer
         private void UpdateAllFonts()
         {
             TMP_FontAsset currentFont = GetCurrentFont();
+            Material shadowMat = GetShadowMaterial(currentFont);
+            void UpdateText(TMP_Text t)
+            {
+                if (t == null) return;
+                t.font = currentFont;
+                t.fontMaterial = shadowMat;
+            }
             if (Keys != null)
             {
                 foreach (Key key in Keys)
                 {
-                    if (key != null && key.text != null && key.text != null)
-                    {
-                        key.text.font = currentFont;
-                    }
-                    if (key != null && key.value != null && key.value != null)
-                    {
-                        key.value.font = currentFont;
-                    }
+                    if (key == null) continue;
+                    UpdateText(key.text);
+                    UpdateText(key.value);
                 }
             }
-            if (Kps != null && Kps.text != null && Kps.text != null)
-            {
-                Kps.text.font = currentFont;
-            }
-            if (Kps != null && Kps.value != null && Kps.value != null)
-            {
-                Kps.value.font = currentFont;
-            }
-            if (Total != null && Total.text != null && Total.text != null)
-            {
-                Total.text.font = currentFont;
-            }
-            if (Total != null && Total.value != null && Total.value != null)
-            {
-                Total.value.font = currentFont;
-            }
+            UpdateText(Kps?.text);
+            UpdateText(Kps?.value);
+            UpdateText(Total?.text);
+            UpdateText(Total?.value);
+        }
+
+        Material GetShadowMaterial(TMP_FontAsset font)
+        {
+            if (shadowMaterials.TryGetValue(font, out var mat)) return mat;
+            mat = new Material(font.material);
+            mat.EnableKeyword("UNDERLAY_ON");
+            mat.SetColor("_UnderlayColor", new Color(0, 0, 0, 0.5f));
+            mat.SetFloat("_UnderlayOffsetX", 1f);
+            mat.SetFloat("_UnderlayOffsetY", -1f);
+            mat.SetFloat("_UnderlaySoftness", 0f);
+            shadowMaterials[font] = mat;
+            return mat;
         }
         private void DrawKeyChangeSection()
         {
@@ -1500,7 +1535,7 @@ namespace JipperKeyViewer.KeyViewer
         {
             // 资源未加载时 fallback 到纯色块
             if (defaultFont == null)
-                defaultFont = arialFont;
+                defaultFont = GetCurrentFont();
             GameObject obj = new("Key " + i);
             KeyViewerSettings settings = Settings;
             RectTransform transform = obj.AddComponent<RectTransform>();
@@ -1567,13 +1602,14 @@ namespace JipperKeyViewer.KeyViewer
             }
             transform.localScale = Vector3.one;
             text = gameObject.AddComponent<TextMeshProUGUI>();
-            text.font = GetCurrentFont(); // 修改这里
+            text.font = GetCurrentFont();
+            text.fontMaterial = GetShadowMaterial(text.font);
             text.enableAutoSizing = true;
             text.fontSizeMin = 0;
             text.fontSizeMax = 20;
             text.alignment = slim ? TextAlignmentOptions.Left : TextAlignmentOptions.Center;
             text.color = settings.Text;
-            text.raycastTarget = false; // 关键：禁用射线检测
+            text.raycastTarget = false;
             key.text = text;
             // CountText (if applicable)
             if (count) // 只有 count 为 true 时才创建计数文本
@@ -1595,11 +1631,12 @@ namespace JipperKeyViewer.KeyViewer
                 }
                 transform.localScale = Vector3.one;
                 text = gameObject.AddComponent<TextMeshProUGUI>();
-                text.font = GetCurrentFont(); // 修改这里
+                text.font = GetCurrentFont();
+                text.fontMaterial = GetShadowMaterial(text.font);
                 text.enableAutoSizing = true;
                 text.fontSizeMin = 0;
                 text.fontSizeMax = 20;
-                text.raycastTarget = false; // 关键：禁用射线检测
+                text.raycastTarget = false;
                 text.alignment = slim ? TextAlignmentOptions.Right : TextAlignmentOptions.Top;
                 key.value = text;
             }
@@ -1614,7 +1651,7 @@ namespace JipperKeyViewer.KeyViewer
                     key.rain = new GameObject("RainLine");
                     transform = key.rain.AddComponent<RectTransform>();
                     transform.SetParent(obj.transform);
-                    transform.sizeDelta = new Vector2(sizeX, 275); // 固定高度
+                    transform.sizeDelta = new Vector2(sizeX, 275);
                     transform.anchorMin = transform.anchorMax = transform.pivot = Vector2.zero;
                     transform.anchoredPosition = new Vector2(0, raining switch
                     {
@@ -1631,13 +1668,10 @@ namespace JipperKeyViewer.KeyViewer
             {
                 // 不需要雨线
                 key.color = 1; // 默认颜色索引
-                if (key.rain != null)
-                {
-                    // 可以选择销毁或隐藏雨线对象，但通常保持引用即可
-                    // Object.Destroy(key.rain); // 如果你想完全移除
-                    // 或者
-                    key.rain.SetActive(false); // 如果你想暂时隐藏
-                }
+                               // 可以选择销毁或隐藏雨线对象，但通常保持引用即可
+                               // Object.Destroy(key.rain); // 如果你想完全移除
+                               // 或者
+                key.rain?.SetActive(false); // 如果你想暂时隐藏
                 key.rain = null;
             }
             return key; // 成功创建并返回 Key 组件
@@ -1649,26 +1683,14 @@ namespace JipperKeyViewer.KeyViewer
             if (key == null) return;
             if (i == -1) // KPS
             {
-                if (key.text != null && key.text != null)
-                {
-                    key.text.text = "KPS";
-                }
-                if (key.value != null)
-                {
-                    key.value.text = 0f.ToString();
-                }
+                key.text.text = "KPS";
+                key.value.text = 0f.ToString();
                 return;
             }
             if (i == -2) // Total
             {
-                if (key.text != null && key.text != null)
-                {
-                    key.text.text = "Total";
-                }
-                if (key.value != null)
-                {
-                    key.value.text = 0f.ToString();
-                }
+                key.text.text = "Total";
+                key.value.text = 0f.ToString();
                 return;
             }
             // 主按键 (0-19)
@@ -1680,87 +1702,83 @@ namespace JipperKeyViewer.KeyViewer
                 if (keyCodes != null && keyTexts != null && i < keyCodes.Length && i < keyTexts.Length)
                 {
                     string displayText = !string.IsNullOrEmpty(keyTexts[i]) ? keyTexts[i] : KeyToString(keyCodes[i]);
-                    if (key.text != null && key.text != null)
-                    {
-                        key.text.text = displayText;
-                    }
-                    if (key.value != null)
-                    {
-                        key.value.text = Settings.Count[i].ToString();
-                    }
+                    key.text.text = displayText;
+                    key.value.text = Settings.Count[i].ToString();
                 }
             }
             else // 脚键 (20+)
             {
                 KeyCode[] footKeyCodes = GetFootKeyCode();
                 int footIndex = i - 20;
-                // 防御性检查
                 if (footKeyCodes != null && footIndex >= 0 && footIndex < footKeyCodes.Length)
                 {
-                    if (key.text != null && key.text != null)
-                    {
-                        key.text.text = KeyToString(footKeyCodes[footIndex]);
-                    }
-                    // 脚键通常不显示计数，但如果需要可以取消注释下面的代码
-                    // if (key.value != null)
-                    // {
-                    //     key.value.text = Settings.Count[i].ToString();
-                    // }
+                    key.text.text = KeyToString(footKeyCodes[footIndex]);
                 }
             }
         }
+
+        void ScanGameFonts()
+        {
+            var gameFonts = Resources.FindObjectsOfTypeAll<TMP_FontAsset>();
+            if (gameFonts == null) return;
+            foreach (var f in gameFonts)
+            {
+                // 防止重复添加
+                if (!fontList.Exists(e => e.font == f))
+                    fontList.Add(new FontEntry(f.name, f));
+            }
+            Debug.Log($"KeyViewer: 扫描到 {fontList.Count} 个字体");
+        }
+
         private bool TryLoadResources()
         {
             if (keyBackgroundSprite != null) return true;
 
-            // Arial 作为默认字体，内置可用
-            if (arialFont == null)
-            {
-                arialFont = TMP_FontAsset.CreateFontAsset(Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"));
-            }
-            defaultFont = arialFont;
+            fontList.Clear();
 
             string modPath = Path.GetDirectoryName(Main.Mod?.Path);
             string bundlePath = Path.Combine(modPath ?? ".", "assets", "keyviewer_resources");
 
             var bundle = AssetBundle.LoadFromFile(bundlePath);
-            if (bundle == null)
+            if (bundle != null)
+            {
+                keyBackgroundSprite = bundle.LoadAsset<Sprite>("KeyBackground");
+                keyOutlineSprite = bundle.LoadAsset<Sprite>("KeyOutline");
+
+                Font mapleOTF = bundle.LoadAsset<Font>("MAPLESTORY_OTF_BOLD");
+                if (mapleOTF != null)
+                {
+                    mapleFont = TMP_FontAsset.CreateFontAsset(mapleOTF);
+                    fontList.Add(new FontEntry("MapleStory", mapleFont));
+                }
+
+                Font cjkOTF = bundle.LoadAsset<Font>("cjkFonts-regular-normalized");
+                if (cjkOTF != null)
+                {
+                    var cjkFont = TMP_FontAsset.CreateFontAsset(cjkOTF);
+                    fontList.Insert(0, new FontEntry("CJK (预设)", cjkFont));
+                }
+
+                if (keyBackgroundSprite == null)
+                    Debug.LogError("KeyViewer: AssetBundle 中未找到 KeyBackground");
+                if (keyOutlineSprite == null)
+                    Debug.LogError("KeyViewer: AssetBundle 中未找到 KeyOutline");
+
+                bundle.Unload(false);
+            }
+            else
             {
                 Debug.LogError($"KeyViewer: 无法加载 AssetBundle，路径: {bundlePath}");
-                return true;
             }
 
-            keyBackgroundSprite = bundle.LoadAsset<Sprite>("KeyBackground");
-            keyOutlineSprite = bundle.LoadAsset<Sprite>("KeyOutline");
+            if (Settings.FontIndex >= fontList.Count)
+                Settings.FontIndex = 0;
 
-            // 加载 OTF 字体并动态创建 TMP_FontAsset（避免 SDF 版本兼容问题）
-            Font mapleOTF = bundle.LoadAsset<Font>("MAPLESTORY_OTF_BOLD");
-            if (mapleOTF != null)
-                mapleFont = TMP_FontAsset.CreateFontAsset(mapleOTF);
-
-            Font cjkOTF = bundle.LoadAsset<Font>("cjkFonts-regular-normalized");
-            if (cjkOTF != null)
-                defaultFont = TMP_FontAsset.CreateFontAsset(cjkOTF);
-
-            if (keyBackgroundSprite == null)
-                Debug.LogError("KeyViewer: AssetBundle 中未找到 KeyBackground");
-            if (keyOutlineSprite == null)
-                Debug.LogError("KeyViewer: AssetBundle 中未找到 KeyOutline");
-            if (mapleFont == null)
-                Debug.LogError("KeyViewer: AssetBundle 中未找到 MapleStory 字体");
-
-            bundle.Unload(false);
             return true;
         }
         private TMP_FontAsset GetCurrentFont()
         {
-            return Settings.FontStyle switch
-            {
-                FontStyle.Default => defaultFont,
-                FontStyle.Arial => arialFont,
-                FontStyle.MapleFont => mapleFont,
-                _ => defaultFont
-            };
+            return fontList.Count > 0 ? fontList[Mathf.Clamp(Settings.FontIndex, 0, fontList.Count - 1)].font : null;
         }
         private static KeyCode[] GetKeyCode()
         {
@@ -2030,7 +2048,8 @@ namespace JipperKeyViewer.KeyViewer
         public Vector2 MainKeyViewerPosition = new Vector2(0, 0);
         public Vector2 FootKeyViewerPosition = new Vector2(432, 15);
         public bool CustomPositionEnabled = false;
-        public FontStyle FontStyle = FontStyle.Default;
+        public int FontIndex;
+        public string FontName = "";
         public string Language = "zh";
         // 添加构造函数来确保数组正确初始化
         public KeyViewerSettings()
@@ -2044,11 +2063,11 @@ namespace JipperKeyViewer.KeyViewer
             Count = Count ?? new int[36];
         }
     }
-    public enum FontStyle
+    public class FontEntry
     {
-        Default,
-        Arial,
-        MapleFont
+        public string name;
+        public TMP_FontAsset font;
+        public FontEntry(string name, TMP_FontAsset font) { this.name = name; this.font = font; }
     }
 
     public static class GUIUtils

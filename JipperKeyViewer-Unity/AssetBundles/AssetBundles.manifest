@@ -1,0 +1,12 @@
+ManifestFileVersion: 0
+UnityVersion: 6000.3.7f1
+CRC: 1631229997
+HashAppended: 0
+AssetBundleManifest:
+  AssetBundleInfos:
+    Info_0:
+      Name: unifiedraytracing
+      Dependencies: {}
+    Info_1:
+      Name: keyviewer_resources_6000
+      Dependencies: {}

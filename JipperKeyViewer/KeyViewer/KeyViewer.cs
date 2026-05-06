@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using Debug = UnityEngine.Debug;
 using Object = UnityEngine.Object;
 
 namespace JipperKeyViewer.KeyViewer
@@ -122,7 +122,7 @@ namespace JipperKeyViewer.KeyViewer
                 {
                     Settings.FontIndex = i;
                     UpdateAllFonts();
-                    Debug.Log($"KeyViewer: 已恢复字体 {fontName}");
+                    Main.Mod.Logger.Log($"KeyViewer: 已恢复字体 {fontName}");
                     return;
                 }
             }
@@ -153,8 +153,9 @@ namespace JipperKeyViewer.KeyViewer
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             SaveSettings();
+            LinkFallbackFonts();
             ClearAllRainDrops();
-            Debug.Log($"Scene changed to {scene.name}, saved counts, cleared rain drops");
+            Main.Mod.Logger.Log($"Scene changed to {scene.name}, saved counts, cleared rain drops");
         }
         void Update()
         {
@@ -297,7 +298,7 @@ namespace JipperKeyViewer.KeyViewer
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"加载配置文件失败: {e.Message}");
+                    Main.Mod.Logger.Error($"加载配置文件失败: {e.Message}");
                     Settings = new KeyViewerSettings();
                 }
             }
@@ -321,7 +322,7 @@ namespace JipperKeyViewer.KeyViewer
             }
             catch (Exception e)
             {
-                Debug.LogError($"保存配置文件失败: {e.Message}");
+                Main.Mod.Logger.Error($"保存配置文件失败: {e.Message}");
             }
         }
         #endregion
@@ -671,8 +672,17 @@ namespace JipperKeyViewer.KeyViewer
 
         Material GetShadowMaterial(TMP_FontAsset font)
         {
+            if (font == null) return null;
             if (shadowMaterials.TryGetValue(font, out var mat)) return mat;
-            mat = new Material(font.material);
+
+            // Cross-version material access: property, field, or materials[0]
+            var fontMat = GetFontMaterial(font);
+            if (fontMat == null)
+            {
+                Main.Mod.Logger.Error("KeyViewer: Cannot get material from font asset, skipping shadow");
+                return null;
+            }
+            mat = new Material(fontMat);
             mat.EnableKeyword("UNDERLAY_ON");
             mat.SetColor("_UnderlayColor", new Color(0, 0, 0, 0.5f));
             mat.SetFloat("_UnderlayOffsetX", 1f);
@@ -680,6 +690,62 @@ namespace JipperKeyViewer.KeyViewer
             mat.SetFloat("_UnderlaySoftness", 0f);
             shadowMaterials[font] = mat;
             return mat;
+        }
+
+        static MemberInfo cachedMaterialMember;
+        static bool cachedMaterialLogged;
+
+        static Material GetFontMaterial(TMP_FontAsset font)
+        {
+            if (cachedMaterialMember == null)
+            {
+                var t = font.GetType();
+                const BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
+                cachedMaterialMember = (MemberInfo)t.GetProperty("material", flags) ?? t.GetField("material", flags);
+                // unity6000 版本 TMP_FontAsset 将 material 改为 属性了，但为了兼容老版本我们用反射同时支持属性和字段访问
+            }
+
+            Material result = null;
+            if (cachedMaterialMember is PropertyInfo pi)
+            {
+                var val = pi.GetValue(font);
+                if (val != null) result = (Material)val;
+            }
+            else if (cachedMaterialMember is FieldInfo fi)
+            {
+                var val = fi.GetValue(font);
+                if (val != null) result = (Material)val;
+            }
+
+            if (!cachedMaterialLogged)
+            {
+                cachedMaterialLogged = true;
+                string foundBy = cachedMaterialMember != null
+                    ? $"{cachedMaterialMember.MemberType} \"{cachedMaterialMember.Name}\""
+                    : "none";
+                Main.Mod.Logger.Log($"KeyViewer: Font material resolved via {foundBy}");
+            }
+            return result;
+        }
+
+        static void LinkFallbackFonts()
+        {
+            // Find CJK font in our fontList
+            FontEntry cjkEntry = null;
+            foreach (var e in fontList)
+                if (e.name == "CJK (预设)") { cjkEntry = e; break; }
+            if (cjkEntry?.font == null) return;
+
+            // Set CJK as fallback for all other fonts in fontList
+            foreach (var entry in fontList)
+            {
+                if (entry.font == null || entry == cjkEntry) continue;
+                if (entry.font.fallbackFontAssetTable == null)
+                    entry.font.fallbackFontAssetTable = new List<TMP_FontAsset>();
+                if (!entry.font.fallbackFontAssetTable.Contains(cjkEntry.font))
+                    entry.font.fallbackFontAssetTable.Add(cjkEntry.font);
+            }
+            Main.Mod.Logger.Log($"KeyViewer: CJK font linked as fallback for bundled fonts");
         }
         private void DrawKeyChangeSection()
         {
@@ -1215,7 +1281,7 @@ namespace JipperKeyViewer.KeyViewer
             // 确保资源已加载 *每次调用 EnableKeyViewer 时都检查*
             if (!TryLoadResources())
             {
-                Debug.LogError("KeyViewer: 无法加载必要的资源 (KeyBackground, KeyOutline, Maplestory-OTF-Bold SDF)。请检查 Assets/Resources/kv/ 和 Assets/Resources/Maplefont/ 文件夹。");
+                Main.Mod.Logger.Error($"KeyViewer: 无法加载 AssetBundle，请检查 assets/ 目录下是否存在对应版本的 AB 文件");
                 return; // 如果资源加载失败，则不创建UI
             }
             KeyViewerObject = new GameObject("JipperResourcePack KeyViewer");
@@ -1590,7 +1656,11 @@ namespace JipperKeyViewer.KeyViewer
             transform.localScale = Vector3.one;
             text = gameObject.AddComponent<TextMeshProUGUI>();
             text.font = GetCurrentFont();
-            text.fontMaterial = GetShadowMaterial(text.font);
+            if (text.font != null)
+            {
+                var mat = GetShadowMaterial(text.font);
+                if (mat != null) text.fontMaterial = mat;
+            }
             text.enableAutoSizing = true;
             text.fontSizeMin = 0;
             text.fontSizeMax = 20;
@@ -1619,7 +1689,11 @@ namespace JipperKeyViewer.KeyViewer
                 transform.localScale = Vector3.one;
                 text = gameObject.AddComponent<TextMeshProUGUI>();
                 text.font = GetCurrentFont();
-                text.fontMaterial = GetShadowMaterial(text.font);
+                if (text.font != null)
+                {
+                    var mat = GetShadowMaterial(text.font);
+                    if (mat != null) text.fontMaterial = mat;
+                }
                 text.enableAutoSizing = true;
                 text.fontSizeMin = 0;
                 text.fontSizeMax = 20;
@@ -1715,7 +1789,7 @@ namespace JipperKeyViewer.KeyViewer
                     fontList.Add(new FontEntry(f.name, f));
             }
             gameFontsScanned = true;
-            Debug.Log($"KeyViewer: 扫描到 {fontList.Count} 个字体");
+            Main.Mod.Logger.Log($"KeyViewer: 扫描到 {fontList.Count} 个字体");
         }
 
         private bool TryLoadResources()
@@ -1724,10 +1798,29 @@ namespace JipperKeyViewer.KeyViewer
 
             fontList.Clear();
 
-            string modPath = Path.GetDirectoryName(Main.Mod?.Path);
-            string bundlePath = Path.Combine(modPath ?? ".", "assets", "keyviewer_resources");
+            string modPath = Path.GetDirectoryName(Main.Mod?.Path) ?? ".";
+            string assetsDir = Path.Combine(modPath, "assets");
+
+            // Select AssetBundle based on Unity version
+            string unityVersion = Application.unityVersion;
+            Main.Mod.Logger.Log($"KeyViewer: Detected Unity version: {unityVersion}");
+            string bundleName = unityVersion.StartsWith("6000") ? "keyviewer_resources_6000" : "keyviewer_resources_2022";
+            string bundlePath = Path.Combine(assetsDir, bundleName);
+            Main.Mod.Logger.Log($"KeyViewer: Trying AssetBundle: {bundlePath}");
 
             var bundle = AssetBundle.LoadFromFile(bundlePath);
+            if (bundle == null)
+            {
+                Main.Mod.Logger.Log($"KeyViewer: Version-specific AB not found, trying fallback");
+                string fallbackPath = Path.Combine(assetsDir, "keyviewer_resources");
+                bundle = AssetBundle.LoadFromFile(fallbackPath);
+                if (bundle != null)
+                    Main.Mod.Logger.Log($"KeyViewer: Loaded fallback AB: {fallbackPath}");
+            }
+            else
+            {
+                Main.Mod.Logger.Log($"KeyViewer: Loaded version-specific AB: {bundlePath}");
+            }
             if (bundle != null)
             {
                 keyBackgroundSprite = bundle.LoadAsset<Sprite>("KeyBackground");
@@ -1738,6 +1831,11 @@ namespace JipperKeyViewer.KeyViewer
                 {
                     mapleFont = TMP_FontAsset.CreateFontAsset(mapleOTF);
                     fontList.Add(new FontEntry("MapleStory", mapleFont));
+                    Main.Mod.Logger.Log($"KeyViewer: MapleStory font created, valid={mapleFont != null}");
+                }
+                else
+                {
+                    Main.Mod.Logger.Error("KeyViewer: MAPLESTORY_OTF_BOLD not found in AB");
                 }
 
                 Font cjkOTF = bundle.LoadAsset<Font>("cjkFonts-regular-normalized");
@@ -1745,24 +1843,32 @@ namespace JipperKeyViewer.KeyViewer
                 {
                     var cjkFont = TMP_FontAsset.CreateFontAsset(cjkOTF);
                     fontList.Insert(0, new FontEntry("CJK (预设)", cjkFont));
+                    Main.Mod.Logger.Log($"KeyViewer: CJK font created, valid={cjkFont != null}");
+                }
+                else
+                {
+                    Main.Mod.Logger.Error("KeyViewer: cjkFonts-regular-normalized not found in AB");
                 }
 
+                // Link game fonts as fallbacks so special chars (⇧, ␣, etc.) render
+                LinkFallbackFonts();
+
                 if (keyBackgroundSprite == null)
-                    Debug.LogError("KeyViewer: AssetBundle 中未找到 KeyBackground");
+                    Main.Mod.Logger.Error("KeyViewer: AssetBundle 中未找到 KeyBackground");
                 if (keyOutlineSprite == null)
-                    Debug.LogError("KeyViewer: AssetBundle 中未找到 KeyOutline");
+                    Main.Mod.Logger.Error("KeyViewer: AssetBundle 中未找到 KeyOutline");
 
                 bundle.Unload(false);
             }
             else
             {
-                Debug.LogError($"KeyViewer: 无法加载 AssetBundle，路径: {bundlePath}");
+                Main.Mod.Logger.Error($"KeyViewer: 无法加载 AssetBundle，路径: {bundlePath}");
             }
 
             if (Settings.FontIndex >= fontList.Count)
                 Settings.FontIndex = 0;
 
-            return true;
+            return bundle != null;
         }
         private TMP_FontAsset GetCurrentFont()
         {

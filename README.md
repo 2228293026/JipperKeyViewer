@@ -96,3 +96,15 @@ JipperKeyViewer/
 
 ## Acknowledgements / 鸣谢
 - The key layout and visual style references the implementation in [JipperResourcePack](https://github.com/Jongye0l/JipperResourcePack).
+
+## License / 许可证
+
+- This project is primarily licensed under the **MIT License** – see the [LICENSE](./LICENSE) file.
+
+- However, it includes code adapted from [JipperResourcePack](https://github.com/Jongye0l/JipperResourcePack) by Jongyeol, which is licensed under the **BSD 3-Clause License**. The BSD-licensed portions are retained with their original copyright notice, and the full BSD license text is available in the [LICENSE-BSD](./LICENSE-BSD) file.
+
+---
+
+- 本项目主要使用 **MIT 许可证** – 详见 [LICENSE](./LICENSE) 文件。
+
+- 但本项目中包含改编自 [JipperResourcePack](https://github.com/Jongye0l/JipperResourcePack)（作者 Jongyeol）的代码，该部分采用 **BSD 3-Clause 许可证**。BSD 许可部分的原始版权声明已保留，完整的 BSD 许可证文本请见 [LICENSE-BSD](./LICENSE-BSD) 文件。

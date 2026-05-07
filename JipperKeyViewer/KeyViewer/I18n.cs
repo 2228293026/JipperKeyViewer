@@ -8,7 +8,7 @@ namespace JipperKeyViewer.KeyViewer
 {
     public static class I18n
     {
-        public static string Lang { get; set; } = "zh";
+        public static string Lang { get; set; } = "en";
 
         static Dictionary<string, string> en = new()
         {

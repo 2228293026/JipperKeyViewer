@@ -86,7 +86,6 @@ namespace JipperKeyViewer.KeyViewer
         static readonly List<FontEntry> fontList = new List<FontEntry>();
         bool fontListExpanded;
         private bool wasEnabled;
-        private bool gameFontsScanned;
         private bool fontRestored;
         private readonly float[] rowSpeeds = new float[3];
         private readonly float[] rowHeights = new float[3];
@@ -112,9 +111,11 @@ namespace JipperKeyViewer.KeyViewer
             {
                 if (fontList[i].name == fontName)
                 {
-                    Settings.FontIndex = i;      // ✅ 更新索引
-                    UpdateAllFonts();            // ✅ 应用字体
+                    Settings.FontIndex = i;
+                    UpdateAllFonts();
+                    SaveSettings();
                     fontRestored = true;
+                    //Main.Mod.Logger.Log($"KeyViewer: \u5DF2\u6062\u590D\u5B57\u4F53 {fontName}");
                     return;
                 }
             }
@@ -125,6 +126,20 @@ namespace JipperKeyViewer.KeyViewer
                 {
                     Settings.FontIndex = i;
                     UpdateAllFonts();
+                    SaveSettings();
+                    fontRestored = true;
+                    //Main.Mod.Logger.Log($"KeyViewer: \u5DF2\u6062\u590D\u5B57\u4F53 {fontName}");
+                    return;
+                }
+            }
+            ScanCustomFonts();
+            for (int i = 0; i < fontList.Count; i++)
+            {
+                if (fontList[i].name == fontName)
+                {
+                    Settings.FontIndex = i;
+                    UpdateAllFonts();
+                    SaveSettings();
                     fontRestored = true;
                     //Main.Mod.Logger.Log($"KeyViewer: \u5DF2\u6062\u590D\u5B57\u4F53 {fontName}");
                     return;
@@ -161,7 +176,6 @@ namespace JipperKeyViewer.KeyViewer
         {
             SaveSettings();
             fontRestored = false;
-            gameFontsScanned = false;
             LinkFallbackFonts();
             ClearAllRainDrops();
             //Main.Mod.Logger.Log($"Scene changed to {scene.name}, saved counts, cleared rain drops");

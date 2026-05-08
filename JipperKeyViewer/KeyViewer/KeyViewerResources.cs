@@ -12,16 +12,27 @@ namespace JipperKeyViewer.KeyViewer
     {
         void ScanGameFonts()
         {
-            if (gameFontsScanned) return;
-            var gameFonts = Resources.FindObjectsOfTypeAll<TMP_FontAsset>();
-            if (gameFonts == null) return;
-            foreach (var f in gameFonts)
+            var allFonts = Resources.FindObjectsOfTypeAll<Font>();
+            if (allFonts == null || allFonts.Length == 0)
+                return;
+
+            int added = 0;
+            foreach (var font in allFonts)
             {
-                if (!fontList.Exists(e => e.font == f))
-                    fontList.Add(new FontEntry(f.name, f));
+                if (fontList.Exists(e => e.font != null && e.font.name == font.name))
+                    continue;
+
+                // ´«Í³ Font ¡ú TMP_FontAsset
+                var tmpFont = TMP_FontAsset.CreateFontAsset(font);
+                if (tmpFont != null)
+                {
+                    fontList.Add(new FontEntry(font.name, tmpFont));
+                    added++;
+                }
             }
-            gameFontsScanned = true;
-            //Main.Mod.Logger.Log($"KeyViewer: \u626B\u63CF\u5230 {fontList.Count} \u4E2A\u5B57\u4F53");
+
+            if (added > 0)
+                Main.Mod.Logger.Log($"KeyViewer: Converted {added} traditional font(s) to TMP_FontAsset");
         }
 
         private bool TryLoadResources()
@@ -34,11 +45,14 @@ namespace JipperKeyViewer.KeyViewer
             string modPath = Path.GetDirectoryName(Main.Mod?.Path) ?? ".";
             string assetsDir = Path.Combine(modPath, "assets");
 
+            /*
             string unityVersion = Application.unityVersion;
             //Main.Mod.Logger.Log($"KeyViewer: Detected Unity version: {unityVersion}");
             string bundleName = unityVersion.StartsWith("6000") ? "keyviewer_resources_6000" : "keyviewer_resources_2022";
             string bundlePath = Path.Combine(assetsDir, bundleName);
             //Main.Mod.Logger.Log($"KeyViewer: Trying AssetBundle: {bundlePath}");
+            */
+            string bundlePath = Path.Combine(assetsDir, "keyviewer_resources");
 
             var bundle = AssetBundle.LoadFromFile(bundlePath);
             if (bundle != null)
@@ -73,9 +87,6 @@ namespace JipperKeyViewer.KeyViewer
                 {
                     Main.Mod.Logger.Error("KeyViewer: cjkFonts-regular-normalized not found in AB");
                 }
-
-                LinkFallbackFonts();
-
                 if (keyBackgroundSprite == null)
                     Main.Mod.Logger.Error("KeyViewer: AssetBundle \u4E2D\u672A\u627E\u5230 KeyBackground");
                 if (keyOutlineSprite == null)
@@ -89,6 +100,7 @@ namespace JipperKeyViewer.KeyViewer
             }
 
             // Load custom fonts from CustomFont directory and ensure fallback
+            ScanGameFonts();
             ScanCustomFonts();
             LinkFallbackFonts();
 

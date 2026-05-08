@@ -7,7 +7,6 @@ namespace JipperKeyViewer.KeyViewer
     {
         public void DrawSettingsWindow()
         {
-            ScanGameFonts();
             GUILayout.BeginVertical();
             GUILayout.BeginHorizontal();
             string langNow = I18n.Tr("language") + ": " + (Settings.Language == "en" ? "English" : "\u4E2D\u6587");

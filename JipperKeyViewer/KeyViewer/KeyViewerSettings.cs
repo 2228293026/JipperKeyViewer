@@ -58,7 +58,7 @@ namespace JipperKeyViewer.KeyViewer
         public Color RainColor = KeyViewer.RainColor;
         public Color RainColor2 = KeyViewer.RainColor2;
         public Color RainColor3 = KeyViewer.RainColor3;
-        public bool EnableRainEffect = false;
+        public bool EnableRainEffect = true;
         // 每一排的独立雨滴启用开关
         public bool EnableRainForRow1 = true;
         public bool EnableRainForRow2 = true;
@@ -75,7 +75,7 @@ namespace JipperKeyViewer.KeyViewer
         public Vector2 MainKeyViewerPosition = new Vector2(0, 1);
         public Vector2 FootKeyViewerPosition = new Vector2(0.24f, 1f);
         public bool CustomPositionEnabled = false;
-        public int FontIndex;
+        public int FontIndex = 1;
         public string FontName = "";
         public string Language = "en";
         // 添加构造函数来确保数组正确初始化

@@ -17,8 +17,8 @@ namespace JipperKeyViewer
 
             modEntry.OnToggle = OnToggle;
             modEntry.OnGUI = (entry) => KeyViewer.KeyViewer.instance?.DrawSettingsWindow();
-
-            modEntry.Logger.Log("Mod loaded");
+            modEntry.OnSaveGUI = (entry) => KeyViewer.KeyViewer.instance?.SaveSettings();
+            modEntry.OnHideGUI = (entry) => KeyViewer.KeyViewer.instance?.SaveSettings();
             return true;
         }
 

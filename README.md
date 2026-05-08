@@ -18,6 +18,7 @@ A key overlay mod for **A Dance of Fire and Ice**, built with UnityModManager.
 - i18n: Chinese / English UI / 中英文界面
 - Key rebinding & custom text labels / 按键绑定修改和自定义文本标签
 - Object pooling for zero GC allocation on hot path / 对象池，热路径零 GC 分配
+- **Custom font support**: Place .ttf/.otf files in `CustomFont/` folder, auto-detected on startup / **自定义字体支持**：将 .ttf/.otf 文件放入 `CustomFont/` 文件夹，启动自动识别
 
 ## Installation / 安装
 
@@ -81,7 +82,8 @@ JipperKeyViewer/
 │   ├── FootKeyviewerStyle.cs     # Foot key layout enum / 脚键布局枚举
 │   └── I18n.cs                   # i18n system (C# defaults + lang.json override)
 ├── Properties/AssemblyInfo.cs
-└── lang.json                     # Translation file / 翻译文件
+├── lang.json                     # Translation file / 翻译文件
+└── CustomFont/                   # Custom fonts (.ttf/.otf) / 用户自定义字体目录
 ```
 
 ## Notes / 说明

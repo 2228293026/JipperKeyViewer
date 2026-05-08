@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using TMPro;
 using UnityEngine;
@@ -20,7 +21,7 @@ namespace JipperKeyViewer.KeyViewer
                     fontList.Add(new FontEntry(f.name, f));
             }
             gameFontsScanned = true;
-            Main.Mod.Logger.Log($"KeyViewer: \u626B\u63CF\u5230 {fontList.Count} \u4E2A\u5B57\u4F53");
+            //Main.Mod.Logger.Log($"KeyViewer: \u626B\u63CF\u5230 {fontList.Count} \u4E2A\u5B57\u4F53");
         }
 
         private bool TryLoadResources()
@@ -28,28 +29,21 @@ namespace JipperKeyViewer.KeyViewer
             if (keyBackgroundSprite != null) return true;
 
             fontList.Clear();
+            shadowMaterials.Clear();
 
             string modPath = Path.GetDirectoryName(Main.Mod?.Path) ?? ".";
             string assetsDir = Path.Combine(modPath, "assets");
 
             string unityVersion = Application.unityVersion;
-            Main.Mod.Logger.Log($"KeyViewer: Detected Unity version: {unityVersion}");
+            //Main.Mod.Logger.Log($"KeyViewer: Detected Unity version: {unityVersion}");
             string bundleName = unityVersion.StartsWith("6000") ? "keyviewer_resources_6000" : "keyviewer_resources_2022";
             string bundlePath = Path.Combine(assetsDir, bundleName);
-            Main.Mod.Logger.Log($"KeyViewer: Trying AssetBundle: {bundlePath}");
+            //Main.Mod.Logger.Log($"KeyViewer: Trying AssetBundle: {bundlePath}");
 
             var bundle = AssetBundle.LoadFromFile(bundlePath);
-            if (bundle == null)
+            if (bundle != null)
             {
-                Main.Mod.Logger.Log($"KeyViewer: Version-specific AB not found, trying fallback");
-                string fallbackPath = Path.Combine(assetsDir, "keyviewer_resources");
-                bundle = AssetBundle.LoadFromFile(fallbackPath);
-                if (bundle != null)
-                    Main.Mod.Logger.Log($"KeyViewer: Loaded fallback AB: {fallbackPath}");
-            }
-            else
-            {
-                Main.Mod.Logger.Log($"KeyViewer: Loaded version-specific AB: {bundlePath}");
+                //Main.Mod.Logger.Log($"KeyViewer: Loaded version-specific AB: {bundlePath}");
             }
             if (bundle != null)
             {
@@ -61,7 +55,7 @@ namespace JipperKeyViewer.KeyViewer
                 {
                     mapleFont = TMP_FontAsset.CreateFontAsset(mapleOTF);
                     fontList.Add(new FontEntry("MapleStory", mapleFont));
-                    Main.Mod.Logger.Log($"KeyViewer: MapleStory font created, valid={mapleFont != null}");
+                    //Main.Mod.Logger.Log($"KeyViewer: MapleStory font created, valid={mapleFont != null}");
                 }
                 else
                 {
@@ -73,7 +67,7 @@ namespace JipperKeyViewer.KeyViewer
                 {
                     var cjkFont = TMP_FontAsset.CreateFontAsset(cjkOTF);
                     fontList.Insert(0, new FontEntry("CJK (\u9884\u8BBE)", cjkFont));
-                    Main.Mod.Logger.Log($"KeyViewer: CJK font created, valid={cjkFont != null}");
+                    //Main.Mod.Logger.Log($"KeyViewer: CJK font created, valid={cjkFont != null}");
                 }
                 else
                 {
@@ -93,6 +87,10 @@ namespace JipperKeyViewer.KeyViewer
             {
                 Main.Mod.Logger.Error($"KeyViewer: \u65E0\u6CD5\u52A0\u8F7D AssetBundle\uFF0C\u8DEF\u5F84: {bundlePath}");
             }
+
+            // Load custom fonts from CustomFont directory and ensure fallback
+            ScanCustomFonts();
+            LinkFallbackFonts();
 
             if (Settings.FontIndex >= fontList.Count)
                 Settings.FontIndex = 0;
@@ -186,22 +184,86 @@ namespace JipperKeyViewer.KeyViewer
             return result;
         }
 
-        static void LinkFallbackFonts()
-        {
-            FontEntry cjkEntry = null;
-            foreach (var e in fontList)
-                if (e.name == "CJK (\u9884\u8BBE)") { cjkEntry = e; break; }
-            if (cjkEntry?.font == null) return;
+		static void LinkFallbackFonts()
+		{
+			FontEntry cjkEntry = null;
+			foreach (var e in fontList)
+				if (e.name == "CJK (\u9884\u8BBE)") { cjkEntry = e; break; }
+			if (cjkEntry?.font == null) return;
 
-            foreach (var entry in fontList)
+			foreach (var entry in fontList)
+			{
+				if (entry.font == null || entry == cjkEntry) continue;
+				if (entry.font.fallbackFontAssetTable == null)
+					entry.font.fallbackFontAssetTable = new List<TMP_FontAsset>();
+				if (!entry.font.fallbackFontAssetTable.Contains(cjkEntry.font))
+					entry.font.fallbackFontAssetTable.Add(cjkEntry.font);
+			}
+			//Main.Mod.Logger.Log($"KeyViewer: CJK font linked as fallback for bundled fonts");
+		}
+
+		void ScanCustomFonts()
+		{
+			string modPath = Path.GetDirectoryName(Main.Mod?.Path) ?? ".";
+			string customFontDir = Path.Combine(modPath, "CustomFont");
+
+            if (!Directory.Exists(customFontDir))
             {
-                if (entry.font == null || entry == cjkEntry) continue;
-                if (entry.font.fallbackFontAssetTable == null)
-                    entry.font.fallbackFontAssetTable = new List<TMP_FontAsset>();
-                if (!entry.font.fallbackFontAssetTable.Contains(cjkEntry.font))
-                    entry.font.fallbackFontAssetTable.Add(cjkEntry.font);
+                Directory.CreateDirectory(customFontDir);
+                Main.Mod.Logger.Log($"KeyViewer: Created CustomFont directory at {customFontDir}");
+                return;
             }
-            Main.Mod.Logger.Log($"KeyViewer: CJK font linked as fallback for bundled fonts");
-        }
+
+            string[] fontFiles = Directory.GetFiles(customFontDir, "*.ttf", SearchOption.TopDirectoryOnly)
+				.Concat(Directory.GetFiles(customFontDir, "*.otf", SearchOption.TopDirectoryOnly))
+				.ToArray();
+
+			if (fontFiles.Length == 0)
+			{
+				Main.Mod.Logger.Log($"KeyViewer: No .ttf/.otf files found in CustomFont directory");
+				return;
+			}
+
+			foreach (string fontPath in fontFiles)
+			{
+				try
+				{
+					string fileName = Path.GetFileNameWithoutExtension(fontPath);
+					string entryName = $"Custom: {fileName}";
+
+					// Avoid duplicates by checking existing font name
+					bool exists = false;
+					foreach (var e in fontList)
+					{
+						if (e.name.Equals(entryName, StringComparison.OrdinalIgnoreCase))
+						{
+							exists = true;
+							break;
+						}
+					}
+					if (exists)
+					{
+						Main.Mod.Logger.Log($"KeyViewer: Custom font '{fileName}' already loaded, skipping");
+						continue;
+					}
+
+					Font font = new Font(fontPath);
+					TMP_FontAsset tmpFont = TMP_FontAsset.CreateFontAsset(font);
+					if (tmpFont != null)
+					{
+						fontList.Add(new FontEntry(entryName, tmpFont));
+						//Main.Mod.Logger.Log($"KeyViewer: Loaded custom font '{fileName}'");
+					}
+					else
+					{
+						Main.Mod.Logger.Error($"KeyViewer: Failed to create TMP_FontAsset from '{fontPath}'");
+					}
+				}
+				catch (Exception e)
+				{
+					Main.Mod.Logger.Error($"KeyViewer: Failed to load custom font '{fontPath}': {e.Message}");
+				}
+			}
+		}
     }
 }

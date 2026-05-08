@@ -3,9 +3,6 @@
     { "key": "key_display_on", "en": "Key Display ON", "zh": "按键显示已开启" },
     { "key": "key_display_off", "en": "Key Display OFF", "zh": "按键显示已关闭" },
     { "key": "font_style", "en": "Font Style", "zh": "字体样式" },
-    { "key": "font_default", "en": "Default", "zh": "默认" },
-    { "key": "font_arial", "en": "Arial", "zh": "Arial" },
-    { "key": "font_maple", "en": "MapleStory", "zh": "枫叶字体" },
     { "key": "place_below", "en": "Place Below", "zh": "放在下方" },
     { "key": "custom_pos", "en": "Custom Position", "zh": "自定义位置" },
     { "key": "main_key_pos", "en": "Main Key Position", "zh": "主按键位置" },
@@ -47,6 +44,8 @@
     { "key": "color_rain3", "en": "Rain Color Row 3", "zh": "第三排雨滴颜色" },
     { "key": "preview", "en": "Preview", "zh": "预览" },
     { "key": "reset_default", "en": "Reset", "zh": "重置默认" },
-    { "key": "language", "en": "Language", "zh": "语言" }
+    { "key": "language", "en": "Language", "zh": "语言" },
+    { "key": "no_fonts_found", "en": "(No fonts available)", "zh": "（无可用字体）" },
+    { "key": "custom_font_tip", "en": "Custom Fonts: Put .ttf/.otf files into the CustomFont folder, then restart the game.", "zh": "使用自定义字体 将 .ttf/.otf 字体文件放入 CustomFont 文件夹，重启游戏生效。" }
   ]
 }

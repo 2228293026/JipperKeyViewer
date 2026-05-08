@@ -109,7 +109,15 @@ namespace JipperKeyViewer.KeyViewer
             if (fontRestored || string.IsNullOrEmpty(Settings.FontName)) return;
             string fontName = Settings.FontName;
             for (int i = 0; i < fontList.Count; i++)
-                if (fontList[i].name == fontName) { fontRestored = true; return; }
+            {
+                if (fontList[i].name == fontName)
+                {
+                    Settings.FontIndex = i;      // ✅ 更新索引
+                    UpdateAllFonts();            // ✅ 应用字体
+                    fontRestored = true;
+                    return;
+                }
+            }
             ScanGameFonts();
             for (int i = 0; i < fontList.Count; i++)
             {
@@ -118,7 +126,7 @@ namespace JipperKeyViewer.KeyViewer
                     Settings.FontIndex = i;
                     UpdateAllFonts();
                     fontRestored = true;
-                    Main.Mod.Logger.Log($"KeyViewer: \u5DF2\u6062\u590D\u5B57\u4F53 {fontName}");
+                    //Main.Mod.Logger.Log($"KeyViewer: \u5DF2\u6062\u590D\u5B57\u4F53 {fontName}");
                     return;
                 }
             }
@@ -156,7 +164,7 @@ namespace JipperKeyViewer.KeyViewer
             gameFontsScanned = false;
             LinkFallbackFonts();
             ClearAllRainDrops();
-            Main.Mod.Logger.Log($"Scene changed to {scene.name}, saved counts, cleared rain drops");
+            //Main.Mod.Logger.Log($"Scene changed to {scene.name}, saved counts, cleared rain drops");
         }
 
         void Update()

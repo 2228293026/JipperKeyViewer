@@ -29,24 +29,36 @@ namespace JipperKeyViewer.KeyViewer
             string curFont = fontList.Count > 0 ? fontList[Settings.FontIndex].name : "\u65E0";
             if (GUILayout.Button((fontListExpanded ? "\u25BC " : "\u25B6 ") + curFont, GUILayout.MinWidth(200)))
                 fontListExpanded = !fontListExpanded;
-            if (fontListExpanded && fontList.Count > 1)
+            if (fontListExpanded)
             {
-                int newIdx = Settings.FontIndex;
-                for (int i = 0; i < fontList.Count; i++)
+                if (fontList.Count > 1)
                 {
-                    bool selected = i == Settings.FontIndex;
-                    string label = (selected ? "\u2713 " : "  ") + fontList[i].name;
-                    if (GUILayout.Button(label, GUILayout.MinWidth(200)))
-                        newIdx = i;
+                    int newIdx = Settings.FontIndex;
+                    for (int i = 0; i < fontList.Count; i++)
+                    {
+                        bool selected = i == Settings.FontIndex;
+                        string label = (selected ? "\u2713 " : "  ") + fontList[i].name;
+                        if (GUILayout.Button(label, GUILayout.MinWidth(200)))
+                            newIdx = i;
+                    }
+                    if (newIdx != Settings.FontIndex)
+                    {
+                        Settings.FontIndex = newIdx;
+                        Settings.FontName = fontList[newIdx].name;
+                        fontRestored = false;
+                        UpdateAllFonts();
+                        SaveSettings();
+                    }
                 }
-                if (newIdx != Settings.FontIndex)
+                else
                 {
-                    Settings.FontIndex = newIdx;
-                    Settings.FontName = fontList[newIdx].name;
-                    fontRestored = false;
-                    UpdateAllFonts();
-                    SaveSettings();
+                    GUILayout.Label("\u25B8 " + I18n.Tr("no_fonts_found"), GUILayout.MinWidth(200));
                 }
+
+                GUILayout.Space(5);
+                GUILayout.BeginVertical("box");
+                GUILayout.Label(I18n.Tr("custom_font_tip"));
+                GUILayout.EndVertical();
             }
             bool newDownLocation = GUILayout.Toggle(Settings.DownLocation, I18n.Tr("place_below"));
             if (newDownLocation != Settings.DownLocation)

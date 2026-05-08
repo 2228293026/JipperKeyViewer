@@ -14,9 +14,6 @@ namespace JipperKeyViewer.KeyViewer
         {
             ["key_display_on"] = "Key Display ON",
             ["font_style"] = "Font Style",
-            ["font_default"] = "Default",
-            ["font_arial"] = "Arial",
-            ["font_maple"] = "MapleStory",
             ["place_below"] = "Place Below",
             ["custom_pos"] = "Custom Position",
             ["main_key_pos"] = "Main Key Position",
@@ -59,15 +56,14 @@ namespace JipperKeyViewer.KeyViewer
             ["preview"] = "Preview",
             ["reset_default"] = "Reset",
             ["language"] = "Language",
+            ["no_fonts_found"] = "(No fonts available)",
+            ["custom_font_tip"] = "Custom Fonts: Put .ttf/.otf files into the CustomFont folder, then restart the game.",
         };
 
         static Dictionary<string, string> zh = new()
         {
             ["key_display_on"] = "按键显示已开启",
             ["font_style"] = "字体样式",
-            ["font_default"] = "默认",
-            ["font_arial"] = "Arial",
-            ["font_maple"] = "枫叶字体",
             ["place_below"] = "放在下方",
             ["custom_pos"] = "自定义位置",
             ["main_key_pos"] = "主按键位置",
@@ -110,6 +106,8 @@ namespace JipperKeyViewer.KeyViewer
             ["preview"] = "预览",
             ["reset_default"] = "重置默认",
             ["language"] = "语言",
+            ["no_fonts_found"] = "（无可用字体）",
+            ["custom_font_tip"] = "使用自定义字体 将 .ttf/.otf 字体文件放入 CustomFont 文件夹，重启游戏生效。",
         };
 
         static string FilePath

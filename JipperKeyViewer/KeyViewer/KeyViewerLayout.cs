@@ -389,6 +389,7 @@ namespace JipperKeyViewer.KeyViewer
                 text.fontSizeMax = 20;
                 text.raycastTarget = false;
                 text.alignment = slim ? TextAlignmentOptions.Right : TextAlignmentOptions.Top;
+                text.color = settings.Text;
                 key.value = text;
             }
             UpdateKeyText(key, i);

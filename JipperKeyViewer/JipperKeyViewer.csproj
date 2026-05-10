@@ -92,7 +92,6 @@
     <Compile Include="KeyViewer\KeyviewerStyle.cs" />
     <Compile Include="KeyViewer\Rain.cs" />
     <Compile Include="KeyViewer\RawRain.cs" />
-    <Compile Include="KeyViewer\UnsafeNativeMethods.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -102,8 +101,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="lang\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

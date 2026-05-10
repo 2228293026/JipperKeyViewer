@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using System.Security;
 using UnityEngine;
 
 namespace JipperKeyViewer.KeyViewer
@@ -12,7 +11,7 @@ namespace JipperKeyViewer.KeyViewer
             KeyPressed = new bool[256];
             for (int i = 0; i < 256; i++)
             {
-                KeyPressed[i] = (GetAsyncKeyState(i) & 0x8000) != 0;
+                KeyPressed[i] = (UnsafeNativeMethods.GetAsyncKeyState(i) & 0x8000) != 0;
             }
         }
 
@@ -34,7 +33,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 for (int i = 0; i < 256; i++)
                 {
-                    bool currentPressed = (GetAsyncKeyState(i) & 0x8000) != 0;
+                    bool currentPressed = (UnsafeNativeMethods.GetAsyncKeyState(i) & 0x8000) != 0;
                     if (currentPressed == KeyPressed[i]) continue;
                     if (KeyPressed[i])
                     {
@@ -76,9 +75,6 @@ namespace JipperKeyViewer.KeyViewer
             KeyPressed = null;
             SaveSettings();
         }
-
-        [DllImport("user32.dll"), SuppressUnmanagedCodeSecurity]
-        private static extern short GetAsyncKeyState(int vKey);
 
         public static string KeyToString(KeyCode keyCode)
         {

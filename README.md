@@ -93,8 +93,6 @@ JipperKeyViewer/
 - Normalized custom positioning (v1.2.2+): X/Y 0–1 adapts to any resolution and aspect ratio / 归一化坐标，自动适配任意分辨率和宽高比
 - Dynamic font scanning: supports any TMP font used in the game / 动态字体扫描：支持游戏内所有 TMP 字体
 - Fonts: [Maplestory OTF](https://fontmeme.com/fonts/maplestory-font/), [cjkFonts](https://www.zitijia.com/i/321518733317131321.html)
-- Contrast
-  <img width="901" height="835" alt="image" src="https://github.com/user-attachments/assets/9c9cacb6-d091-4016-a648-5562e59c8c97" />(from DeepSeek-V4-Pro)
 
 ## Acknowledgements / 鸣谢
 - The key layout and visual style references the implementation in [JipperResourcePack](https://github.com/Jongye0l/JipperResourcePack).

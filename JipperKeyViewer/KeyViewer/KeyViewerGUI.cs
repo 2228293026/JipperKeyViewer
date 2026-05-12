@@ -1,6 +1,7 @@
 // Settings GUI window drawn inside UnityModManager / 在 UnityModManager 内绘制的设置 GUI 窗口
 // All user-facing configuration UI: language, fonts, position, layout, colors, key rebinding, text editing / 所有面向用户的配置 UI：语言、字体、位置、布局、颜色、按键重绑定、文本编辑
 
+using System.IO;
 using TMPro;
 using UnityEngine;
 
@@ -72,6 +73,7 @@ namespace JipperKeyViewer.KeyViewer
                 GUILayout.Space(5);
                 GUILayout.BeginVertical("box");
                 GUILayout.Label(I18n.Tr("custom_font_tip"));
+                GUILayout.Label($"CustomFont : {Path.Combine(Path.GetDirectoryName(Main.Mod?.Path) ?? ".", "CustomFont")}");
                 GUILayout.EndVertical();
             }
 

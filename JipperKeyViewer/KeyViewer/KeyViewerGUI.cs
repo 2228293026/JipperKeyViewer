@@ -69,6 +69,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 Settings.EnableCountFormatting = newFormatting;
                 SaveSettings();
+                RefreshAllCountDisplay();
             }
             GUILayout.EndHorizontal();
 

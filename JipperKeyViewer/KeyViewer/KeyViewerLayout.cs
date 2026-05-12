@@ -916,5 +916,18 @@ namespace JipperKeyViewer.KeyViewer
         {
             return Settings.EnableCountFormatting ? count.ToString("N0") : count.ToString();
         }
+
+        /// <summary>Refresh all count displays with current formatting setting / 按当前格式设置刷新所有计数显示</summary>
+        public void RefreshAllCountDisplay()
+        {
+            if (Keys == null) return;
+            for (int i = 0; i < Keys.Length; i++)
+            {
+                if (Keys[i] != null && Keys[i].value != null)
+                    Keys[i].value.text = FormatCount(Settings.Count[i]);
+            }
+            if (Total != null && Total.value != null)
+                Total.value.text = FormatCount(Settings.TotalCount);
+        }
     }
 }

@@ -46,6 +46,7 @@ namespace JipperKeyViewer.KeyViewer
         {
             if (rawRain.removed)
             {
+                KeyViewer.instance.ReturnRawRain(rawRain);
                 rawRain = null;
                 KeyViewer.instance.ReturnRain(this);
                 return;

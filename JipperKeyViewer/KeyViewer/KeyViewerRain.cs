@@ -75,13 +75,50 @@ namespace JipperKeyViewer.KeyViewer
         }
 
         /// <summary>
+        /// Get a RawRain data object from pool, or create new / 从对象池获取 RawRain 数据对象，或新建
+        /// </summary>
+        private RawRain GetRawRain(Transform transform, byte color)
+        {
+            RawRain r;
+            if (rawRainPool.Count > 0)
+            {
+                r = rawRainPool.Pop();
+                r.transform = transform;
+                r.color = color;
+                r.localTime = 0;
+                r.removed = false;
+                r.sizeDelta = null;
+                r.anchoredPosition = null;
+                r.FinalSize = default;
+            }
+            else
+            {
+                r = new RawRain(transform, color);
+            }
+            return r;
+        }
+
+        /// <summary>
+        /// Return a RawRain data object to the pool / 将 RawRain 数据对象归还对象池
+        /// </summary>
+        public void ReturnRawRain(RawRain r)
+        {
+            if (rawRainPool.Count >= MAX_RAWRAIN_POOL_SIZE) return;
+            r.transform = null;
+            r.removed = false;
+            r.sizeDelta = null;
+            r.anchoredPosition = null;
+            rawRainPool.Push(r);
+        }
+
+        /// <summary>
         /// Create a RawRain data entry and enqueue it for Rain component assignment / 创建 RawRain 数据条目并排队等待 Rain 组件分配
         /// </summary>
         private void CreateRainDropForKey(int keyIndex, Key key)
         {
             if (key == null || key.rain == null) return;
 
-            RawRain rawRain = new RawRain(key.rain.transform, key.color);
+            RawRain rawRain = GetRawRain(key.rain.transform, key.color);
             key.rawRainQueue.Enqueue(rawRain);
             key.rainList.Add(rawRain);
         }
@@ -114,9 +151,8 @@ namespace JipperKeyViewer.KeyViewer
                 if (key == null) continue;
                 while (key.rawRainQueue.Count > 0)
                 {
-                    var rain = key.rawRainQueue.Dequeue();
-                    if (rain != null && rain.transform != null && rain.transform.gameObject != null)
-                        Destroy(rain.transform.gameObject);
+                    var rawRain = key.rawRainQueue.Dequeue();
+                    ReturnRawRain(rawRain);
                 }
                 foreach (var rain in key.rainList)
                     rain.removed = true;

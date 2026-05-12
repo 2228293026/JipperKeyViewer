@@ -114,6 +114,9 @@ namespace JipperKeyViewer.KeyViewer
         public static KeyViewer instance;
         /// <summary>Rain component pool (object pooling for zero GC) / 雨滴组件对象池</summary>
         private Stack<Rain> rainPool = new Stack<Rain>();
+        /// <summary>RawRain data pool / RawRain 数据对象池</summary>
+        private Stack<RawRain> rawRainPool = new Stack<RawRain>();
+        const int MAX_RAWRAIN_POOL_SIZE = 60;
         /// <summary>List of currently active rain components / 当前活跃的雨滴组件列表</summary>
         private readonly List<Rain> activeRains = new List<Rain>();
         /// <summary>Font name → index lookup dictionary / 字体名称到索引的查找字典</summary>

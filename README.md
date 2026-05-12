@@ -29,17 +29,18 @@ A key overlay mod for **A Dance of Fire and Ice**, built with UnityModManager.
 
 ### AssetBundle files / 资源文件
 
-The `assets/` folder must contain the version-specific AssetBundle:
+The `assets/` folder must contain the AssetBundle file:
 
 ```
 assets/
-├── keyviewer_resources_2022   (for Unity 2022 games / 用于 Unity 2022 的游戏)
-└── keyviewer_resources_6000   (for Unity 6000 games / 用于 Unity 6000 的游戏)
+└── keyviewer_resources         (AssetBundle with sprites and bundled fonts / 包含精灵和内置字体的 AB 文件)
 ```
 
-The mod auto-detects the Unity version at runtime and loads the correct file.
+The file is loaded from the `assets/` directory at startup.  
+AB 文件在启动时会从 `assets/` 目录加载。
 
-Mod 会自动检测游戏 Unity 版本并加载对应的 AB 文件。
+> **Note:** For Unity 2022 and Unity 6000 builds, the AssetBundle is compatible with both versions.  
+> **注意：** 该 AB 文件同时兼容 Unity 2022 和 Unity 6000 版本。
 
 ## Build / 构建
 
@@ -51,16 +52,16 @@ Open `JipperKeyViewer.slnx` in Visual Studio 2022+.
 
 Two Unity projects are provided for different Unity versions:
 
-| Project | Unity Version | Output |
-|---------|--------------|--------|
-| `JipperKeyViewer-Unity/` | Unity 6000 | `keyviewer_resources_6000` |
-| `JipperKeyViewer-Unity2022/` | Unity 2022 | `keyviewer_resources_2022` |
+| Project | Unity Version | Output Directory |
+|---------|--------------|-----------------|
+| `JipperKeyViewer-Unity/` | Unity 6000 | `AssetBundles/` |
+| `JipperKeyViewer-Unity2022/` | Unity 2022 | `AssetBundles/` |
 
 To rebuild:
 
-1. Open the corresponding Unity project / 打开对应的 Unity 项目
+1. Open the **Unity 6000** project in Unity 6000, or the **Unity 2022** project in Unity 2022 / 在对应版本中打开项目
 2. `Tools → Build KeyViewer AssetBundle`
-3. Copy the generated file from `AssetBundles/` to the mod's `assets/` folder / 将生成的文件复制到 mod 的 `assets/` 目录
+3. Copy the generated `keyviewer_resources` from `AssetBundles/` to the mod's `assets/` folder / 将生成的 `keyviewer_resources` 复制到 mod 的 `assets/` 目录
 
 ## Files / 文件
 
@@ -75,15 +76,16 @@ JipperKeyViewer/
 │   ├── KeyViewerRain.cs          # Rain effect & object pool / 雨滴效果 & 对象池
 │   ├── KeyViewerResources.cs     # AssetBundle & font management / 资源 & 字体
 │   ├── KeyViewerSettings.cs      # Settings data model & helpers / 设置模型 & 辅助类
-│   ├── Key.cs                    # Key MonoBehaviour with rain queue
-│   ├── Rain.cs                   # Rain drop rendering with object pool
-│   ├── RawRain.cs                # Rain drop data & position calculation
+│   ├── Key.cs                    # Key MonoBehaviour with rain queue / 按键组件
+│   ├── Rain.cs                   # Rain drop rendering with object pool / 雨滴渲染
+│   ├── RawRain.cs                # Rain drop data & position calculation / 雨滴数据对象
 │   ├── KeyviewerStyle.cs         # Key layout enum / 布局枚举
 │   ├── FootKeyviewerStyle.cs     # Foot key layout enum / 脚键布局枚举
 │   └── I18n.cs                   # i18n system (C# defaults + lang.json override)
 ├── Properties/AssemblyInfo.cs
 ├── lang.json                     # Translation file / 翻译文件
-└── CustomFont/                   # Custom fonts (.ttf/.otf) / 用户自定义字体目录
+├── CustomFont/                   # Custom fonts (.ttf/.otf) / 用户自定义字体目录
+└── assets/                       # AssetBundle files (runtime) / AB 资源文件（运行时）
 ```
 
 ## Notes / 说明
@@ -93,6 +95,7 @@ JipperKeyViewer/
 - Normalized custom positioning (v1.2.2+): X/Y 0–1 adapts to any resolution and aspect ratio / 归一化坐标，自动适配任意分辨率和宽高比
 - Dynamic font scanning: supports any TMP font used in the game / 动态字体扫描：支持游戏内所有 TMP 字体
 - Fonts: [Maplestory OTF](https://fontmeme.com/fonts/maplestory-font/), [cjkFonts](https://www.zitijia.com/i/321518733317131321.html)
+- CustomFont folder path displayed in settings UI for easy access / 设置界面中显示 CustomFont 文件夹路径，方便查找
 
 ## Acknowledgements / 鸣谢
 - The key layout and visual style references the implementation in [JipperResourcePack](https://github.com/Jongye0l/JipperResourcePack).

@@ -1,9 +1,19 @@
+// Key detection and rebinding logic / 按键检测和重新绑定逻辑
+// Handles listening for new key presses during rebinding and converting KeyCodes to display strings / 处理重绑定期间监听新按键，以及将 KeyCode 转换为显示字符串
+
 using UnityEngine;
 
 namespace JipperKeyViewer.KeyViewer
 {
+    /// <summary>
+    /// Input processing: key rebinding and display string conversion / 输入处理：按键重绑定和显示字符串转换
+    /// </summary>
     public partial class KeyViewer : MonoBehaviour
     {
+        /// <summary>
+        /// Listen for a key press when the user is rebinding a key / 当用户正在重绑定时监听按键按下
+        /// Waits for any key down, then assigns it to the SelectedKey / 等待任意键按下，然后分配给 SelectedKey
+        /// </summary>
         private void ProcessKeySelection()
         {
             if (SelectedKey == -1 || TextChanged || !Application.isFocused) return;
@@ -19,6 +29,9 @@ namespace JipperKeyViewer.KeyViewer
             }
         }
 
+        /// <summary>
+        /// Assign a key code to the selected slot and update the display / 将按键代码分配给选中的槽位并更新显示
+        /// </summary>
         private void SetupKey(KeyCode keyCode)
         {
             KeyCode[] keyCodes = GetKeyCode();
@@ -42,6 +55,10 @@ namespace JipperKeyViewer.KeyViewer
             SaveSettings();
         }
 
+        /// <summary>
+        /// Convert a Unity KeyCode to a short display-friendly string / 将 Unity KeyCode 转换为简短友好的显示字符串
+        /// Handles special keys: Alpha→number, Left/Right→L/R, Shift→⇧, Control→Ctrl, arrows, etc. / 处理特殊键：Alpha→数字，Left/Right→L/R，Shift→⇧，Control→Ctrl，方向键等
+        /// </summary>
         public static string KeyToString(KeyCode keyCode)
         {
             string keyString = keyCode.ToString();
@@ -86,6 +103,7 @@ namespace JipperKeyViewer.KeyViewer
             };
         }
 
+        /// <summary>Calculate IMGUI text field width based on content length / 根据内容长度计算 IMGUI 文本框宽度</summary>
         private static GUILayoutOption FloatFieldWidth(string text) => GUILayout.Width(Mathf.Max(30, text.Length * 9));
     }
 }

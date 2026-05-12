@@ -1,15 +1,27 @@
+// Settings GUI window drawn inside UnityModManager / 在 UnityModManager 内绘制的设置 GUI 窗口
+// All user-facing configuration UI: language, fonts, position, layout, colors, key rebinding, text editing / 所有面向用户的配置 UI：语言、字体、位置、布局、颜色、按键重绑定、文本编辑
+
 using TMPro;
 using UnityEngine;
 
 namespace JipperKeyViewer.KeyViewer
 {
+    /// <summary>
+    /// Settings window rendered via UnityModManager.OnGUI / 通过 UnityModManager.OnGUI 渲染的设置窗口
+    /// Uses IMGUI (GUILayout) for immediate-mode UI / 使用 IMGUI (GUILayout) 即时模式 UI
+    /// </summary>
     public partial class KeyViewer : MonoBehaviour
     {
+        /// <summary>
+        /// Draw the main settings window / 绘制主设置窗口
+        /// Contains: language toggle, enable/disable, font selection, placement, custom positioning, layout, size, rain, key change, text change, colors / 包含：语言切换、启用/禁用、字体选择、位置、自定义定位、布局、大小、雨滴、按键更改、文本更改、颜色
+        /// </summary>
         public void DrawSettingsWindow()
         {
             GUILayout.BeginVertical();
+            // Language toggle / 语言切换
             GUILayout.BeginHorizontal();
-            string langNow = I18n.Tr("language") + ": " + (Settings.Language == "en" ? "English" : "\u4E2D\u6587");
+            string langNow = I18n.Tr("language") + ": " + (Settings.Language == "en" ? "English" : "Chinese");
             if (GUILayout.Button(langNow))
             {
                 Settings.Language = Settings.Language == "en" ? "zh" : "en";
@@ -18,14 +30,17 @@ namespace JipperKeyViewer.KeyViewer
             }
             GUILayout.EndHorizontal();
 
+            // Enable/disable toggle / 启用/禁用开关
             bool newEnabled = GUILayout.Toggle(Settings.Enabled, (Settings.Enabled ? "\u2713 " : "\u2717 ") + I18n.Tr("key_display_on"));
             if (newEnabled != Settings.Enabled)
             {
                 Settings.Enabled = newEnabled;
                 SaveSettings();
             }
+
+            // Font selection dropdown / 字体选择下拉菜单
             GUILayout.Label(I18n.Tr("font_style") + ":");
-            string curFont = fontList.Count > 0 ? fontList[Settings.FontIndex].name : "\u65E0";
+            string curFont = fontList.Count > 0 ? fontList[Settings.FontIndex].name : "None";
             if (GUILayout.Button((fontListExpanded ? "\u25BC " : "\u25B6 ") + curFont, GUILayout.MinWidth(200)))
                 fontListExpanded = !fontListExpanded;
             if (fontListExpanded)
@@ -59,6 +74,8 @@ namespace JipperKeyViewer.KeyViewer
                 GUILayout.Label(I18n.Tr("custom_font_tip"));
                 GUILayout.EndVertical();
             }
+
+            // DownLocation toggle (place below) / 下移位置开关
             bool newDownLocation = GUILayout.Toggle(Settings.DownLocation, I18n.Tr("place_below"));
             if (newDownLocation != Settings.DownLocation)
             {
@@ -67,7 +84,10 @@ namespace JipperKeyViewer.KeyViewer
                 ResetFootKeyViewer();
                 SaveSettings();
             }
+
             GUILayout.Space(10);
+
+            // Custom position toggle / 自定义位置开关
             bool newCustomPosition = GUILayout.Toggle(Settings.CustomPositionEnabled,
                 (Settings.CustomPositionEnabled ? "\u25E2 " : "\u25B6 ") + I18n.Tr("custom_pos"));
             if (newCustomPosition != Settings.CustomPositionEnabled)
@@ -85,6 +105,8 @@ namespace JipperKeyViewer.KeyViewer
                     ResetFootKeyViewer();
                 }
             }
+
+            // Custom position sliders (normalized 0-1) / 自定义位置滑块（归一化 0-1）
             if (Settings.CustomPositionEnabled)
             {
                 GUILayout.BeginVertical("box");
@@ -92,6 +114,7 @@ namespace JipperKeyViewer.KeyViewer
                 Vector2 tempMainPos = Settings.MainKeyViewerPosition;
                 Vector2 tempFootPos = Settings.FootKeyViewerPosition;
                 bool positionChanged = false;
+
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("X:", GUILayout.Width(20));
                 float newMainX = GUILayout.HorizontalSlider(tempMainPos.x, 0f, 1f, GUILayout.Width(120));
@@ -107,6 +130,7 @@ namespace JipperKeyViewer.KeyViewer
                     positionChanged = true;
                 }
                 GUILayout.EndHorizontal();
+
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Y:", GUILayout.Width(20));
                 float newMainY = GUILayout.HorizontalSlider(tempMainPos.y, 0f, 1f, GUILayout.Width(120));
@@ -122,7 +146,9 @@ namespace JipperKeyViewer.KeyViewer
                     positionChanged = true;
                 }
                 GUILayout.EndHorizontal();
+
                 GUILayout.Label(I18n.Tr("foot_key_pos") + ":");
+
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("X:", GUILayout.Width(20));
                 float newFootX = GUILayout.HorizontalSlider(tempFootPos.x, 0f, 1f, GUILayout.Width(120));
@@ -138,6 +164,7 @@ namespace JipperKeyViewer.KeyViewer
                     positionChanged = true;
                 }
                 GUILayout.EndHorizontal();
+
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Y:", GUILayout.Width(20));
                 float newFootY = GUILayout.HorizontalSlider(tempFootPos.y, 0f, 1f, GUILayout.Width(120));
@@ -153,6 +180,7 @@ namespace JipperKeyViewer.KeyViewer
                     positionChanged = true;
                 }
                 GUILayout.EndHorizontal();
+
                 if (positionChanged)
                 {
                     Settings.MainKeyViewerPosition = tempMainPos;
@@ -161,6 +189,7 @@ namespace JipperKeyViewer.KeyViewer
                     ResetFootKeyViewerPosition();
                     SaveSettings();
                 }
+
                 if (GUILayout.Button(I18n.Tr("reset_pos")))
                 {
                     Settings.MainKeyViewerPosition = new Vector2(0, 1);
@@ -171,6 +200,8 @@ namespace JipperKeyViewer.KeyViewer
                 }
                 GUILayout.EndVertical();
             }
+
+            // Key layout selection grid / 按键布局选择网格
             GUILayout.Label(I18n.Tr("key_layout") + ":");
             KeyviewerStyle newStyle = (KeyviewerStyle)GUILayout.SelectionGrid((int)Settings.KeyViewerStyle,
                 KeyLayoutNames, 3);
@@ -180,6 +211,8 @@ namespace JipperKeyViewer.KeyViewer
                 ChangeKeyViewer();
                 SaveSettings();
             }
+
+            // Foot key layout selection grid / 脚键布局选择网格
             GUILayout.Label(I18n.Tr("foot_keys") + ":");
             FootKeyviewerStyle newFootStyle = (FootKeyviewerStyle)GUILayout.SelectionGrid((int)Settings.FootKeyViewerStyle,
                 FootKeyLayoutNames, 5);
@@ -189,6 +222,8 @@ namespace JipperKeyViewer.KeyViewer
                 ResetFootKeyViewer();
                 SaveSettings();
             }
+
+            // Size slider / 大小滑块
             GUILayout.BeginHorizontal();
             GUILayout.Label(I18n.Tr("size") + ":");
             float newSettingsSize = GUILayout.HorizontalSlider(Settings.Size, 0.1f, 2f, GUILayout.Width(120));
@@ -205,19 +240,21 @@ namespace JipperKeyViewer.KeyViewer
                 SaveSettings();
             }
             GUILayout.EndHorizontal();
+
             GUILayout.Space(10);
             GUILayout.Space(10);
+
+            // Rain effect master toggle / 雨滴效果总开关
             bool newRainEffect = GUILayout.Toggle(Settings.EnableRainEffect, I18n.Tr("rain_effect"));
             if (newRainEffect != Settings.EnableRainEffect)
             {
                 Settings.EnableRainEffect = newRainEffect;
                 if (!Settings.EnableRainEffect)
-                {
                     ClearAllRainDrops();
-                }
                 SaveSettings();
             }
 
+            // Per-row rain settings / 每排雨滴设置
             if (Settings.EnableRainEffect)
             {
                 GUILayout.Label(I18n.Tr("rain_rows") + ":");
@@ -225,20 +262,17 @@ namespace JipperKeyViewer.KeyViewer
                 Settings.EnableRainForRow1 = GUILayout.Toggle(Settings.EnableRainForRow1, I18n.Tr("rain_row1"));
                 Settings.EnableRainForRow2 = GUILayout.Toggle(Settings.EnableRainForRow2, I18n.Tr("rain_row2"));
                 if (Settings.KeyViewerStyle == KeyviewerStyle.Key20)
-                {
                     Settings.EnableRainForRow3 = GUILayout.Toggle(Settings.EnableRainForRow3, I18n.Tr("rain_row3"));
-                }
                 GUILayout.EndHorizontal();
-                GUILayout.Label(I18n.Tr("rain_height") + ":");
 
+                // Per-row rain height / 每排雨滴高度
+                GUILayout.Label(I18n.Tr("rain_height") + ":");
                 GUILayout.BeginHorizontal();
                 GUILayout.Label(I18n.Tr("rain_row1") + ":");
                 Settings.RainHeightRow1 = GUILayout.HorizontalSlider(Settings.RainHeightRow1, 1f, 1000f, GUILayout.Width(120));
                 string height1Text = GUILayout.TextField(Settings.RainHeightRow1.ToString("F2"), FloatFieldWidth(Settings.RainHeightRow1.ToString("F2")));
                 if (float.TryParse(height1Text, out float newHeight1))
-                {
                     Settings.RainHeightRow1 = newHeight1;
-                }
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
@@ -246,9 +280,7 @@ namespace JipperKeyViewer.KeyViewer
                 Settings.RainHeightRow2 = GUILayout.HorizontalSlider(Settings.RainHeightRow2, 1f, 1000f, GUILayout.Width(120));
                 string height2Text = GUILayout.TextField(Settings.RainHeightRow2.ToString("F2"), FloatFieldWidth(Settings.RainHeightRow2.ToString("F2")));
                 if (float.TryParse(height2Text, out float newHeight2))
-                {
                     Settings.RainHeightRow2 = newHeight2;
-                }
                 GUILayout.EndHorizontal();
 
                 if (Settings.KeyViewerStyle == KeyviewerStyle.Key20)
@@ -258,21 +290,18 @@ namespace JipperKeyViewer.KeyViewer
                     Settings.RainHeightRow3 = GUILayout.HorizontalSlider(Settings.RainHeightRow3, 1f, 1000f, GUILayout.Width(120));
                     string height3Text = GUILayout.TextField(Settings.RainHeightRow3.ToString("F2"), FloatFieldWidth(Settings.RainHeightRow3.ToString("F2")));
                     if (float.TryParse(height3Text, out float newHeight3))
-                    {
                         Settings.RainHeightRow3 = newHeight3;
-                    }
                     GUILayout.EndHorizontal();
                 }
 
+                // Per-row rain speed / 每排雨滴速度
                 GUILayout.Label(I18n.Tr("rain_speed") + ":");
                 GUILayout.BeginHorizontal();
                 GUILayout.Label(I18n.Tr("rain_row1") + ":");
                 Settings.RainSpeedRow1 = GUILayout.HorizontalSlider(Settings.RainSpeedRow1, 50f, 1000f, GUILayout.Width(120));
                 string speed1Text = GUILayout.TextField(Settings.RainSpeedRow1.ToString("F0"), FloatFieldWidth(Settings.RainSpeedRow1.ToString("F0")));
                 if (float.TryParse(speed1Text, out float newSpeed1))
-                {
                     Settings.RainSpeedRow1 = Mathf.Clamp(newSpeed1, 50f, 1000f);
-                }
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
@@ -280,9 +309,7 @@ namespace JipperKeyViewer.KeyViewer
                 Settings.RainSpeedRow2 = GUILayout.HorizontalSlider(Settings.RainSpeedRow2, 50f, 1000f, GUILayout.Width(120));
                 string speed2Text = GUILayout.TextField(Settings.RainSpeedRow2.ToString("F0"), FloatFieldWidth(Settings.RainSpeedRow2.ToString("F0")));
                 if (float.TryParse(speed2Text, out float newSpeed2))
-                {
                     Settings.RainSpeedRow2 = Mathf.Clamp(newSpeed2, 50f, 1000f);
-                }
                 GUILayout.EndHorizontal();
 
                 if (Settings.KeyViewerStyle == KeyviewerStyle.Key20)
@@ -292,38 +319,42 @@ namespace JipperKeyViewer.KeyViewer
                     Settings.RainSpeedRow3 = GUILayout.HorizontalSlider(Settings.RainSpeedRow3, 50f, 1000f, GUILayout.Width(120));
                     string speed3Text = GUILayout.TextField(Settings.RainSpeedRow3.ToString("F0"), FloatFieldWidth(Settings.RainSpeedRow3.ToString("F0")));
                     if (float.TryParse(speed3Text, out float newSpeed3))
-                    {
                         Settings.RainSpeedRow3 = Mathf.Clamp(newSpeed3, 50f, 1000f);
-                    }
                     GUILayout.EndHorizontal();
                 }
             }
 
             GUILayout.Space(10);
+
+            // Key rebinding section / 按键重绑定区域
             KeyChangeExpanded = GUILayout.Toggle(KeyChangeExpanded, (KeyChangeExpanded ? "\u25E2 " : "\u25B6 ") + I18n.Tr("key_change"));
             if (KeyChangeExpanded)
-            {
                 DrawKeyChangeSection();
-            }
+
+            // Custom text labels section / 自定义文本标签区域
             TextChangeExpanded = GUILayout.Toggle(TextChangeExpanded, (TextChangeExpanded ? "\u25E2 " : "\u25B6 ") + I18n.Tr("text_change"));
             if (TextChangeExpanded)
-            {
                 DrawTextChangeSection();
-            }
+
+            // Color settings section / 颜色设置区域
             bool colorsExpanded = GUILayout.Toggle(ColorExpanded != null, (ColorExpanded != null ? "\u25E2 " : "\u25B6 ") + I18n.Tr("colors"));
             if (colorsExpanded && ColorExpanded == null) ColorExpanded = new bool[9];
             if (!colorsExpanded) ColorExpanded = null;
             if (ColorExpanded != null)
-            {
                 DrawColorSettings();
-            }
+
             GUILayout.EndVertical();
         }
 
+        /// <summary>
+        /// Draw the key rebinding section / 绘制按键重绑定区域
+        /// Shows all keys for the current layout as clickable buttons / 将当前布局的所有按键显示为可点击的按钮
+        /// </summary>
         private void DrawKeyChangeSection()
         {
             GUILayout.BeginVertical("box");
             KeyCode[] keyCodes = GetKeyCode();
+
             GUILayout.Label(I18n.Tr("row1_keys") + ":");
             GUILayout.BeginHorizontal();
             for (int i = 0; i < 8; i++)
@@ -335,6 +366,7 @@ namespace JipperKeyViewer.KeyViewer
                 }
             }
             GUILayout.EndHorizontal();
+
             GUILayout.Label(I18n.Tr("row2_keys") + ":");
             byte[] backSequence = GetBackSequence();
             GUILayout.BeginHorizontal();
@@ -347,6 +379,7 @@ namespace JipperKeyViewer.KeyViewer
                 }
             }
             GUILayout.EndHorizontal();
+
             if (Settings.KeyViewerStyle == KeyviewerStyle.Key20)
             {
                 GUILayout.Label(I18n.Tr("row3_keys") + ":");
@@ -364,6 +397,8 @@ namespace JipperKeyViewer.KeyViewer
                 }
                 GUILayout.EndHorizontal();
             }
+
+            // Foot key section / 脚键区域
             KeyCode[] footKeyCodes = GetFootKeyCode();
             if (footKeyCodes != null && footKeyCodes.Length > 0)
             {
@@ -410,18 +445,22 @@ namespace JipperKeyViewer.KeyViewer
                     GUILayout.EndHorizontal();
                 }
             }
+
             if (SelectedKey != -1 && !TextChanged)
-            {
                 GUILayout.Label("<b>" + I18n.Tr("press_new_key") + "</b>");
-            }
             GUILayout.EndVertical();
         }
 
+        /// <summary>
+        /// Draw the custom text editing section / 绘制自定义文本编辑区域
+        /// Allows typing custom labels for each key / 允许为每个按键输入自定义标签
+        /// </summary>
         private void DrawTextChangeSection()
         {
             GUILayout.BeginVertical("box");
             KeyCode[] keyCodes = GetKeyCode();
             string[] keyTexts = GetKeyText();
+
             GUILayout.Label(I18n.Tr("row1_text") + ":");
             GUILayout.BeginHorizontal();
             for (int i = 0; i < 8; i++)
@@ -434,6 +473,7 @@ namespace JipperKeyViewer.KeyViewer
                 }
             }
             GUILayout.EndHorizontal();
+
             GUILayout.Label(I18n.Tr("row2_text") + ":");
             byte[] backSequence = GetBackSequence();
             GUILayout.BeginHorizontal();
@@ -448,6 +488,7 @@ namespace JipperKeyViewer.KeyViewer
                 }
             }
             GUILayout.EndHorizontal();
+
             if (Settings.KeyViewerStyle == KeyviewerStyle.Key20)
             {
                 GUILayout.Label(I18n.Tr("row3_text") + ":");
@@ -466,6 +507,7 @@ namespace JipperKeyViewer.KeyViewer
                 }
                 GUILayout.EndHorizontal();
             }
+
             if (SelectedKey != -1 && TextChanged)
             {
                 GUILayout.BeginHorizontal();
@@ -475,20 +517,17 @@ namespace JipperKeyViewer.KeyViewer
                 if (keyTexts[SelectedKey] != newText)
                 {
                     if (Keys != null && SelectedKey < Keys.Length && Keys[SelectedKey] != null)
-                    {
                         Keys[SelectedKey].text.text = newText;
-                    }
                     keyTexts[SelectedKey] = string.IsNullOrEmpty(newText) || newText == KeyToString(keyCodes[SelectedKey]) ? null : newText;
                 }
                 GUILayout.EndHorizontal();
+
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button(I18n.Tr("reset")))
                 {
                     keyTexts[SelectedKey] = null;
                     if (Keys != null && SelectedKey < Keys.Length && Keys[SelectedKey] != null)
-                    {
                         Keys[SelectedKey].text.text = KeyToString(keyCodes[SelectedKey]);
-                    }
                     SelectedKey = -1;
                     SaveSettings();
                 }
@@ -502,6 +541,10 @@ namespace JipperKeyViewer.KeyViewer
             GUILayout.EndVertical();
         }
 
+        /// <summary>
+        /// Draw the color settings section / 绘制颜色设置区域
+        /// RGB-A sliders with preview and reset buttons for each color / 每个颜色的 R/G/B/A 滑块、预览和重置按钮
+        /// </summary>
         private void DrawColorSettings()
         {
             GUILayout.BeginVertical("box");
@@ -537,6 +580,9 @@ namespace JipperKeyViewer.KeyViewer
             GUILayout.EndVertical();
         }
 
+        /// <summary>
+        /// Draw an individual color picker with R/G/B/A sliders and preview / 绘制单个颜色选择器，包含 R/G/B/A 滑块和预览
+        /// </summary>
         private Color DrawColorPicker(string label, Color currentColor, Color defaultColor)
         {
             GUILayout.BeginVertical();

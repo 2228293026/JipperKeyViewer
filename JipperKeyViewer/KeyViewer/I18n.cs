@@ -1,3 +1,6 @@
+// Internationalization (i18n) system / 国际化（i18n）系统
+// Supports English and Chinese with optional external lang.json override / 支持英文和中文，可选外部 lang.json 覆盖
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -6,11 +9,17 @@ using UnityEngine;
 
 namespace JipperKeyViewer.KeyViewer
 {
+    /// <summary>
+    /// Static i18n helper providing translated strings / 静态国际化辅助类，提供翻译字符串
+    /// Loads default translations from hardcoded dictionaries, then attempts to merge from lang.json / 从硬编码字典加载默认翻译，然后尝试从 lang.json 合并
+    /// </summary>
     public static class I18n
     {
+        /// <summary>Current language code ("en" or "zh") / 当前语言代码</summary>
         public static string Lang { get; set; } = "en";
 
-        static Dictionary<string, string> en = new()
+        /// <summary>English translations dictionary / 英文字典</summary>
+        static readonly Dictionary<string, string> en = new()
         {
             ["key_display_on"] = "Key Display ON",
             ["font_style"] = "Font Style",
@@ -60,7 +69,8 @@ namespace JipperKeyViewer.KeyViewer
             ["custom_font_tip"] = "Custom Fonts: Put .ttf/.otf files into the CustomFont folder, then restart the game.",
         };
 
-        static Dictionary<string, string> zh = new()
+        /// <summary>Chinese translations dictionary / 中文字典</summary>
+        static readonly Dictionary<string, string> zh = new()
         {
             ["key_display_on"] = "按键显示已开启",
             ["font_style"] = "字体样式",
@@ -110,6 +120,7 @@ namespace JipperKeyViewer.KeyViewer
             ["custom_font_tip"] = "使用自定义字体 将 .ttf/.otf 字体文件放入 CustomFont 文件夹，重启游戏生效。",
         };
 
+        /// <summary>Path to the lang.json override file / lang.json 覆盖文件路径</summary>
         static string FilePath
         {
             get
@@ -119,6 +130,9 @@ namespace JipperKeyViewer.KeyViewer
             }
         }
 
+        /// <summary>
+        /// Load translations from lang.json if present, merging into the built-in dictionaries / 从 lang.json 加载翻译（如果存在），合并到内置字典中
+        /// </summary>
         public static void Load()
         {
             string path = FilePath;
@@ -131,7 +145,6 @@ namespace JipperKeyViewer.KeyViewer
             try
             {
                 string json = File.ReadAllText(path);
-                // Simple manual parse: extract key/en/zh from each object
                 var matches = Regex.Matches(json, "\"key\"\\s*:\\s*\"([^\"]+)\"\\s*,\\s*\"en\"\\s*:\\s*\"([^\"]+)\"\\s*,\\s*\"zh\"\\s*:\\s*\"([^\"]+)\"");
                 foreach (Match m in matches)
                 {
@@ -155,8 +168,13 @@ namespace JipperKeyViewer.KeyViewer
             }
         }
 
+        /// <summary>Returns the currently active translation dictionary / 返回当前活跃的翻译字典</summary>
         static Dictionary<string, string> current => Lang == "en" ? en : zh;
 
+        /// <summary>
+        /// Translate a key string to the current language / 将键翻译为当前语言
+        /// Returns the key itself if no translation is found / 如果找不到翻译则返回键本身
+        /// </summary>
         public static string Tr(string key)
         {
             return current.TryGetValue(key, out var val) ? val : key;

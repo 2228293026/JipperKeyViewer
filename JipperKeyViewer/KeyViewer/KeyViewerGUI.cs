@@ -42,7 +42,8 @@ namespace JipperKeyViewer.KeyViewer
             // Count reset / 计数重置
             GUILayout.Space(5);
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button(I18n.Tr("reset_counts"), GUILayout.MinWidth(120)))
+            var redTextStyle = new GUIStyle(GUI.skin.button) { normal = { textColor = Color.red } };
+            if (GUILayout.Button(I18n.Tr("reset_counts"), redTextStyle, GUILayout.MinWidth(120)))
             {
                 lastTotal = -1;
                 lastKps = -1;
@@ -463,8 +464,8 @@ namespace JipperKeyViewer.KeyViewer
                             TextChanged = false;
                         }
                     }
-                    GUILayout.EndHorizontal();
-                    GUILayout.BeginHorizontal();
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
                     int remaining = footKeyCodes.Length - 8;
                     for (int s = 0; s < 8 - remaining; s++)
                         GUILayout.FlexibleSpace();

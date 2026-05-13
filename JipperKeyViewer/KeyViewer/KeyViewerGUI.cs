@@ -22,10 +22,13 @@ namespace JipperKeyViewer.KeyViewer
             GUILayout.BeginVertical();
             // Language toggle / 语言切换
             GUILayout.BeginHorizontal();
-            string langNow = I18n.Tr("language") + ": " + (Settings.Language == "en" ? "English" : "Chinese");
+            string[] langLabels = { "English", "中文", "한국어" };
+            int langIdx = Settings.Language == "en" ? 0 : Settings.Language == "zh" ? 1 : 2;
+            string langNow = I18n.Tr("language") + ": " + langLabels[langIdx];
             if (GUILayout.Button(langNow))
             {
-                Settings.Language = Settings.Language == "en" ? "zh" : "en";
+                langIdx = (langIdx + 1) % 3;
+                Settings.Language = langIdx == 0 ? "en" : langIdx == 1 ? "zh" : "ko";
                 I18n.Lang = Settings.Language;
                 SaveSettings();
             }

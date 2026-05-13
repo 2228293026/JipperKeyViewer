@@ -126,6 +126,60 @@ namespace JipperKeyViewer.KeyViewer
             ["count_formatting"] = "大数字千分位显示 1,234",
         };
 
+        /// <summary>Korean translations dictionary / 韩文字典</summary>
+        static readonly Dictionary<string, string> ko = new()
+        {
+            ["key_display_on"] = "키 표시 켜짐",
+            ["font_style"] = "글꼴 스타일",
+            ["place_below"] = "아래에 배치",
+            ["custom_pos"] = "사용자 위치",
+            ["main_key_pos"] = "메인 키 위치",
+            ["foot_key_pos"] = "발판 키 위치",
+            ["reset_pos"] = "위치 초기화",
+            ["key_layout"] = "키 배치",
+            ["foot_keys"] = "발판 키",
+            ["size"] = "크기",
+            ["rain_effect"] = "빗줄 효과 켜기",
+            ["rain_rows"] = "빗줄 행",
+            ["rain_row1"] = "1열",
+            ["rain_row2"] = "2열",
+            ["rain_row3"] = "3열",
+            ["rain_height"] = "빗줄 높이",
+            ["rain_speed"] = "빗줄 속도",
+
+            ["key_change"] = "키 변경",
+            ["text_change"] = "텍스트 변경",
+            ["colors"] = "색상",
+            ["save"] = "설정 저장",
+            ["row1_keys"] = "1열 키",
+            ["row2_keys"] = "2열 키",
+            ["row3_keys"] = "3열 키",
+            ["foot_keys_list"] = "발판 키",
+            ["press_new_key"] = "새 키를 누르세요...",
+            ["row1_text"] = "1열 텍스트",
+            ["row2_text"] = "2열 텍스트",
+            ["row3_text"] = "3열 텍스트",
+            ["input_text"] = "텍스트 입력",
+            ["reset"] = "초기화",
+            ["save_btn"] = "저장",
+            ["color_bg"] = "배경",
+            ["color_bg_clicked"] = "배경 (눌림)",
+            ["color_outline"] = "테두리",
+            ["color_outline_clicked"] = "테두리 (눌림)",
+            ["color_text"] = "텍스트",
+            ["color_text_clicked"] = "텍스트 (눌림)",
+            ["color_rain1"] = "1열 빗줄 색상",
+            ["color_rain2"] = "2열 빗줄 색상",
+            ["color_rain3"] = "3열 빗줄 색상",
+            ["preview"] = "미리보기",
+            ["reset_default"] = "기본값으로 초기화",
+            ["language"] = "언어",
+            ["no_fonts_found"] = "(사용 가능한 글꼴 없음)",
+            ["custom_font_tip"] = "사용자 글꼴: .ttf/.otf 파일을 CustomFont 폴더에 넣은 후 게임을 다시 시작하세요.",
+            ["reset_counts"] = "카운트 초기화",
+            ["count_formatting"] = "큰 숫자에 1,234 형식 사용",
+        };
+
         /// <summary>Path to the lang.json override file / lang.json 覆盖文件路径</summary>
         static string FilePath
         {
@@ -175,7 +229,7 @@ namespace JipperKeyViewer.KeyViewer
         }
 
         /// <summary>Returns the currently active translation dictionary / 返回当前活跃的翻译字典</summary>
-        static Dictionary<string, string> current => Lang == "en" ? en : zh;
+        static Dictionary<string, string> current => Lang == "en" ? en : Lang == "zh" ? zh : ko;
 
         /// <summary>
         /// Translate a key string to the current language / 将键翻译为当前语言

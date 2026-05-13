@@ -18,6 +18,8 @@
     { "key": "rain_row3", "en": "Row 3", "zh": "第3排" },
     { "key": "rain_height", "en": "Rain Height", "zh": "雨滴高度" },
     { "key": "rain_speed", "en": "Rain Speed", "zh": "雨线速度" },
+    { "key": "rain_fade_top", "en": "Fade Rain Top", "zh": "雨滴顶部渐隐" },
+    { "key": "rain_fade_height", "en": "Fade Height", "zh": "渐隐高度" },
     { "key": "key_change", "en": "Key Change", "zh": "按键更改" },
     { "key": "text_change", "en": "Text Change", "zh": "文本更改" },
     { "key": "colors", "en": "Colors", "zh": "颜色" },

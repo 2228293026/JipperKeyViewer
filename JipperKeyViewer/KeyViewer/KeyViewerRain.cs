@@ -87,6 +87,8 @@ namespace JipperKeyViewer.KeyViewer
                 r.color = color;
                 r.localTime = 0;
                 r.removed = false;
+                r.alpha = 1f;
+                r.fadeTimer = -1f;
                 r.sizeDelta = null;
                 r.anchoredPosition = null;
                 r.FinalSize = default;

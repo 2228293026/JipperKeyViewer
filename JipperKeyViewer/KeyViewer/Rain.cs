@@ -38,6 +38,9 @@ namespace JipperKeyViewer.KeyViewer
             transform.anchoredPosition = Vector2.zero;
             transform.sizeDelta = Vector2.zero;
             transform.localScale = Vector3.one;
+            var c = image.color;
+            c.a = 1f;
+            image.color = c;
         }
 
         /// <summary>
@@ -62,6 +65,9 @@ namespace JipperKeyViewer.KeyViewer
                 transform.anchoredPosition = rawRain.anchoredPosition.Value;
                 rawRain.anchoredPosition = null;
             }
+            var c = image.color;
+            c.a = rawRain.alpha;
+            image.color = c;
         }
     }
 }

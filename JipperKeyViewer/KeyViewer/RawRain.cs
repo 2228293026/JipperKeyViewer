@@ -26,6 +26,10 @@ namespace JipperKeyViewer.KeyViewer
         public Vector2? anchoredPosition;
         /// <summary>Whether this rain drop has expired and should be removed / 此雨滴是否已过期，应被移除</summary>
         public bool removed;
+        /// <summary>Current alpha (1 = opaque, fades to 0 during shrink phase) / 当前透明度（1=不透明，缩小阶段衰减到0）</summary>
+        public float alpha = 1f;
+        /// <summary>Time in ms since entering shrink phase with !updateSize (for minimum fade duration) / 松开后缩小阶段的持续时间（保证最小淡出时长）</summary>
+        public float fadeTimer = -1f;
 
         /// <summary>
         /// Update position and size based on elapsed time / 根据经过时间更新位置和大小
@@ -50,11 +54,20 @@ namespace JipperKeyViewer.KeyViewer
             {
                 float sizeY = FinalSize.y - y + height;
                 if (sizeY < 0) return false;
+                if (!updateSize)
+                {
+                    if (fadeTimer < 0) fadeTimer = 0f;
+                    fadeTimer += deltaMs;
+                    float sizeAlpha = sizeY / height;
+                    float timeAlpha = 1f - Mathf.Clamp01(fadeTimer / 150f);
+                    alpha = Mathf.Max(sizeAlpha, timeAlpha);
+                }
                 sizeDelta = new Vector2(FinalSize.x, sizeY);
                 anchoredPosition = new Vector2(0, height);
             }
             else
             {
+                fadeTimer = -1f;
                 if (updateSize) sizeDelta = FinalSize;
                 anchoredPosition = new Vector2(0, y);
             }
@@ -69,6 +82,8 @@ namespace JipperKeyViewer.KeyViewer
             this.transform = transform;
             this.color = color;
             localTime = 0;
+            alpha = 1f;
+            fadeTimer = -1f;
         }
     }
 }

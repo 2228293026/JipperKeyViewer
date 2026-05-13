@@ -24,23 +24,36 @@ namespace JipperKeyViewer.KeyViewer
             if (!Settings.EnableRainEffect) return;
             if (Keys == null || Keys.Length == 0) return;
 
-            // Pre-compute per-row speed factors and heights to avoid redundant calculations / 预计算每排的速度因子和高度以避免重复计算
-            rowSpeeds[0] = Settings.RainSpeedRow1 / 300f;
-            rowSpeeds[1] = Settings.RainSpeedRow2 / 300f;
-            rowSpeeds[2] = Settings.RainSpeedRow3 / 300f;
-            rowHeights[0] = Settings.RainHeightRow1;
-            rowHeights[1] = Settings.RainHeightRow2;
-            rowHeights[2] = Settings.RainHeightRow3;
+            // Recompute cached row values only when settings change / 仅当设置变更时重算缓存的行值
+            if (cachedRainSpeed1 != Settings.RainSpeedRow1 || cachedRainSpeed2 != Settings.RainSpeedRow2 ||
+                cachedRainSpeed3 != Settings.RainSpeedRow3 || cachedRainHeight1 != Settings.RainHeightRow1 ||
+                cachedRainHeight2 != Settings.RainHeightRow2 || cachedRainHeight3 != Settings.RainHeightRow3)
+            {
+                rowSpeeds[0] = Settings.RainSpeedRow1 / 300f;
+                rowSpeeds[1] = Settings.RainSpeedRow2 / 300f;
+                rowSpeeds[2] = Settings.RainSpeedRow3 / 300f;
+                rowHeights[0] = Settings.RainHeightRow1;
+                rowHeights[1] = Settings.RainHeightRow2;
+                rowHeights[2] = Settings.RainHeightRow3;
+                cachedRainSpeed1 = Settings.RainSpeedRow1;
+                cachedRainSpeed2 = Settings.RainSpeedRow2;
+                cachedRainSpeed3 = Settings.RainSpeedRow3;
+                cachedRainHeight1 = Settings.RainHeightRow1;
+                cachedRainHeight2 = Settings.RainHeightRow2;
+                cachedRainHeight3 = Settings.RainHeightRow3;
+            }
 
             bool enableFade = Settings.EnableRainFade;
             double now = Time.unscaledTimeAsDouble;
 
-            for (int i = 0; i < Keys.Length; i++)
+            for (int i = 0; i < rainActiveKeys.Count; i++)
             {
-                Key key = Keys[i];
-                if (key == null || key.rainList.Count == 0) continue;
+                int ki = rainActiveKeys[i];
+                Key key = Keys[ki];
+                if (key == null) { rainActiveKeys.RemoveAt(i--); continue; }
+                if (key.rainList.Count == 0) { rainActiveKeys.RemoveAt(i--); continue; }
 
-                int row = i < 8 ? 0 : (i < 16 ? 1 : 2);
+                int row = ki < 8 ? 0 : (ki < 16 ? 1 : 2);
 
                 // Reverse iteration avoids O(n²) from repeated RemoveAt / 反向迭代避免重复 RemoveAt 导致的 O(n²)
                 for (int j = key.rainList.Count - 1; j >= 0; j--)
@@ -146,6 +159,8 @@ namespace JipperKeyViewer.KeyViewer
             RawRain rawRain = GetRawRain(key.rain.transform, key.color);
             key.rawRainQueue.Enqueue(rawRain);
             key.rainList.Add(rawRain);
+            if (key.rainList.Count == 1)
+                rainActiveKeys.Add(keyIndex);
         }
 
         /// <summary>
@@ -154,6 +169,7 @@ namespace JipperKeyViewer.KeyViewer
         private void ClearAllRainDrops()
         {
             if (Keys == null) return;
+            rainActiveKeys.Clear();
             foreach (var key in Keys)
             {
                 if (key == null) continue;
@@ -175,19 +191,10 @@ namespace JipperKeyViewer.KeyViewer
         /// </summary>
         private void ClearAllRains()
         {
-            if (Keys == null) return;
-            foreach (var key in Keys)
-            {
-                if (key == null) continue;
-                while (key.rawRainQueue.Count > 0)
-                {
-                    var rawRain = key.rawRainQueue.Dequeue();
-                    ReturnRawRain(rawRain);
-                }
-                foreach (var rain in key.rainList)
-                    rain.removed = true;
-                key.rainList.Clear();
-            }
+            ClearAllRainDrops();
+            rainActiveKeys.Clear();
+            while (rainPool.Count > 0)
+                Object.Destroy(rainPool.Pop().gameObject);
         }
 
         /// <summary>Check if rain effect is enabled for the given key's row / 检查指定按键所在排的雨滴效果是否启用</summary>

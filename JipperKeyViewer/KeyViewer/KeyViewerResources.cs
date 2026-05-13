@@ -29,8 +29,10 @@ namespace JipperKeyViewer.KeyViewer
             int added = 0;
             foreach (var font in allFonts)
             {
-                if (fontList.Exists(e => e.font != null && e.font.name == font.name))
-                    continue;
+                bool exists = false;
+                foreach (var e in fontList)
+                    if (e.font != null && e.font.name == font.name) { exists = true; break; }
+                if (exists) continue;
 
                 var tmpFont = TMP_FontAsset.CreateFontAsset(font);
                 if (tmpFont != null)
@@ -254,9 +256,11 @@ namespace JipperKeyViewer.KeyViewer
                 return;
             }
 
-            string[] fontFiles = Directory.GetFiles(customFontDir, "*.ttf", SearchOption.TopDirectoryOnly)
-                .Concat(Directory.GetFiles(customFontDir, "*.otf", SearchOption.TopDirectoryOnly))
-                .ToArray();
+            string[] ttfFiles = Directory.GetFiles(customFontDir, "*.ttf", SearchOption.TopDirectoryOnly);
+            string[] otfFiles = Directory.GetFiles(customFontDir, "*.otf", SearchOption.TopDirectoryOnly);
+            string[] fontFiles = new string[ttfFiles.Length + otfFiles.Length];
+            Array.Copy(ttfFiles, fontFiles, ttfFiles.Length);
+            Array.Copy(otfFiles, 0, fontFiles, ttfFiles.Length, otfFiles.Length);
 
             if (fontFiles.Length == 0)
             {

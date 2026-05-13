@@ -1,6 +1,7 @@
 // Key detection and rebinding logic / 按键检测和重新绑定逻辑
 // Handles listening for new key presses during rebinding and converting KeyCodes to display strings / 处理重绑定期间监听新按键，以及将 KeyCode 转换为显示字符串
 
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace JipperKeyViewer.KeyViewer
@@ -60,52 +61,45 @@ namespace JipperKeyViewer.KeyViewer
             SaveSettings();
         }
 
+        static readonly Dictionary<KeyCode, string> KeyDisplayNames = new Dictionary<KeyCode, string>();
+
         /// <summary>
         /// Convert a Unity KeyCode to a short display-friendly string / 将 Unity KeyCode 转换为简短友好的显示字符串
-        /// Handles special keys: Alpha→number, Left/Right→L/R, Shift→⇧, Control→Ctrl, arrows, etc. / 处理特殊键：Alpha→数字，Left/Right→L/R，Shift→⇧，Control→Ctrl，方向键等
+        /// Uses a pre-built dictionary to avoid per-call allocations / 使用预建字典避免每次调用产生分配
         /// </summary>
         public static string KeyToString(KeyCode keyCode)
         {
-            string keyString = keyCode.ToString();
-            if (keyString.StartsWith("Alpha")) keyString = keyString.Substring(5);
-            if (keyString.StartsWith("Keypad")) keyString = keyString.Substring(6);
-            if (keyString.StartsWith("Left")) keyString = 'L' + keyString.Substring(4);
-            if (keyString.StartsWith("Right")) keyString = 'R' + keyString.Substring(5);
-            if (keyString.EndsWith("Shift")) keyString = keyString.Substring(0, keyString.Length - 5) + "\u21E7";
-            if (keyString.EndsWith("Control")) keyString = keyString.Substring(0, keyString.Length - 7) + "Ctrl";
-            if (keyString.StartsWith("Mouse")) keyString = "M" + keyString.Substring(5);
-            return keyString switch
+            if (KeyDisplayNames.Count == 0 && AllKeyCodes != null)
+                BuildKeyDisplayNames();
+            return KeyDisplayNames.TryGetValue(keyCode, out var name) ? name : keyCode.ToString();
+        }
+
+        static void BuildKeyDisplayNames()
+        {
+            foreach (KeyCode k in AllKeyCodes)
             {
-                "Plus" => "+",
-                "Minus" => "-",
-                "Multiply" => "*",
-                "Divide" => "/",
-                "Enter" => "\u21B5",
-                "Equals" => "=",
-                "Period" => ".",
-                "Return" => "\u21B5",
-                "None" => " ",
-                "Tab" => "\u21E5",
-                "Backslash" => "\\",
-                "Backspace" => "Back",
-                "Slash" => "/",
-                "LBracket" => "[",
-                "RBracket" => "]",
-                "Semicolon" => ";",
-                "Comma" => ",",
-                "Quote" => "'",
-                "UpArrow" => "\u2191",
-                "DownArrow" => "\u2193",
-                "LeftArrow" => "\u2190",
-                "RightArrow" => "\u2192",
-                "Space" => "\u2423",
-                "BackQuote" => "`",
-                "PageDown" => "Pg\u2193",
-                "PageUp" => "Pg\u2191",
-                "CapsLock" => "\u21EA",
-                "Insert" => "Ins",
-                _ => keyString
-            };
+                string s = k.ToString();
+                if (s.StartsWith("Alpha")) s = s.Substring(5);
+                else if (s.StartsWith("Keypad")) s = s.Substring(6);
+                else if (s.StartsWith("Left")) s = 'L' + s.Substring(4);
+                else if (s.StartsWith("Right")) s = 'R' + s.Substring(5);
+                else if (s.StartsWith("Mouse")) s = "M" + s.Substring(5);
+                if (s.EndsWith("Shift")) s = s.Substring(0, s.Length - 5) + "\u21E7";
+                else if (s.EndsWith("Control")) s = s.Substring(0, s.Length - 7) + "Ctrl";
+                s = s switch
+                {
+                    "Plus" => "+", "Minus" => "-", "Multiply" => "*", "Divide" => "/",
+                    "Enter" => "\u21B5", "Equals" => "=", "Period" => ".", "Return" => "\u21B5",
+                    "None" => " ", "Tab" => "\u21E5", "Backslash" => "\\", "Backspace" => "Back",
+                    "Slash" => "/", "LBracket" => "[", "RBracket" => "]", "Semicolon" => ";",
+                    "Comma" => ",", "Quote" => "'", "UpArrow" => "\u2191", "DownArrow" => "\u2193",
+                    "LeftArrow" => "\u2190", "RightArrow" => "\u2192", "Space" => "\u2423",
+                    "BackQuote" => "`", "PageDown" => "Pg\u2193", "PageUp" => "Pg\u2191",
+                    "CapsLock" => "\u21EA", "Insert" => "Ins",
+                    _ => s
+                };
+                KeyDisplayNames[k] = s;
+            }
         }
 
         /// <summary>Calculate IMGUI text field width based on content length / 根据内容长度计算 IMGUI 文本框宽度</summary>

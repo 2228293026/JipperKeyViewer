@@ -114,8 +114,8 @@ namespace JipperKeyViewer.KeyViewer
         /// <summary>RawRain data pool / RawRain 数据对象池</summary>
         private Stack<RawRain> rawRainPool = new Stack<RawRain>();
         const int MAX_RAWRAIN_POOL_SIZE = 60;
-        /// <summary>List of currently active rain components / 当前活跃的雨滴组件列表</summary>
-        private readonly List<Rain> activeRains = new List<Rain>();
+        /// <summary>Key indices that currently have active rain drops (avoids iterating all keys) / 当前有活跃雨滴的按键索引（避免遍历所有按键）</summary>
+        private readonly List<int> rainActiveKeys = new List<int>();
         /// <summary>Font name → index lookup dictionary / 字体名称到索引的查找字典</summary>
         static Dictionary<string, int> fontNameIndex;
         /// <summary>All non-joystick KeyCodes, cached for input detection / 所有非摇杆按键代码缓存，用于按键检测</summary>
@@ -144,6 +144,9 @@ namespace JipperKeyViewer.KeyViewer
         private readonly float[] rowSpeeds = new float[3];
         /// <summary>Pre-computed per-row rain heights / 每排预计算的雨滴高度</summary>
         private readonly float[] rowHeights = new float[3];
+        /// <summary>Cached rain settings for dirty-checked recomputation / 缓存的雨滴设置值，用于脏检查重算</summary>
+        float cachedRainSpeed1, cachedRainSpeed2, cachedRainSpeed3;
+        float cachedRainHeight1, cachedRainHeight2, cachedRainHeight3;
 
         // ======================== Unity Lifecycle / Unity 生命周期 ========================
 
@@ -216,7 +219,8 @@ namespace JipperKeyViewer.KeyViewer
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             SaveSettings();
-            fontList.RemoveAll(e => e.font == null);
+            for (int i = fontList.Count - 1; i >= 0; i--)
+                if (fontList[i].font == null) fontList.RemoveAt(i);
             if (Settings.FontIndex >= fontList.Count)
                 Settings.FontIndex = 0;
             fontRestored = false;

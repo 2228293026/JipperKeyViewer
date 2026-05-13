@@ -51,7 +51,6 @@ namespace JipperKeyViewer.KeyViewer
                     3 => KeyViewer.Settings.RainColor3,
                     _ => KeyViewer.Settings.RainColor2
                 };
-                rainComponent.transform.SetSiblingIndex(color - 1);
             }
         }
 

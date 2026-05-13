@@ -81,7 +81,6 @@ namespace JipperKeyViewer.KeyViewer
             KeyViewerSizeObject = null;
             // Return all rain objects to pool / 将所有雨滴对象归还池
             while (rainPool.Count > 0) Object.Destroy(rainPool.Pop().gameObject);
-            activeRains.Clear();
             // Destroy shadow materials / 销毁阴影材质
             foreach (var mat in shadowMaterials.Values)
                 Object.Destroy(mat);
@@ -127,8 +126,8 @@ namespace JipperKeyViewer.KeyViewer
             if (Keys == null) return;
             for (int i = 0; i < Keys.Length; i++)
             {
-                if (Keys[i] != null)
-                    Keys[i].ProcessRainQueue();
+                Key key = Keys[i];
+                if (key != null) key.ProcessRainQueue();
             }
         }
 
@@ -143,23 +142,25 @@ namespace JipperKeyViewer.KeyViewer
             for (int i = 0; i < keyCodes.Length; i++)
             {
                 int idx = baseIndex + i;
-                if (idx >= Keys.Length || Keys[idx] == null) continue;
+                if (idx >= Keys.Length) continue;
+                Key key = Keys[idx];
+                if (key == null) continue;
                 bool current = Input.GetKey(keyCodes[i]);
-                if (current != Keys[idx].isPressed)
+                if (current != key.isPressed)
                 {
                     UpdateKeyColors(idx, current);
-                    Keys[idx].isPressed = current;
+                    key.isPressed = current;
                     if (current)
                     {
                         // Increment counter and update display / 递增计数并更新显示
                         Settings.Count[idx]++;
                         Settings.TotalCount++;
-                        if (Keys[idx].value != null)
-                            Keys[idx].value.text = FormatCount(Settings.Count[idx]);
+                        if (key.value != null)
+                            key.value.text = FormatCount(Settings.Count[idx]);
                         PressTimes.Enqueue(elapsedMs);
                         // Trigger rain effect on key press / 按键按下时触发雨滴效果
                         if (Settings.EnableRainEffect)
-                            TriggerRainEffect(idx, Keys[idx]);
+                            TriggerRainEffect(idx, key);
                     }
                 }
             }
@@ -188,8 +189,9 @@ namespace JipperKeyViewer.KeyViewer
         /// </summary>
         private void UpdateKeyColors(int i, bool pressed)
         {
-            if (Keys == null || i >= Keys.Length || Keys[i] == null) return;
+            if (Keys == null || i >= Keys.Length) return;
             Key key = Keys[i];
+            if (key == null) return;
             key.background.color = pressed ? Settings.BackgroundClicked : Settings.Background;
             key.outline.color = pressed ? Settings.OutlineClicked : Settings.Outline;
             key.text.color = pressed ? Settings.TextClicked : Settings.Text;
@@ -330,7 +332,7 @@ namespace JipperKeyViewer.KeyViewer
             transform.sizeDelta = new Vector2(sizeX, slim ? 30 : 50);
             transform.anchorMin = transform.anchorMax = Vector2.zero;
             transform.pivot = new Vector2(0, 0.5f);
-            transform.anchoredPosition = new Vector2(x + ScreenCenterOffsetX, y);
+            transform.anchoredPosition = new Vector2(x, y);
             transform.localScale = Vector3.one;
             Key key = obj.AddComponent<Key>();
             key.isPressed = false;
@@ -670,24 +672,37 @@ namespace JipperKeyViewer.KeyViewer
             }
         }
 
-        private float CanvasWidth => Screen.width * 1080f / Screen.height;
+        private int lastScreenWidth, lastScreenHeight;
+        private float canvasWidth;
 
-        private float ScreenCenterOffsetX => 0f;
+        private float CanvasWidth
+        {
+            get
+            {
+                if (lastScreenWidth != Screen.width || lastScreenHeight != Screen.height)
+                {
+                    canvasWidth = Screen.width * 1080f / Screen.height;
+                    lastScreenWidth = Screen.width;
+                    lastScreenHeight = Screen.height;
+                }
+                return canvasWidth;
+            }
+        }
 
         private void SetKeyPosition(int keyIndex, float x, float y)
         {
-            float cx = x + ScreenCenterOffsetX;
+            float cx = x;
             if (keyIndex == -1 && Kps != null)
             {
-                Kps.transform.GetComponent<RectTransform>().anchoredPosition = new Vector2(cx, y);
+                ((RectTransform)Kps.transform).anchoredPosition = new Vector2(cx, y);
             }
             else if (keyIndex == -2 && Total != null)
             {
-                Total.transform.GetComponent<RectTransform>().anchoredPosition = new Vector2(cx, y);
+                ((RectTransform)Total.transform).anchoredPosition = new Vector2(cx, y);
             }
             else if (keyIndex >= 0 && keyIndex < Keys.Length && Keys[keyIndex] != null)
             {
-                Keys[keyIndex].transform.GetComponent<RectTransform>().anchoredPosition = new Vector2(cx, y);
+                ((RectTransform)Keys[keyIndex].transform).anchoredPosition = new Vector2(cx, y);
             }
         }
 
@@ -794,15 +809,14 @@ namespace JipperKeyViewer.KeyViewer
                 for (int i = 0; i < 20; i++)
                 {
                     if (Keys[i] != null && Keys[i].gameObject != null)
-                        Object.DestroyImmediate(Keys[i].gameObject);
+                        Object.Destroy(Keys[i].gameObject);
                 }
                 if (Total != null && Total.gameObject != null)
-                    Object.DestroyImmediate(Total.gameObject);
+                    Object.Destroy(Total.gameObject);
                 if (Kps != null && Kps.gameObject != null)
-                    Object.DestroyImmediate(Kps.gameObject);
+                    Object.Destroy(Kps.gameObject);
             }
             while (rainPool.Count > 0) Object.Destroy(rainPool.Pop().gameObject);
-            activeRains.Clear();
             switch (Settings.KeyViewerStyle)
             {
                 case KeyviewerStyle.Key12: Initialize12KeyViewer(); break;
@@ -825,11 +839,10 @@ namespace JipperKeyViewer.KeyViewer
                 for (int i = 20; i < 36; i++)
                 {
                     if (Keys[i] != null && Keys[i].gameObject != null)
-                        Object.DestroyImmediate(Keys[i].gameObject);
+                        Object.Destroy(Keys[i].gameObject);
                 }
             }
             while (rainPool.Count > 0) Object.Destroy(rainPool.Pop().gameObject);
-            activeRains.Clear();
             switch (Settings.FootKeyViewerStyle)
             {
                 case FootKeyviewerStyle.Key2:  InitializeFootKeyViewer(2);  break;

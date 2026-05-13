@@ -24,11 +24,6 @@ namespace JipperKeyViewer.KeyViewer
             if (!Settings.EnableRainEffect) return;
             if (Keys == null || Keys.Length == 0) return;
 
-            long now = Stopwatch.ElapsedMilliseconds;
-            if (lastFrameMs == 0) lastFrameMs = now - 16;
-            float deltaMs = Mathf.Min(MAX_DELTA_MS, now - lastFrameMs);
-            lastFrameMs = now;
-
             // Pre-compute per-row speed factors and heights to avoid redundant calculations / 预计算每排的速度因子和高度以避免重复计算
             rowSpeeds[0] = Settings.RainSpeedRow1 / 300f;
             rowSpeeds[1] = Settings.RainSpeedRow2 / 300f;
@@ -36,6 +31,9 @@ namespace JipperKeyViewer.KeyViewer
             rowHeights[0] = Settings.RainHeightRow1;
             rowHeights[1] = Settings.RainHeightRow2;
             rowHeights[2] = Settings.RainHeightRow3;
+
+            bool enableFade = Settings.EnableRainFade;
+            double now = Time.unscaledTimeAsDouble;
 
             for (int i = 0; i < Keys.Length; i++)
             {
@@ -53,10 +51,33 @@ namespace JipperKeyViewer.KeyViewer
                     // Only update size for the newest drop when key is held (gives continuous trail effect) / 仅在按键按住时更新最新雨滴的大小（产生连续拖尾效果）
                     bool updateSize = key.isPressed && j == key.rainList.Count - 1;
 
-                    if (!rain.UpdateLocation(deltaMs, updateSize, rowSpeeds[row], rowHeights[row]))
+                    float oldAlpha = rain.alpha;
+                    if (!rain.UpdateLocation(updateSize, rowSpeeds[row], rowHeights[row], enableFade, now))
                     {
                         rain.removed = true;
                         key.rainList.RemoveAt(j);
+                        continue;
+                    }
+
+                    // Sync Rain visual component immediately / 立即同步 Rain 可视化组件
+                    Rain r = rain.rainComponent;
+                    if (r == null) continue;
+
+                    if (rain.sizeDelta != null)
+                    {
+                        r.transform.sizeDelta = rain.sizeDelta.Value;
+                        rain.sizeDelta = null;
+                    }
+                    if (rain.anchoredPosition != null)
+                    {
+                        r.transform.anchoredPosition = rain.anchoredPosition.Value;
+                        rain.anchoredPosition = null;
+                    }
+                    if (enableFade && rain.alpha != oldAlpha)
+                    {
+                        var c = r.image.color;
+                        c.a = rain.alpha;
+                        r.image.color = c;
                     }
                 }
             }
@@ -85,12 +106,13 @@ namespace JipperKeyViewer.KeyViewer
                 r = rawRainPool.Pop();
                 r.transform = transform;
                 r.color = color;
-                r.localTime = 0;
+                r.startTime = Time.unscaledTimeAsDouble;
                 r.removed = false;
                 r.alpha = 1f;
                 r.fadeTimer = -1f;
                 r.sizeDelta = null;
                 r.anchoredPosition = null;
+                r.rainComponent = null;
                 r.FinalSize = default;
             }
             else
@@ -110,6 +132,7 @@ namespace JipperKeyViewer.KeyViewer
             r.removed = false;
             r.sizeDelta = null;
             r.anchoredPosition = null;
+            r.rainComponent = null;
             rawRainPool.Push(r);
         }
 

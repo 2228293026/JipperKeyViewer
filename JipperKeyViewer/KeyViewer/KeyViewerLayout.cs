@@ -90,7 +90,6 @@ namespace JipperKeyViewer.KeyViewer
             Keys = null;
             PressTimes = null;
             Stopwatch = null;
-            lastFrameMs = 0;
         }
 
         /// <summary>

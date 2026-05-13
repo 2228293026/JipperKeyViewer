@@ -73,9 +73,6 @@ namespace JipperKeyViewer.KeyViewer
         /// <summary>High-resolution stopwatch for timing / 用于计时的高精度秒表</summary>
         Stopwatch Stopwatch;
         /// <summary>Timestamp of last frame for delta calculation / 上一帧的时间戳，用于增量计算</summary>
-        long lastFrameMs;
-        /// <summary>Maximum delta time per frame to prevent physics glitches on lag spikes / 每帧最大增量时间，防止卡顿导致的物理异常</summary>
-        const long MAX_DELTA_MS = 50;
         /// <summary>Whether the key change section in settings is expanded / 设置中按键更改区域是否展开</summary>
         bool KeyChangeExpanded;
         /// <summary>Whether the text change section in settings is expanded / 设置中文本更改区域是否展开</summary>

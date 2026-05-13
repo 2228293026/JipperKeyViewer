@@ -14,8 +14,8 @@ namespace JipperKeyViewer.KeyViewer
     {
         /// <summary>Parent transform (the Key's rain container) / 父级变换（按键的雨滴容器）</summary>
         public Transform transform;
-        /// <summary>Accumulated simulated time in milliseconds / 累计模拟时间（毫秒）</summary>
-        public float localTime;
+        /// <summary>Time.unscaledTimeAsDouble at drop creation / 雨滴创建时的 Time.unscaledTimeAsDouble</summary>
+        public double startTime;
         /// <summary>Color index matching the originating key's row / 颜色索引，与来源按键的行对应</summary>
         public byte color;
         /// <summary>Final size at full extension / 完全伸展时的最终大小</summary>
@@ -26,44 +26,48 @@ namespace JipperKeyViewer.KeyViewer
         public Vector2? anchoredPosition;
         /// <summary>Whether this rain drop has expired and should be removed / 此雨滴是否已过期，应被移除</summary>
         public bool removed;
+        /// <summary>Back-reference to the visual Rain component when assigned / 分配后的可视化 Rain 组件回指</summary>
+        public Rain rainComponent;
         /// <summary>Current alpha (1 = opaque, fades to 0 during shrink phase) / 当前透明度（1=不透明，缩小阶段衰减到0）</summary>
         public float alpha = 1f;
         /// <summary>Time in ms since entering shrink phase with !updateSize (for minimum fade duration) / 松开后缩小阶段的持续时间（保证最小淡出时长）</summary>
         public float fadeTimer = -1f;
 
         /// <summary>
-        /// Update position and size based on elapsed time / 根据经过时间更新位置和大小
+        /// Update position and size based on absolute elapsed time / 根据绝对经过时间更新位置和大小
         /// Returns false when the drop has moved beyond the allowed height and should be removed / 当雨滴超出允许高度时返回 false，应被移除
         /// </summary>
-        /// <param name="deltaMs">Elapsed time in ms since last frame / 距离上一帧的毫秒数</param>
         /// <param name="updateSize">Whether to update the size this frame (only for the newest drop when key is held) / 是否在本帧更新大小（仅当按键被按住时对最新雨滴有效）</param>
         /// <param name="speedFactor">Speed multiplier (configured speed / 300) / 速度倍率（配置速度 / 300）</param>
         /// <param name="height">Maximum drop height in pixels / 最大雨滴高度（像素）</param>
-        public bool UpdateLocation(float deltaMs, bool updateSize, float speedFactor, float height)
+        /// <param name="enableFade">Whether to compute alpha fading / 是否计算透明度渐隐</param>
+        /// <param name="now">Current Time.unscaledTimeAsDouble value / 当前 Time.unscaledTimeAsDouble 值</param>
+        public bool UpdateLocation(bool updateSize, float speedFactor, float height, bool enableFade, double now)
         {
-            localTime += deltaMs;
-            float y = localTime * speedFactor;
+            float elapsedMs = (float)((now - startTime) * 1000.0);
+            float y = elapsedMs * speedFactor;
             if (updateSize || FinalSize == default)
                 FinalSize = new Vector2(color switch
                 {
                     0 => 50,
                     3 => 30,
                     _ => 40
-                }, localTime * speedFactor);
+                }, elapsedMs * speedFactor);
             if (y > height)
             {
                 float sizeY = FinalSize.y - y + height;
                 if (sizeY < 0) return false;
-                if (!updateSize)
+                if (!updateSize && enableFade)
                 {
-                    if (fadeTimer < 0) fadeTimer = 0f;
-                    fadeTimer += deltaMs;
+                    if (fadeTimer < 0) fadeTimer = (float)(now * 1000.0);
+                    float fadeElapsed = (float)(now * 1000.0) - fadeTimer;
                     float sizeAlpha = sizeY / height;
-                    float timeAlpha = 1f - Mathf.Clamp01(fadeTimer / 150f);
+                    float timeAlpha = 1f - Mathf.Clamp01(fadeElapsed / 150f);
                     alpha = Mathf.Max(sizeAlpha, timeAlpha);
                 }
                 sizeDelta = new Vector2(FinalSize.x, sizeY);
-                anchoredPosition = new Vector2(0, height);
+                Vector2 pos = new Vector2(0, height);
+                if (anchoredPosition != pos) anchoredPosition = pos;
             }
             else
             {
@@ -81,7 +85,7 @@ namespace JipperKeyViewer.KeyViewer
         {
             this.transform = transform;
             this.color = color;
-            localTime = 0;
+            startTime = Time.unscaledTimeAsDouble;
             alpha = 1f;
             fadeTimer = -1f;
         }

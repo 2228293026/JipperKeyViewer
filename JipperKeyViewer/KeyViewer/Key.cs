@@ -44,6 +44,7 @@ namespace JipperKeyViewer.KeyViewer
                 RawRain rawRain = rawRainQueue.Dequeue();
                 Rain rainComponent = KeyViewer.instance.GetRainFromPool(rain.transform);
                 rainComponent.rawRain = rawRain;
+                rawRain.rainComponent = rainComponent;
                 rainComponent.image.color = color switch
                 {
                     0 => KeyViewer.Settings.RainColor,

@@ -53,23 +53,6 @@ namespace JipperKeyViewer.KeyViewer
                 KeyViewer.instance.ReturnRawRain(rawRain);
                 rawRain = null;
                 KeyViewer.instance.ReturnRain(this);
-                return;
-            }
-            if (rawRain.sizeDelta != null)
-            {
-                transform.sizeDelta = rawRain.sizeDelta.Value;
-                rawRain.sizeDelta = null;
-            }
-            if (rawRain.anchoredPosition != null)
-            {
-                transform.anchoredPosition = rawRain.anchoredPosition.Value;
-                rawRain.anchoredPosition = null;
-            }
-            if (KeyViewer.Settings.EnableRainFade)
-            {
-                var c = image.color;
-                c.a = rawRain.alpha;
-                image.color = c;
             }
         }
     }

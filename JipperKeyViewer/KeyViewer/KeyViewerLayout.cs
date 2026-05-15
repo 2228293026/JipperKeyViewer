@@ -79,8 +79,7 @@ namespace JipperKeyViewer.KeyViewer
             Object.Destroy(KeyViewerObject);
             KeyViewerObject = null;
             KeyViewerSizeObject = null;
-            // Return all rain objects to pool / 将所有雨滴对象归还池
-            while (rainPool.Count > 0) Object.Destroy(rainPool.Pop().gameObject);
+            rainSystem?.ClearPool();
             // Destroy shadow materials / 销毁阴影材质
             foreach (var mat in shadowMaterials.Values)
                 Object.Destroy(mat);
@@ -119,19 +118,6 @@ namespace JipperKeyViewer.KeyViewer
         }
 
         /// <summary>
-        /// Process rain queues: assign Rain components from pool to pending RawRain data / 处理雨滴队列：从对象池分配 Rain 组件给待处理的 RawRain 数据
-        /// </summary>
-        private void ProcessKeyRainQueues()
-        {
-            if (Keys == null) return;
-            for (int i = 0; i < Keys.Length; i++)
-            {
-                Key key = Keys[i];
-                if (key != null) key.ProcessRainQueue();
-            }
-        }
-
-        /// <summary>
         /// Process a group of keys for input state changes / 处理一组按键的输入状态变化
         /// </summary>
         /// <param name="keyCodes">Key bindings for this group / 该组的按键绑定</param>
@@ -160,7 +146,7 @@ namespace JipperKeyViewer.KeyViewer
                         PressTimes.Enqueue(elapsedMs);
                         // Trigger rain effect on key press / 按键按下时触发雨滴效果
                         if (Settings.EnableRainEffect)
-                            TriggerRainEffect(idx, key);
+                            rainSystem.TriggerRainEffect(idx, key);
                     }
                 }
             }
@@ -335,6 +321,7 @@ namespace JipperKeyViewer.KeyViewer
             transform.anchoredPosition = new Vector2(x, y);
             transform.localScale = Vector3.one;
             Key key = obj.AddComponent<Key>();
+            key.rainSystem = rainSystem;
             key.isPressed = false;
             GameObject gameObject;
             Image image;
@@ -806,6 +793,7 @@ namespace JipperKeyViewer.KeyViewer
             SelectedKey = -1;
             if (Keys != null)
             {
+                rainSystem.ClearActiveDrops(Keys);
                 for (int i = 0; i < 20; i++)
                 {
                     if (Keys[i] != null && Keys[i].gameObject != null)
@@ -816,7 +804,7 @@ namespace JipperKeyViewer.KeyViewer
                 if (Kps != null && Kps.gameObject != null)
                     Object.Destroy(Kps.gameObject);
             }
-            while (rainPool.Count > 0) Object.Destroy(rainPool.Pop().gameObject);
+            rainSystem.ClearPool();
             switch (Settings.KeyViewerStyle)
             {
                 case KeyviewerStyle.Key12: Initialize12KeyViewer(); break;
@@ -836,13 +824,14 @@ namespace JipperKeyViewer.KeyViewer
         {
             if (Keys != null)
             {
+                rainSystem.ClearActiveDrops(Keys);
                 for (int i = 20; i < 36; i++)
                 {
                     if (Keys[i] != null && Keys[i].gameObject != null)
                         Object.Destroy(Keys[i].gameObject);
                 }
             }
-            while (rainPool.Count > 0) Object.Destroy(rainPool.Pop().gameObject);
+            rainSystem.ClearPool();
             switch (Settings.FootKeyViewerStyle)
             {
                 case FootKeyviewerStyle.Key2:  InitializeFootKeyViewer(2);  break;

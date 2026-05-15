@@ -1,5 +1,5 @@
 // Rain drop rendering and lifecycle / 雨滴渲染和生命周期
-// Uses object pool pattern via KeyViewer.ReturnRain / 通过 KeyViewer.ReturnRain 使用对象池模式
+// Uses object pool pattern via RainSystem / 通过 RainSystem 使用对象池模式
 
 using UnityEngine;
 using UnityEngine.UI;
@@ -13,6 +13,8 @@ namespace JipperKeyViewer.KeyViewer
     /// </summary>
     public class Rain : MonoBehaviour
     {
+        /// <summary>RainSystem that owns this rain drop's pool / 拥有此雨滴对象池的 RainSystem</summary>
+        public RainSystem rainSystem;
         /// <summary>Rain drop image / 雨滴图片</summary>
         public Image image;
         /// <summary>RectTransform (new keyword hides MonoBehaviour.transform) / RectTransform（new 隐藏了 MonoBehaviour.transform）</summary>
@@ -50,9 +52,9 @@ namespace JipperKeyViewer.KeyViewer
         {
             if (rawRain.removed)
             {
-                KeyViewer.instance.ReturnRawRain(rawRain);
+                rainSystem.ReturnRawRain(rawRain);
                 rawRain = null;
-                KeyViewer.instance.ReturnRain(this);
+                rainSystem.ReturnRain(this);
             }
         }
     }

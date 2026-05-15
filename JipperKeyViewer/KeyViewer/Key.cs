@@ -14,6 +14,8 @@ namespace JipperKeyViewer.KeyViewer
     /// </summary>
     public class Key : MonoBehaviour
     {
+        /// <summary>RainSystem that manages this key's rain objects / 管理此按键雨滴对象的 RainSystem</summary>
+        public RainSystem rainSystem;
         /// <summary>Key label text (e.g. "Tab", "A") / 按键标签文本（如 "Tab"、"A"）</summary>
         public TextMeshProUGUI text;
         /// <summary>Background image / 背景图片</summary>
@@ -42,15 +44,10 @@ namespace JipperKeyViewer.KeyViewer
             while (rawRainQueue.Count > 0)
             {
                 RawRain rawRain = rawRainQueue.Dequeue();
-                Rain rainComponent = KeyViewer.instance.GetRainFromPool(rain.transform);
+                Rain rainComponent = rainSystem.GetRainFromPool(rain.transform);
                 rainComponent.rawRain = rawRain;
                 rawRain.rainComponent = rainComponent;
-                rainComponent.image.color = color switch
-                {
-                    0 => KeyViewer.Settings.RainColor,
-                    3 => KeyViewer.Settings.RainColor3,
-                    _ => KeyViewer.Settings.RainColor2
-                };
+                rainComponent.image.color = rainSystem.GetRainColor(color);
             }
         }
 

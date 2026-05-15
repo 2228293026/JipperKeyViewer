@@ -109,13 +109,8 @@ namespace JipperKeyViewer.KeyViewer
         TMP_FontAsset defaultFont;
         /// <summary>Singleton instance reference / 单例实例引用</summary>
         public static KeyViewer instance;
-        /// <summary>Rain component pool (object pooling for zero GC) / 雨滴组件对象池</summary>
-        private Stack<Rain> rainPool = new Stack<Rain>();
-        /// <summary>RawRain data pool / RawRain 数据对象池</summary>
-        private Stack<RawRain> rawRainPool = new Stack<RawRain>();
-        const int MAX_RAWRAIN_POOL_SIZE = 60;
-        /// <summary>Key indices that currently have active rain drops (avoids iterating all keys) / 当前有活跃雨滴的按键索引（避免遍历所有按键）</summary>
-        private readonly List<int> rainActiveKeys = new List<int>();
+        /// <summary>Rain effect system (object-pooled, zero-GC on hot path) / 雨滴效果系统</summary>
+        private RainSystem rainSystem;
         /// <summary>Font name → index lookup dictionary / 字体名称到索引的查找字典</summary>
         static Dictionary<string, int> fontNameIndex;
         /// <summary>All non-joystick KeyCodes, cached for input detection / 所有非摇杆按键代码缓存，用于按键检测</summary>
@@ -140,13 +135,6 @@ namespace JipperKeyViewer.KeyViewer
         private bool wasEnabled;
         /// <summary>Whether the font has been restored after scene load / 场景加载后字体是否已恢复</summary>
         private bool fontRestored;
-        /// <summary>Pre-computed per-row rain speed factors / 每排预计算的雨滴速度因子</summary>
-        private readonly float[] rowSpeeds = new float[3];
-        /// <summary>Pre-computed per-row rain heights / 每排预计算的雨滴高度</summary>
-        private readonly float[] rowHeights = new float[3];
-        /// <summary>Cached rain settings for dirty-checked recomputation / 缓存的雨滴设置值，用于脏检查重算</summary>
-        float cachedRainSpeed1, cachedRainSpeed2, cachedRainSpeed3;
-        float cachedRainHeight1, cachedRainHeight2, cachedRainHeight3;
 
         // ======================== Unity Lifecycle / Unity 生命周期 ========================
 
@@ -160,6 +148,7 @@ namespace JipperKeyViewer.KeyViewer
             I18n.Load();
             I18n.Lang = Settings.Language;
             currentKeyViewerStyle = Settings.KeyViewerStyle;
+            rainSystem = new RainSystem(new RainSettings(Settings));
             TryLoadResources();
             wasEnabled = Settings.Enabled;
             SceneManager.sceneLoaded += OnSceneLoaded;
@@ -210,7 +199,7 @@ namespace JipperKeyViewer.KeyViewer
         {
             SaveSettings();
             SceneManager.sceneLoaded -= OnSceneLoaded;
-            ClearAllRains();
+            rainSystem?.ClearAll(Keys);
         }
 
         /// <summary>
@@ -225,7 +214,7 @@ namespace JipperKeyViewer.KeyViewer
                 Settings.FontIndex = 0;
             fontRestored = false;
             LinkFallbackFonts();
-            ClearAllRainDrops();
+            rainSystem.ClearActiveDrops(Keys);
         }
 
         /// <summary>
@@ -261,9 +250,9 @@ namespace JipperKeyViewer.KeyViewer
                 long now = Stopwatch.ElapsedMilliseconds;
                 ProcessKeySelection();              // Handle key rebinding input / 处理按键重新绑定输入
                 ProcessMainAndFootKeysInUpdate(now); // Detect key presses / 检测按键按下
-                ProcessKeyRainQueues();             // Spawn rain objects from queue / 从队列生成雨滴对象
+                rainSystem.ProcessKeyQueues(Keys);  // Spawn rain objects from queue / 从队列生成雨滴对象
                 ProcessKpsInUpdate(now);            // Update KPS counter / 更新 KPS 计数器
-                if (Settings.EnableRainEffect) UpdateRainEffects(); // Update rain drop positions / 更新雨滴位置
+                if (Settings.EnableRainEffect) rainSystem.UpdateEffects(Keys); // Update rain drop positions / 更新雨滴位置
             }
         }
 

@@ -290,7 +290,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 Settings.EnableRainEffect = newRainEffect;
                 if (!Settings.EnableRainEffect)
-                    ClearAllRainDrops();
+                    rainSystem.ClearActiveDrops(Keys);
                 SaveSettings();
             }
 

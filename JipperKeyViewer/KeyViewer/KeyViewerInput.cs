@@ -53,8 +53,18 @@ namespace JipperKeyViewer.KeyViewer
             }
             if (Keys != null && SelectedKey < Keys.Length && Keys[SelectedKey] != null)
             {
-                string displayText = SelectedKey < 20 && !string.IsNullOrEmpty(keyTexts[SelectedKey])
-                    ? keyTexts[SelectedKey] : KeyToString(keyCode);
+                string displayText;
+                if (SelectedKey < 20 && !string.IsNullOrEmpty(keyTexts[SelectedKey]))
+                    displayText = keyTexts[SelectedKey];
+                else if (SelectedKey >= 20)
+                {
+                    string[] footTexts = GetFootKeyText();
+                    int footIndex = SelectedKey - 20;
+                    displayText = footTexts != null && footIndex < footTexts.Length && !string.IsNullOrEmpty(footTexts[footIndex])
+                        ? footTexts[footIndex] : KeyToString(keyCode);
+                }
+                else
+                    displayText = KeyToString(keyCode);
                 Keys[SelectedKey].text.text = displayText;
             }
             SelectedKey = -1;

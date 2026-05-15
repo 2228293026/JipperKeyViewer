@@ -57,6 +57,16 @@ namespace JipperKeyViewer.KeyViewer
         public KeyCode[] footkey14 = { KeyCode.F8, KeyCode.F4, KeyCode.F7, KeyCode.F3, KeyCode.F6, KeyCode.F2, KeyCode.F5, KeyCode.F1, KeyCode.F9, KeyCode.F10, KeyCode.F11, KeyCode.F12, KeyCode.F13, KeyCode.F14 };
         public KeyCode[] footkey16 = { KeyCode.F8, KeyCode.F4, KeyCode.F7, KeyCode.F3, KeyCode.F6, KeyCode.F2, KeyCode.F5, KeyCode.F1, KeyCode.F9, KeyCode.F10, KeyCode.F11, KeyCode.F12, KeyCode.F13, KeyCode.F14, KeyCode.F15, KeyCode.F16 };
 
+        // Foot key custom text labels / 脚键自定义文本标签
+        public string[] footkey2Text = new string[2];
+        public string[] footkey4Text = new string[4];
+        public string[] footkey6Text = new string[6];
+        public string[] footkey8Text = new string[8];
+        public string[] footkey10Text = new string[10];
+        public string[] footkey12Text = new string[12];
+        public string[] footkey14Text = new string[14];
+        public string[] footkey16Text = new string[16];
+
         /// <summary>Per-key press counter (index 0-35) / 每个按键的按下计数（索引 0-35）</summary>
         public int[] Count = new int[36];
         /// <summary>Total key press count / 总按键次数</summary>
@@ -122,6 +132,14 @@ namespace JipperKeyViewer.KeyViewer
             key12Text = key12Text ?? new string[12];
             key16Text = key16Text ?? new string[16];
             key20Text = key20Text ?? new string[20];
+            footkey2Text = footkey2Text ?? new string[2];
+            footkey4Text = footkey4Text ?? new string[4];
+            footkey6Text = footkey6Text ?? new string[6];
+            footkey8Text = footkey8Text ?? new string[8];
+            footkey10Text = footkey10Text ?? new string[10];
+            footkey12Text = footkey12Text ?? new string[12];
+            footkey14Text = footkey14Text ?? new string[14];
+            footkey16Text = footkey16Text ?? new string[16];
             Count = Count ?? new int[36];
         }
     }

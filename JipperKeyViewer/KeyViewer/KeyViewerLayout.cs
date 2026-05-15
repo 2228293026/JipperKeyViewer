@@ -492,10 +492,13 @@ namespace JipperKeyViewer.KeyViewer
             else
             {
                 KeyCode[] footKeyCodes = GetFootKeyCode();
+                string[] footTexts = GetFootKeyText();
                 int footIndex = i - 20;
                 if (footKeyCodes != null && footIndex >= 0 && footIndex < footKeyCodes.Length)
                 {
-                    key.text.text = KeyToString(footKeyCodes[footIndex]);
+                    string displayText = footTexts != null && !string.IsNullOrEmpty(footTexts[footIndex])
+                        ? footTexts[footIndex] : KeyToString(footKeyCodes[footIndex]);
+                    key.text.text = displayText;
                 }
             }
         }
@@ -895,6 +898,25 @@ namespace JipperKeyViewer.KeyViewer
                 KeyviewerStyle.Key20 => Settings.key20Text,
                 KeyviewerStyle.Key10 => Settings.key10Text,
                 _ => Settings.key16Text
+            };
+        }
+
+        /// <summary>
+        /// Get the custom text labels for the current foot key layout / 获取当前脚键布局的自定义文本标签
+        /// </summary>
+        private static string[] GetFootKeyText()
+        {
+            return Settings.FootKeyViewerStyle switch
+            {
+                FootKeyviewerStyle.Key2 => Settings.footkey2Text,
+                FootKeyviewerStyle.Key4 => Settings.footkey4Text,
+                FootKeyviewerStyle.Key6 => Settings.footkey6Text,
+                FootKeyviewerStyle.Key8 => Settings.footkey8Text,
+                FootKeyviewerStyle.Key10 => Settings.footkey10Text,
+                FootKeyviewerStyle.Key12 => Settings.footkey12Text,
+                FootKeyviewerStyle.Key14 => Settings.footkey14Text,
+                FootKeyviewerStyle.Key16 => Settings.footkey16Text,
+                _ => new string[0]
             };
         }
 

@@ -557,26 +557,104 @@ namespace JipperKeyViewer.KeyViewer
                 GUILayout.EndHorizontal();
             }
 
+            // Foot key text labels / 脚键文本标签
+            KeyCode[] footKeyCodes = GetFootKeyCode();
+            string[] footKeyTexts = GetFootKeyText();
+            if (footKeyCodes != null && footKeyCodes.Length > 0)
+            {
+                GUILayout.Label(I18n.Tr("foot_keys_text") + ":");
+                if (footKeyCodes.Length <= 8)
+                {
+                    GUILayout.BeginHorizontal();
+                    for (int i = 0; i < footKeyCodes.Length; i++)
+                    {
+                        string buttonText = !string.IsNullOrEmpty(footKeyTexts[i]) ? footKeyTexts[i] : KeyToString(footKeyCodes[i]);
+                        if (GUILayout.Button(buttonText))
+                        {
+                            SelectedKey = i + 20;
+                            TextChanged = true;
+                        }
+                    }
+                    GUILayout.EndHorizontal();
+                }
+                else
+                {
+                    GUILayout.BeginHorizontal();
+                    for (int i = 0; i < 8; i++)
+                    {
+                        string buttonText = !string.IsNullOrEmpty(footKeyTexts[i]) ? footKeyTexts[i] : KeyToString(footKeyCodes[i]);
+                        if (GUILayout.Button(buttonText))
+                        {
+                            SelectedKey = i + 20;
+                            TextChanged = true;
+                        }
+                    }
+                    GUILayout.EndHorizontal();
+                    GUILayout.BeginHorizontal();
+                    int remaining = footKeyCodes.Length - 8;
+                    for (int s = 0; s < 8 - remaining; s++)
+                        GUILayout.FlexibleSpace();
+                    for (int i = 8; i < footKeyCodes.Length; i++)
+                    {
+                        string buttonText = !string.IsNullOrEmpty(footKeyTexts[i]) ? footKeyTexts[i] : KeyToString(footKeyCodes[i]);
+                        if (GUILayout.Button(buttonText))
+                        {
+                            SelectedKey = i + 20;
+                            TextChanged = true;
+                        }
+                    }
+                    for (int s = 0; s < 8 - remaining; s++)
+                        GUILayout.FlexibleSpace();
+                    GUILayout.EndHorizontal();
+                }
+            }
+
             if (SelectedKey != -1 && TextChanged)
             {
                 GUILayout.BeginHorizontal();
                 GUILayout.Label(I18n.Tr("input_text") + ":");
-                string currentText = !string.IsNullOrEmpty(keyTexts[SelectedKey]) ? keyTexts[SelectedKey] : KeyToString(keyCodes[SelectedKey]);
-                string newText = GUILayout.TextField(currentText, GUILayout.Width(150));
-                if (keyTexts[SelectedKey] != newText)
+                if (SelectedKey < 20)
                 {
-                    if (Keys != null && SelectedKey < Keys.Length && Keys[SelectedKey] != null)
-                        Keys[SelectedKey].text.text = newText;
-                    keyTexts[SelectedKey] = string.IsNullOrEmpty(newText) || newText == KeyToString(keyCodes[SelectedKey]) ? null : newText;
+                    string currentText = !string.IsNullOrEmpty(keyTexts[SelectedKey]) ? keyTexts[SelectedKey] : KeyToString(keyCodes[SelectedKey]);
+                    string newText = GUILayout.TextField(currentText, GUILayout.Width(150));
+                    if (keyTexts[SelectedKey] != newText)
+                    {
+                        if (Keys != null && SelectedKey < Keys.Length && Keys[SelectedKey] != null)
+                            Keys[SelectedKey].text.text = newText;
+                        keyTexts[SelectedKey] = string.IsNullOrEmpty(newText) || newText == KeyToString(keyCodes[SelectedKey]) ? null : newText;
+                    }
+                }
+                else
+                {
+                    int footIndex = SelectedKey - 20;
+                    string currentText = footKeyTexts != null && !string.IsNullOrEmpty(footKeyTexts[footIndex])
+                        ? footKeyTexts[footIndex] : KeyToString(footKeyCodes[footIndex]);
+                    string newText = GUILayout.TextField(currentText, GUILayout.Width(150));
+                    if (footKeyTexts[footIndex] != newText)
+                    {
+                        if (Keys != null && SelectedKey < Keys.Length && Keys[SelectedKey] != null)
+                            Keys[SelectedKey].text.text = newText;
+                        footKeyTexts[footIndex] = string.IsNullOrEmpty(newText) || newText == KeyToString(footKeyCodes[footIndex]) ? null : newText;
+                    }
                 }
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button(I18n.Tr("reset")))
                 {
-                    keyTexts[SelectedKey] = null;
-                    if (Keys != null && SelectedKey < Keys.Length && Keys[SelectedKey] != null)
-                        Keys[SelectedKey].text.text = KeyToString(keyCodes[SelectedKey]);
+                    if (SelectedKey < 20)
+                    {
+                        keyTexts[SelectedKey] = null;
+                        if (Keys != null && SelectedKey < Keys.Length && Keys[SelectedKey] != null)
+                            Keys[SelectedKey].text.text = KeyToString(keyCodes[SelectedKey]);
+                    }
+                    else
+                    {
+                        int footIndex = SelectedKey - 20;
+                        footKeyTexts[footIndex] = null;
+                        if (Keys != null && SelectedKey < Keys.Length && Keys[SelectedKey] != null)
+                            Keys[SelectedKey].text.text = KeyToString(footKeyCodes[footIndex]);
+                    }
                     SelectedKey = -1;
                     SaveSettings();
                 }

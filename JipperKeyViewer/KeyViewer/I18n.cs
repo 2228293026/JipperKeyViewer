@@ -70,6 +70,7 @@ namespace JipperKeyViewer.KeyViewer
             ["custom_font_tip"] = "Custom Fonts: Put .ttf/.otf files into the CustomFont folder, then restart the game.",
             ["reset_counts"] = "Reset Counts",
             ["count_formatting"] = "Use 1,234 for large numbers",
+            ["foot_keys_text"] = "Foot Key Text",
         };
 
         /// <summary>Chinese translations dictionary / 中文字典</summary>
@@ -125,6 +126,7 @@ namespace JipperKeyViewer.KeyViewer
             ["custom_font_tip"] = "使用自定义字体 将 .ttf/.otf 字体文件放入 CustomFont 文件夹，重启游戏生效。",
             ["reset_counts"] = "重置计数",
             ["count_formatting"] = "大数字千分位显示 1,234",
+            ["foot_keys_text"] = "脚键文本",
         };
 
         /// <summary>Korean translations dictionary / 韩文字典</summary>
@@ -180,6 +182,7 @@ namespace JipperKeyViewer.KeyViewer
             ["custom_font_tip"] = "사용자 글꼴: .ttf/.otf 파일을 CustomFont 폴더에 넣은 후 게임을 다시 시작하세요.",
             ["reset_counts"] = "카운트 초기화",
             ["count_formatting"] = "큰 숫자에 1,234 형식 사용",
+            ["foot_keys_text"] = "발판 키 텍스트",
         };
 
         /// <summary>Path to the lang.json override file / lang.json 覆盖文件路径</summary>

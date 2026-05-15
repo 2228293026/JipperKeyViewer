@@ -295,6 +295,14 @@ namespace JipperKeyViewer.KeyViewer
                         Settings.key12Text = Settings.key12Text ?? new string[12];
                         Settings.key16Text = Settings.key16Text ?? new string[16];
                         Settings.key20Text = Settings.key20Text ?? new string[20];
+                        Settings.footkey2Text = Settings.footkey2Text ?? new string[2];
+                        Settings.footkey4Text = Settings.footkey4Text ?? new string[4];
+                        Settings.footkey6Text = Settings.footkey6Text ?? new string[6];
+                        Settings.footkey8Text = Settings.footkey8Text ?? new string[8];
+                        Settings.footkey10Text = Settings.footkey10Text ?? new string[10];
+                        Settings.footkey12Text = Settings.footkey12Text ?? new string[12];
+                        Settings.footkey14Text = Settings.footkey14Text ?? new string[14];
+                        Settings.footkey16Text = Settings.footkey16Text ?? new string[16];
                         Settings.Count = Settings.Count ?? new int[36];
                     }
                     else

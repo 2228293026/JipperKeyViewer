@@ -825,6 +825,7 @@ namespace JipperKeyViewer.KeyViewer
         /// </summary>
         private void ResetFootKeyViewer()
         {
+            SelectedKey = -1;
             if (Keys != null)
             {
                 rainSystem.ClearActiveDrops(Keys);

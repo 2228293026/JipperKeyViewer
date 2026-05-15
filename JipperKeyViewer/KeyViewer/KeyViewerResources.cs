@@ -1,10 +1,9 @@
-// AssetBundle and font management / AssetBundle 和字体管理
-// Loads built-in sprites, game fonts, custom font files, and sets up shadow materials and fallback chains / 加载内置精灵、游戏字体、自定义字体文件，设置阴影材质和后备链
+// File-based resource and font management / 基于文件的资源和字体管理
+// Loads built-in sprites from PNG, fonts from OTF/TTF, custom font files, and sets up shadow materials and fallback chains / 从 PNG 文件加载内置精灵，从 OTF/TTF 文件加载字体，以及自定义字体文件，设置阴影材质和后备链
 
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using TMPro;
 using UnityEngine;
@@ -12,7 +11,7 @@ using UnityEngine;
 namespace JipperKeyViewer.KeyViewer
 {
     /// <summary>
-    /// Resource loading: AssetBundle sprites, font scanning, shadow material creation / 资源加载：AssetBundle 精灵、字体扫描、阴影材质创建
+    /// Resource loading: file-based sprites, font scanning, shadow material creation / 资源加载：基于文件的精灵、字体扫描、阴影材质创建
     /// </summary>
     public partial class KeyViewer : MonoBehaviour
     {
@@ -49,8 +48,7 @@ namespace JipperKeyViewer.KeyViewer
         }
 
         /// <summary>
-        /// Load AssetBundle, game fonts, and custom fonts / 加载 AssetBundle、游戏字体和自定义字体
-        /// Returns false if the AssetBundle cannot be loaded / 如果无法加载 AssetBundle 则返回 false
+        /// Load sprites from PNG files, fonts from OTF/TTF files, and custom fonts / 从 PNG 文件加载精灵，从 OTF/TTF 文件加载字体，以及自定义字体
         /// </summary>
         private bool TryLoadResources()
         {
@@ -62,53 +60,21 @@ namespace JipperKeyViewer.KeyViewer
             string modPath = Path.GetDirectoryName(Main.Mod?.Path) ?? ".";
             string assetsDir = Path.Combine(modPath, "assets");
 
-            string bundlePath = Path.Combine(assetsDir, "keyviewer_resources");
-
-            var bundle = AssetBundle.LoadFromFile(bundlePath);
+            if (!Directory.Exists(assetsDir))
+                Main.Mod.Logger.Warning($"KeyViewer: assets/ directory not found at {assetsDir}, bundled resources will be missing");
 
             ScanGameFonts();
 
-            if (bundle != null)
-            {
-                keyBackgroundSprite = bundle.LoadAsset<Sprite>("KeyBackground");
-                keyOutlineSprite = bundle.LoadAsset<Sprite>("KeyOutline");
+            keyBackgroundSprite = LoadSpriteFromFile(Path.Combine(assetsDir, "KeyBackground.png"));
+            keyOutlineSprite = LoadSpriteFromFile(Path.Combine(assetsDir, "KeyOutline.png"));
 
-                Font mapleOTF = bundle.LoadAsset<Font>("MAPLESTORY_OTF_BOLD");
-                if (mapleOTF != null)
-                {
-                    mapleFont = TMP_FontAsset.CreateFontAsset(mapleOTF);
-                    var entry = new FontEntry("MapleStory", mapleFont);
-                    entry.sourceFontName = "MAPLESTORY_OTF_BOLD";
-                    fontList.Add(entry);
-                }
-                else
-                {
-                    Main.Mod.Logger.Error("KeyViewer: MAPLESTORY_OTF_BOLD not found in AB");
-                }
+            LoadFontFromFile(assetsDir, "MAPLESTORY_OTF_BOLD.OTF", "MapleStory", ref mapleFont, fontList);
+            LoadCJKFontFromFile(assetsDir, "cjkFonts-regular-normalized.otf", "CJK (Default)", fontList);
 
-                Font cjkOTF = bundle.LoadAsset<Font>("cjkFonts-regular-normalized");
-                if (cjkOTF != null)
-                {
-                    var cjkFont = TMP_FontAsset.CreateFontAsset(cjkOTF);
-                    var entry = new FontEntry("CJK (Default)", cjkFont);
-                    entry.sourceFontName = "cjkFonts-regular-normalized";
-                    fontList.Insert(0, entry);
-                }
-                else
-                {
-                    Main.Mod.Logger.Error("KeyViewer: cjkFonts-regular-normalized not found in AB");
-                }
-                if (keyBackgroundSprite == null)
-                    Main.Mod.Logger.Error("KeyViewer: KeyBackground not found in AssetBundle");
-                if (keyOutlineSprite == null)
-                    Main.Mod.Logger.Error("KeyViewer: KeyOutline not found in AssetBundle");
-
-                bundle.Unload(false);
-            }
-            else
-            {
-                Main.Mod.Logger.Error($"KeyViewer: Cannot load AssetBundle at {bundlePath}");
-            }
+            if (keyBackgroundSprite == null)
+                Main.Mod.Logger.Warning("KeyViewer: KeyBackground.png not found in assets/");
+            if (keyOutlineSprite == null)
+                Main.Mod.Logger.Warning("KeyViewer: KeyOutline.png not found in assets/");
 
             ScanCustomFonts();
             LinkFallbackFonts();
@@ -120,7 +86,117 @@ namespace JipperKeyViewer.KeyViewer
             for (int i = 0; i < fontList.Count; i++)
                 fontNameIndex[fontList[i].name] = i;
 
-            return bundle != null;
+            return true;
+        }
+
+        /// <summary>
+        /// Load a PNG file as a Sprite with 9-slice border / 加载 PNG 文件为带九宫格边框的 Sprite
+        /// Border values (11px) match the original Unity import settings / 边框值（11px）与原始 Unity 导入设置一致
+        /// Uses ImageConversion.LoadImage via reflection since the module isn't referenced at compile time / 通过反射调用 ImageConversion.LoadImage
+        /// </summary>
+        private static bool _loadImageCached;
+        private static MethodInfo _cachedLoadImage;
+        private static int _loadImageParamCount;
+        private static Sprite LoadSpriteFromFile(string path)
+        {
+            if (!File.Exists(path)) return null;
+            try
+            {
+                var tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+                byte[] bytes = File.ReadAllBytes(path);
+                if (!_loadImageCached)
+                {
+                    _loadImageCached = true;
+                    Type type = Type.GetType("UnityEngine.ImageConversion, UnityEngine.ImageConversionModule");
+                    if (type == null)
+                    {
+                        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+                        {
+                            type = asm.GetType("UnityEngine.ImageConversion");
+                            if (type != null) break;
+                        }
+                    }
+                    if (type != null)
+                    {
+                        foreach (var m in type.GetMethods(BindingFlags.Public | BindingFlags.Static))
+                        {
+                            if (m.Name != "LoadImage") continue;
+                            var parms = m.GetParameters();
+                            if (parms.Length >= 2 && parms[0].ParameterType == typeof(Texture2D) && parms[1].ParameterType == typeof(byte[]))
+                            {
+                                _cachedLoadImage = m;
+                                _loadImageParamCount = parms.Length;
+                                break;
+                            }
+                        }
+                    }
+                    if (_cachedLoadImage == null)
+                        Main.Mod.Logger.Error("KeyViewer: ImageConversion.LoadImage not found via reflection, sprites will be missing");
+                }
+                if (_cachedLoadImage != null)
+                {
+                    if (_loadImageParamCount == 2)
+                        _cachedLoadImage.Invoke(null, new object[] { tex, bytes });
+                    else
+                        _cachedLoadImage.Invoke(null, new object[] { tex, bytes, false });
+                }
+                tex.filterMode = FilterMode.Bilinear;
+                tex.wrapMode = TextureWrapMode.Clamp;
+                return Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.Tight, new Vector4(11, 11, 11, 11));
+            }
+            catch (Exception e)
+            {
+                Main.Mod.Logger.Error($"KeyViewer: Failed to load sprite from '{path}': {e.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Load an OTF/TTF font file and add it to the font list / 加载 OTF/TTF 字体文件并添加到字体列表
+        /// </summary>
+        private static void LoadFontFromFile(string assetsDir, string fileName, string entryName, ref TMP_FontAsset target, List<FontEntry> fontList)
+        {
+            string path = Path.Combine(assetsDir, fileName);
+            if (!File.Exists(path)) return;
+            try
+            {
+                Font font = new Font(path);
+                if (font != null)
+                {
+                    target = TMP_FontAsset.CreateFontAsset(font);
+                    var entry = new FontEntry(entryName, target);
+                    entry.sourceFontName = Path.GetFileNameWithoutExtension(fileName);
+                    fontList.Add(entry);
+                }
+            }
+            catch (Exception e)
+            {
+                Main.Mod.Logger.Error($"KeyViewer: Failed to load font '{fileName}': {e.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Load CJK font and insert it at the front of the font list / 加载 CJK 字体并插入到字体列表最前面
+        /// </summary>
+        private static void LoadCJKFontFromFile(string assetsDir, string fileName, string entryName, List<FontEntry> fontList)
+        {
+            string path = Path.Combine(assetsDir, fileName);
+            if (!File.Exists(path)) return;
+            try
+            {
+                Font font = new Font(path);
+                if (font != null)
+                {
+                    var cjkFont = TMP_FontAsset.CreateFontAsset(font);
+                    var entry = new FontEntry(entryName, cjkFont);
+                    entry.sourceFontName = Path.GetFileNameWithoutExtension(fileName);
+                    fontList.Insert(0, entry);
+                }
+            }
+            catch (Exception e)
+            {
+                Main.Mod.Logger.Error($"KeyViewer: Failed to load CJK font '{fileName}': {e.Message}");
+            }
         }
 
         /// <summary>

@@ -101,9 +101,9 @@ namespace JipperKeyViewer.KeyViewer
         }
         static string configPath;
 
-        /// <summary>Cached background sprite from AssetBundle / 从 AssetBundle 缓存的背景精灵</summary>
+        /// <summary>Cached background sprite loaded from file / 从文件加载的背景精灵</summary>
         Sprite keyBackgroundSprite;
-        /// <summary>Cached outline sprite from AssetBundle / 从 AssetBundle 缓存的轮廓精灵</summary>
+        /// <summary>Cached outline sprite loaded from file / 从文件加载的轮廓精灵</summary>
         Sprite keyOutlineSprite;
         /// <summary>Singleton instance reference / 单例实例引用</summary>
         public static KeyViewer instance;
@@ -121,7 +121,7 @@ namespace JipperKeyViewer.KeyViewer
         private FootKeyviewerStyle cachedFootStyle = (FootKeyviewerStyle)(-1);
         /// <summary>Cached foot key array / 缓存的脚键数组</summary>
         private KeyCode[] cachedFootKeys;
-        /// <summary>MapleStory font loaded from AssetBundle / 从 AssetBundle 加载的 MapleStory 字体</summary>
+        /// <summary>MapleStory font loaded from file / 从文件加载的 MapleStory 字体</summary>
         private TMP_FontAsset mapleFont;
         /// <summary>Cache of per-font shadow materials / 每个字体的阴影材质缓存</summary>
         private Dictionary<TMP_FontAsset, Material> shadowMaterials = new Dictionary<TMP_FontAsset, Material>();

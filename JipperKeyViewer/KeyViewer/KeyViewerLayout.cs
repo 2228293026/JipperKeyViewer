@@ -31,7 +31,6 @@ namespace JipperKeyViewer.KeyViewer
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920, 1080);
             scaler.matchWidthOrHeight = 1f; // Match height so vertical positions are resolution-independent / 匹配高度使垂直位置不受分辨率影响
-            Canvas.gameObject.AddComponent<GraphicRaycaster>();
             // SizeObject applies the Size scale and serves as parent for all keys / SizeObject 应用大小缩放并作为所有按键的父级
             KeyViewerSizeObject = new GameObject("SizeObject");
             RectTransform rectTransform = KeyViewerSizeObject.AddComponent<RectTransform>();

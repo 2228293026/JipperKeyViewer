@@ -135,8 +135,6 @@ namespace JipperKeyViewer.KeyViewer
         private bool wasEnabled;
         /// <summary>Whether the font has been restored after scene load / 场景加载后字体是否已恢复</summary>
         private bool fontRestored;
-        /// <summary>Whether resources (AB, fonts) have been loaded / 资源是否已加载</summary>
-        private bool resourcesLoaded;
 
         // ======================== Unity Lifecycle / Unity 生命周期 ========================
 

@@ -54,7 +54,7 @@ namespace JipperKeyViewer.KeyViewer
         /// </summary>
         private bool TryLoadResources()
         {
-            if (resourcesLoaded) return true;
+            if (keyBackgroundSprite != null) return true;
 
             fontList.Clear();
             shadowMaterials.Clear();
@@ -120,7 +120,6 @@ namespace JipperKeyViewer.KeyViewer
             for (int i = 0; i < fontList.Count; i++)
                 fontNameIndex[fontList[i].name] = i;
 
-            resourcesLoaded = true;
             return bundle != null;
         }
 

@@ -282,6 +282,16 @@ namespace JipperKeyViewer.KeyViewer
             GUILayout.EndHorizontal();
 
             GUILayout.Space(10);
+
+            // Hide main key count toggle / 隐藏主按键计数开关
+            bool newHideCount = GUILayout.Toggle(Settings.HideMainKeyCount, I18n.Tr("hide_main_count"));
+            if (newHideCount != Settings.HideMainKeyCount)
+            {
+                Settings.HideMainKeyCount = newHideCount;
+                ResetKeyViewer();
+                SaveSettings();
+            }
+
             GUILayout.Space(10);
 
             // Rain effect master toggle / 雨滴效果总开关

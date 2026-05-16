@@ -232,7 +232,7 @@ namespace JipperKeyViewer.KeyViewer
             key.rawRainQueue.Enqueue(rawRain);
             key.rainList.Add(rawRain);
             pendingRainQueueCount++;
-            if (key.rainList.Count == 1)
+            if (key.rainList.Count == 1 && !rainActiveKeys.Contains(keyIndex))
                 rainActiveKeys.Add(keyIndex);
         }
 

@@ -308,6 +308,8 @@ namespace JipperKeyViewer.KeyViewer
         /// <param name="count">Show press count text / 显示按下计数文本</param>
         private Key CreateKey(int i, float x, float y, float sizeX, int raining, bool slim = false, bool count = true)
         {
+            if (i >= 0 && i < 20 && Settings.HideMainKeyCount)
+                count = false;
             GameObject obj = new("Key " + i);
             KeyViewerSettings settings = Settings;
             RectTransform transform = obj.AddComponent<RectTransform>();
@@ -370,8 +372,16 @@ namespace JipperKeyViewer.KeyViewer
             else
             {
                 transform.sizeDelta = new Vector2(sizeX - 4, 32);
-                transform.anchorMin = transform.anchorMax = transform.pivot = new Vector2(0.5f, 1);
-                transform.anchoredPosition = new Vector2(0, 2);
+                if (!count)
+                {
+                    transform.anchorMin = transform.anchorMax = transform.pivot = new Vector2(0.5f, 0.5f);
+                    transform.anchoredPosition = Vector2.zero;
+                }
+                else
+                {
+                    transform.anchorMin = transform.anchorMax = transform.pivot = new Vector2(0.5f, 1);
+                    transform.anchoredPosition = new Vector2(0, 2);
+                }
             }
             transform.localScale = Vector3.one;
             text = gameObject.AddComponent<TextMeshProUGUI>();
@@ -466,13 +476,13 @@ namespace JipperKeyViewer.KeyViewer
             if (i == -1)
             {
                 key.text.text = "KPS";
-                key.value.text = 0f.ToString();
+                if (key.value != null) key.value.text = 0f.ToString();
                 return;
             }
             if (i == -2)
             {
                 key.text.text = "Total";
-                key.value.text = FormatCount(Settings.TotalCount);
+                if (key.value != null) key.value.text = FormatCount(Settings.TotalCount);
                 return;
             }
             if (i < 20)
@@ -483,7 +493,8 @@ namespace JipperKeyViewer.KeyViewer
                 {
                     string displayText = !string.IsNullOrEmpty(keyTexts[i]) ? keyTexts[i] : KeyToString(keyCodes[i]);
                     key.text.text = displayText;
-                    key.value.text = FormatCount(Settings.Count[i]);
+                    if (key.value != null)
+                        key.value.text = FormatCount(Settings.Count[i]);
                 }
             }
             else

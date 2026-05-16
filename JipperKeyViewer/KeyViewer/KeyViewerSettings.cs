@@ -121,6 +121,8 @@ namespace JipperKeyViewer.KeyViewer
 
         /// <summary>Format large counts with thousands separator / 大数字千分位格式化</summary>
         public bool EnableCountFormatting = false;
+        /// <summary>Hide press count on main keys / 隐藏主按键计数</summary>
+        public bool HideMainKeyCount = false;
 
         /// <summary>
         /// Ensure all arrays are initialized (prevents null refs on load with legacy data) / 确保所有数组已初始化（防止加载旧数据时出现空引用）

@@ -51,6 +51,9 @@
     { "key": "count_formatting", "en": "Use 1,234 for large numbers", "zh": "大数字千分位显示 1,234", "ko": "큰 숫자에 1,234 형식 사용" },
     { "key": "rain_fade", "en": "Rain Fade-out", "zh": "雨滴松开淡出", "ko": "빗줄 페이드아웃" },
     { "key": "hide_main_count", "en": "Hide Main Key Count", "zh": "隐藏主按键计数", "ko": "메인 키 카운트 숨기기" },
+    { "key": "per_key_colors", "en": "Per-Key Colors", "zh": "每键独立颜色", "ko": "키별 색상" },
+    { "key": "per_key_color_reset", "en": "Reset All to Default", "zh": "全部重置为默认", "ko": "모두 기본값으로 초기화" },
+    { "key": "auto_rainbow", "en": "Auto Rainbow KV", "zh": "自动彩色KV", "ko": "자동 무지개 KV" },
     { "key": "foot_keys_text", "en": "Foot Key Text", "zh": "脚键文本", "ko": "발판 키 텍스트" }
   ]
 }

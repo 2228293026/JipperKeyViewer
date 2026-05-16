@@ -322,7 +322,7 @@ namespace JipperKeyViewer.KeyViewer
                 Settings.RainHeightRow1 = GUILayout.HorizontalSlider(Settings.RainHeightRow1, 1f, 1000f, GUILayout.Width(120));
                 string height1Text = GUILayout.TextField(Settings.RainHeightRow1.ToString("F2"), FloatFieldWidth(Settings.RainHeightRow1.ToString("F2")));
                 if (float.TryParse(height1Text, out float newHeight1))
-                    Settings.RainHeightRow1 = newHeight1;
+                    Settings.RainHeightRow1 = Mathf.Clamp(newHeight1, 1f, 1000f);
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
@@ -330,7 +330,7 @@ namespace JipperKeyViewer.KeyViewer
                 Settings.RainHeightRow2 = GUILayout.HorizontalSlider(Settings.RainHeightRow2, 1f, 1000f, GUILayout.Width(120));
                 string height2Text = GUILayout.TextField(Settings.RainHeightRow2.ToString("F2"), FloatFieldWidth(Settings.RainHeightRow2.ToString("F2")));
                 if (float.TryParse(height2Text, out float newHeight2))
-                    Settings.RainHeightRow2 = newHeight2;
+                    Settings.RainHeightRow2 = Mathf.Clamp(newHeight2, 1f, 1000f);
                 GUILayout.EndHorizontal();
 
                 if (Settings.KeyViewerStyle == KeyviewerStyle.Key20)
@@ -340,7 +340,7 @@ namespace JipperKeyViewer.KeyViewer
                     Settings.RainHeightRow3 = GUILayout.HorizontalSlider(Settings.RainHeightRow3, 1f, 1000f, GUILayout.Width(120));
                     string height3Text = GUILayout.TextField(Settings.RainHeightRow3.ToString("F2"), FloatFieldWidth(Settings.RainHeightRow3.ToString("F2")));
                     if (float.TryParse(height3Text, out float newHeight3))
-                        Settings.RainHeightRow3 = newHeight3;
+                        Settings.RainHeightRow3 = Mathf.Clamp(newHeight3, 1f, 1000f);
                     GUILayout.EndHorizontal();
                 }
 
@@ -400,7 +400,20 @@ namespace JipperKeyViewer.KeyViewer
             if (colorsExpanded && ColorExpanded == null) ColorExpanded = new bool[9];
             if (!colorsExpanded) ColorExpanded = null;
             if (ColorExpanded != null)
-                DrawColorSettings();
+            {
+                bool pk = GUILayout.Toggle(Settings.EnablePerKeyColors, I18n.Tr("per_key_colors"));
+                if (pk != Settings.EnablePerKeyColors)
+                {
+                    Settings.EnablePerKeyColors = pk;
+                    ResetKeyViewer();
+                    UpdateAllKeyColors();
+                    SaveSettings();
+                }
+                if (Settings.EnablePerKeyColors)
+                    DrawPerKeyColorSettings();
+                else
+                    DrawColorSettings();
+            }
 
             GUILayout.EndVertical();
         }
@@ -426,18 +439,21 @@ namespace JipperKeyViewer.KeyViewer
             }
             GUILayout.EndHorizontal();
 
-            GUILayout.Label(I18n.Tr("row2_keys") + ":");
             byte[] backSequence = GetBackSequence();
-            GUILayout.BeginHorizontal();
-            for (int i = 0; i < backSequence.Length && i < 8; i++)
+            if (backSequence.Length > 0)
             {
-                if (GUILayout.Button(KeyToString(keyCodes[backSequence[i]])))
+                GUILayout.Label(I18n.Tr("row2_keys") + ":");
+                GUILayout.BeginHorizontal();
+                for (int i = 0; i < backSequence.Length && i < 8; i++)
                 {
-                    SelectedKey = backSequence[i];
-                    TextChanged = false;
+                    if (GUILayout.Button(KeyToString(keyCodes[backSequence[i]])))
+                    {
+                        SelectedKey = backSequence[i];
+                        TextChanged = false;
+                    }
                 }
+                GUILayout.EndHorizontal();
             }
-            GUILayout.EndHorizontal();
 
             if (Settings.KeyViewerStyle == KeyviewerStyle.Key20)
             {
@@ -533,20 +549,23 @@ namespace JipperKeyViewer.KeyViewer
             }
             GUILayout.EndHorizontal();
 
-            GUILayout.Label(I18n.Tr("row2_text") + ":");
             byte[] backSequence = GetBackSequence();
-            GUILayout.BeginHorizontal();
-            for (int i = 0; i < backSequence.Length && i < 8; i++)
+            if (backSequence.Length > 0)
             {
-                int keyIndex = backSequence[i];
-                string buttonText = !string.IsNullOrEmpty(keyTexts[keyIndex]) ? keyTexts[keyIndex] : KeyToString(keyCodes[keyIndex]);
-                if (GUILayout.Button(buttonText))
+                GUILayout.Label(I18n.Tr("row2_text") + ":");
+                GUILayout.BeginHorizontal();
+                for (int i = 0; i < backSequence.Length && i < 8; i++)
                 {
-                    SelectedKey = keyIndex;
-                    TextChanged = true;
+                    int keyIndex = backSequence[i];
+                    string buttonText = !string.IsNullOrEmpty(keyTexts[keyIndex]) ? keyTexts[keyIndex] : KeyToString(keyCodes[keyIndex]);
+                    if (GUILayout.Button(buttonText))
+                    {
+                        SelectedKey = keyIndex;
+                        TextChanged = true;
+                    }
                 }
+                GUILayout.EndHorizontal();
             }
-            GUILayout.EndHorizontal();
 
             if (Settings.KeyViewerStyle == KeyviewerStyle.Key20)
             {
@@ -724,26 +743,20 @@ namespace JipperKeyViewer.KeyViewer
         {
             GUILayout.BeginVertical();
             GUILayout.Label(label);
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("R:", GUILayout.Width(20));
-            currentColor.r = GUILayout.HorizontalSlider(currentColor.r, 0f, 1f, GUILayout.Width(150));
-            GUILayout.Label(currentColor.r.ToString("F2"), GUILayout.Width(30));
-            GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("G:", GUILayout.Width(20));
-            currentColor.g = GUILayout.HorizontalSlider(currentColor.g, 0f, 1f, GUILayout.Width(150));
-            GUILayout.Label(currentColor.g.ToString("F2"), GUILayout.Width(30));
-            GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("B:", GUILayout.Width(20));
-            currentColor.b = GUILayout.HorizontalSlider(currentColor.b, 0f, 1f, GUILayout.Width(150));
-            GUILayout.Label(currentColor.b.ToString("F2"), GUILayout.Width(30));
-            GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("A:", GUILayout.Width(20));
-            currentColor.a = GUILayout.HorizontalSlider(currentColor.a, 0f, 1f, GUILayout.Width(150));
-            GUILayout.Label(currentColor.a.ToString("F2"), GUILayout.Width(30));
-            GUILayout.EndHorizontal();
+            void DrawChannel(string name, ref float channel)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(name + ":", GUILayout.Width(20));
+                channel = GUILayout.HorizontalSlider(channel, 0f, 1f, GUILayout.Width(150));
+                string txt = GUILayout.TextField(channel.ToString("F2"), GUILayout.Width(40));
+                if (float.TryParse(txt, out float val))
+                    channel = Mathf.Clamp01(val);
+                GUILayout.EndHorizontal();
+            }
+            DrawChannel("R", ref currentColor.r);
+            DrawChannel("G", ref currentColor.g);
+            DrawChannel("B", ref currentColor.b);
+            DrawChannel("A", ref currentColor.a);
             GUILayout.BeginHorizontal();
             GUILayout.Label(I18n.Tr("preview") + ":", GUILayout.Width(40));
             Rect previewRect = GUILayoutUtility.GetRect(100, 20);
@@ -755,6 +768,166 @@ namespace JipperKeyViewer.KeyViewer
             }
             GUILayout.EndVertical();
             return currentColor;
+        }
+
+        private int perKeyColorSelected = -1;
+        private int perKeyColorTypeIndex = -1;
+
+        private void DrawPerKeyColorSettings()
+        {
+            GUILayout.BeginVertical("box");
+            KeyCode[] keyCodes = GetKeyCode();
+            KeyCode[] footKeyCodes = GetFootKeyCode();
+
+            bool pressed;
+            void KeyBtn(int idx, string label)
+            {
+                Color c = Settings.PerKeyBackground[idx];
+                var style = new GUIStyle(GUI.skin.button);
+                style.normal.textColor = c.grayscale > 0.5f ? Color.black : Color.white;
+                if (perKeyColorSelected == idx)
+                    GUI.backgroundColor = Color.Lerp(c, Color.white, 0.4f);
+                else
+                    GUI.backgroundColor = c;
+                pressed = GUILayout.Button(label, style);
+                GUI.backgroundColor = Color.white;
+                if (pressed)
+                {
+                    if (perKeyColorSelected != idx) perKeyColorTypeIndex = -1;
+                    perKeyColorSelected = perKeyColorSelected == idx ? -1 : idx;
+                }
+            }
+
+            GUILayout.Label(I18n.Tr("row1_keys") + ":");
+            GUILayout.BeginHorizontal();
+            for (int i = 0; i < 8; i++) KeyBtn(i, KeyToString(keyCodes[i]));
+            GUILayout.EndHorizontal();
+
+            byte[] backSequence = GetBackSequence();
+            if (backSequence.Length > 0)
+            {
+                GUILayout.Label(I18n.Tr("row2_keys") + ":");
+                GUILayout.BeginHorizontal();
+                for (int b = 0; b < backSequence.Length && b < 8; b++)
+                    KeyBtn(backSequence[b], KeyToString(keyCodes[backSequence[b]]));
+                GUILayout.EndHorizontal();
+            }
+
+            if (Settings.KeyViewerStyle == KeyviewerStyle.Key20)
+            {
+                GUILayout.Label(I18n.Tr("row3_keys") + ":");
+                GUILayout.BeginHorizontal();
+                for (int i = 16; i < 20 && i < keyCodes.Length; i++)
+                    KeyBtn(i, KeyToString(keyCodes[i]));
+                GUILayout.EndHorizontal();
+            }
+
+            if (footKeyCodes != null && footKeyCodes.Length > 0)
+            {
+                GUILayout.Label(I18n.Tr("foot_keys") + ":");
+                int rows = footKeyCodes.Length <= 8 ? 1 : 2;
+                for (int r = 0; r < rows; r++)
+                {
+                    GUILayout.BeginHorizontal();
+                    int start = r * 8;
+                    int end = Mathf.Min(start + 8, footKeyCodes.Length);
+                    for (int f = start; f < end; f++)
+                        KeyBtn(20 + f, KeyToString(footKeyCodes[f]));
+                    GUILayout.EndHorizontal();
+                }
+            }
+
+            GUILayout.Space(5);
+            GUILayout.BeginHorizontal();
+            KeyBtn(36, "KPS");
+            KeyBtn(37, "Total");
+            GUILayout.EndHorizontal();
+
+            if (perKeyColorSelected >= 0 && perKeyColorSelected < 38)
+            {
+                GUILayout.Space(5);
+                int s = perKeyColorSelected;
+                string keyLabel = s == 36 ? "KPS" : s == 37 ? "Total" : KeyToString(GetKeyCodeForIndex(s));
+                GUILayout.Label("Key " + s + " (" + keyLabel + ")");
+                string rainKey = s < 8 ? "color_rain1" : s < 16 ? "color_rain2" : s < 20 ? "color_rain3" : "color_rain1";
+
+                string[] typeNames = {
+                    I18n.Tr("color_bg"), I18n.Tr("color_bg_clicked"),
+                    I18n.Tr("color_outline"), I18n.Tr("color_outline_clicked"),
+                    I18n.Tr("color_text"), I18n.Tr("color_text_clicked"),
+                    I18n.Tr(rainKey) + " (" + s + ")"
+                };
+                Color[] values = {
+                    Settings.PerKeyBackground[s], Settings.PerKeyBackgroundClicked[s],
+                    Settings.PerKeyOutline[s], Settings.PerKeyOutlineClicked[s],
+                    Settings.PerKeyText[s], Settings.PerKeyTextClicked[s],
+                    Settings.PerKeyRainColor[s]
+                };
+                Color[] defaults = {
+                    Background, BackgroundClicked, Outline, OutlineClicked, Text, TextClicked, RainColor
+                };
+
+                int[] typeOrder = s >= 36 ? new int[] { 0, 2, 4 }
+                    : s >= 20 ? new int[] { 0, 1, 2, 3, 4, 5 }
+                    : new int[] { 0, 1, 2, 3, 4, 5, 6 };
+                int typeCount = typeOrder.Length;
+
+                for (int ti = 0; ti < typeCount; ti++)
+                {
+                    int t = typeOrder[ti];
+                    bool expanded = GUILayout.Toggle(perKeyColorTypeIndex == t,
+                        (perKeyColorTypeIndex == t ? "\u25E2 " : "\u25B6 ") + typeNames[t]);
+                    if (expanded != (perKeyColorTypeIndex == t))
+                        perKeyColorTypeIndex = expanded ? t : -1;
+
+                    if (perKeyColorTypeIndex == t)
+                    {
+                        GUILayout.BeginVertical("box");
+                        Color cur = values[t];
+                        Color newColor = DrawColorPicker(typeNames[t], cur, defaults[t]);
+                        if (newColor != cur)
+                        {
+                            switch (t)
+                            {
+                                case 0: Settings.PerKeyBackground[s] = newColor; break;
+                                case 1: Settings.PerKeyBackgroundClicked[s] = newColor; break;
+                                case 2: Settings.PerKeyOutline[s] = newColor; break;
+                                case 3: Settings.PerKeyOutlineClicked[s] = newColor; break;
+                                case 4: Settings.PerKeyText[s] = newColor; break;
+                                case 5: Settings.PerKeyTextClicked[s] = newColor; break;
+                                case 6: Settings.PerKeyRainColor[s] = newColor; break;
+                            }
+                            UpdateAllKeyColors();
+                            SaveSettings();
+                        }
+                        GUILayout.EndVertical();
+                    }
+                }
+            }
+
+            if (GUILayout.Button(I18n.Tr("per_key_color_reset")))
+            {
+                Settings.InitPerKeyColors();
+                UpdateAllKeyColors();
+                SaveSettings();
+            }
+
+            if (GUILayout.Button(I18n.Tr("auto_rainbow")))
+            {
+                AutoAssignRainbowColors();
+            }
+
+            GUILayout.EndVertical();
+        }
+
+        private static KeyCode GetKeyCodeForIndex(int idx)
+        {
+            KeyCode[] main = GetKeyCode();
+            if (main != null && idx < main.Length) return main[idx];
+            KeyCode[] foot = GetFootKeyCode();
+            int fi = idx - 20;
+            if (foot != null && fi >= 0 && fi < foot.Length) return foot[fi];
+            return KeyCode.None;
         }
     }
 }

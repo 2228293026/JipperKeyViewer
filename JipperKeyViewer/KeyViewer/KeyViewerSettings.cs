@@ -124,6 +124,42 @@ namespace JipperKeyViewer.KeyViewer
         /// <summary>Hide press count on main keys / 隐藏主按键计数</summary>
         public bool HideMainKeyCount = false;
 
+        /// <summary>Per-key independent colors / 每键独立颜色</summary>
+        public bool EnablePerKeyColors = false;
+        /// <summary>Per-key colors (index 0-35) / 每键颜色配置</summary>
+        public Color[] PerKeyBackground;
+        public Color[] PerKeyBackgroundClicked;
+        public Color[] PerKeyOutline;
+        public Color[] PerKeyOutlineClicked;
+        public Color[] PerKeyText;
+        public Color[] PerKeyTextClicked;
+        public Color[] PerKeyRainColor;
+
+        public void InitPerKeyColors()
+        {
+            int n = 38;
+            PerKeyBackground = new Color[n];
+            PerKeyBackgroundClicked = new Color[n];
+            PerKeyOutline = new Color[n];
+            PerKeyOutlineClicked = new Color[n];
+            PerKeyText = new Color[n];
+            PerKeyTextClicked = new Color[n];
+            PerKeyRainColor = new Color[n];
+            for (int i = 0; i < n; i++)
+            {
+                PerKeyBackground[i] = KeyViewer.Background;
+                PerKeyBackgroundClicked[i] = KeyViewer.BackgroundClicked;
+                PerKeyOutline[i] = KeyViewer.Outline;
+                PerKeyOutlineClicked[i] = KeyViewer.OutlineClicked;
+                PerKeyText[i] = KeyViewer.Text;
+                PerKeyTextClicked[i] = KeyViewer.TextClicked;
+                if (i < 8) PerKeyRainColor[i] = KeyViewer.RainColor;
+                else if (i < 16) PerKeyRainColor[i] = KeyViewer.RainColor2;
+                else if (i < 20) PerKeyRainColor[i] = KeyViewer.RainColor3;
+                else PerKeyRainColor[i] = KeyViewer.RainColor;
+            }
+        }
+
         /// <summary>
         /// Ensure all arrays are initialized (prevents null refs on load with legacy data) / 确保所有数组已初始化（防止加载旧数据时出现空引用）
         /// </summary>
@@ -143,6 +179,8 @@ namespace JipperKeyViewer.KeyViewer
             footkey14Text = footkey14Text ?? new string[14];
             footkey16Text = footkey16Text ?? new string[16];
             Count = Count ?? new int[36];
+            if (PerKeyBackground == null || PerKeyBackground.Length != 38)
+                InitPerKeyColors();
         }
     }
 

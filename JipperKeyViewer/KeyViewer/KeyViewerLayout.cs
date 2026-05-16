@@ -177,9 +177,18 @@ namespace JipperKeyViewer.KeyViewer
             if (Keys == null || i >= Keys.Length) return;
             Key key = Keys[i];
             if (key == null) return;
-            key.background.color = pressed ? Settings.BackgroundClicked : Settings.Background;
-            key.outline.color = pressed ? Settings.OutlineClicked : Settings.Outline;
-            key.text.color = pressed ? Settings.TextClicked : Settings.Text;
+            if (Settings.EnablePerKeyColors && i < 36)
+            {
+                key.background.color = pressed ? Settings.PerKeyBackgroundClicked[i] : Settings.PerKeyBackground[i];
+                key.outline.color = pressed ? Settings.PerKeyOutlineClicked[i] : Settings.PerKeyOutline[i];
+                key.text.color = pressed ? Settings.PerKeyTextClicked[i] : Settings.PerKeyText[i];
+            }
+            else
+            {
+                key.background.color = pressed ? Settings.BackgroundClicked : Settings.Background;
+                key.outline.color = pressed ? Settings.OutlineClicked : Settings.Outline;
+                key.text.color = pressed ? Settings.TextClicked : Settings.Text;
+            }
             if (key.value != null) key.value.color = key.text.color;
         }
 
@@ -463,6 +472,22 @@ namespace JipperKeyViewer.KeyViewer
                 key.rain?.SetActive(false);
                 key.rain = null;
             }
+            if (Settings.EnablePerKeyColors)
+            {
+                int pi = i >= 0 && i < Keys.Length ? i : i == -1 ? 36 : i == -2 ? 37 : -1;
+                if (pi >= 0)
+                {
+                    key.background.color = Settings.PerKeyBackground[pi];
+                    key.outline.color = Settings.PerKeyOutline[pi];
+                    key.text.color = Settings.PerKeyText[pi];
+                    if (key.value != null) key.value.color = Settings.PerKeyText[pi];
+                    key.rainColor = Settings.PerKeyRainColor[pi];
+                }
+            }
+            if (!Settings.EnablePerKeyColors && raining >= 0)
+            {
+                key.rainColor = rainSystem.GetRainColor((byte)raining);
+            }
             return key;
         }
 
@@ -744,46 +769,67 @@ namespace JipperKeyViewer.KeyViewer
         private void UpdateAllKeyColors()
         {
             if (Keys == null) return;
-            KeyCode[] keyCodes = GetKeyCode();
-            KeyCode[] footKeyCodes = GetFootKeyCode();
-            for (int i = 0; i < keyCodes.Length && i < Keys.Length; i++)
+            if (Settings.EnablePerKeyColors)
             {
-                if (Keys[i] != null)
+                for (int i = 0; i < Keys.Length; i++)
                 {
-                    Keys[i].background.color = Settings.Background;
-                    Keys[i].outline.color = Settings.Outline;
-                    Keys[i].text.color = Settings.Text;
-                    if (Keys[i].value != null) Keys[i].value.color = Settings.Text;
+                    if (Keys[i] == null) continue;
+                    Keys[i].background.color = Settings.PerKeyBackground[i];
+                    Keys[i].outline.color = Settings.PerKeyOutline[i];
+                    Keys[i].text.color = Settings.PerKeyText[i];
+                    if (Keys[i].value != null) Keys[i].value.color = Settings.PerKeyText[i];
+                    Keys[i].rainColor = Settings.PerKeyRainColor[i];
                 }
             }
-            if (footKeyCodes != null)
+            else
             {
-                for (int i = 0; i < footKeyCodes.Length; i++)
+                KeyCode[] keyCodes = GetKeyCode();
+                KeyCode[] footKeyCodes = GetFootKeyCode();
+                for (int i = 0; i < keyCodes.Length && i < Keys.Length; i++)
                 {
-                    int index = i + 20;
-                    if (index < Keys.Length && Keys[index] != null)
+                    if (Keys[i] != null)
                     {
-                        Keys[index].background.color = Settings.Background;
-                        Keys[index].outline.color = Settings.Outline;
-                        Keys[index].text.color = Settings.Text;
-                        if (Keys[index].value != null) Keys[index].value.color = Settings.Text;
+                        Keys[i].background.color = Settings.Background;
+                        Keys[i].outline.color = Settings.Outline;
+                        Keys[i].text.color = Settings.Text;
+                        if (Keys[i].value != null) Keys[i].value.color = Settings.Text;
+                    }
+                }
+                if (footKeyCodes != null)
+                {
+                    for (int i = 0; i < footKeyCodes.Length; i++)
+                    {
+                        int index = i + 20;
+                        if (index < Keys.Length && Keys[index] != null)
+                        {
+                            Keys[index].background.color = Settings.Background;
+                            Keys[index].outline.color = Settings.Outline;
+                            Keys[index].text.color = Settings.Text;
+                            if (Keys[index].value != null) Keys[index].value.color = Settings.Text;
+                        }
                     }
                 }
             }
-            if (Kps != null)
+            void ApplyGlobalOrPerKey(Key k, int pi)
             {
-                Kps.background.color = Settings.Background;
-                Kps.outline.color = Settings.Outline;
-                Kps.text.color = Settings.Text;
-                if (Kps.value != null) Kps.value.color = Settings.Text;
+                if (k == null) return;
+                if (Settings.EnablePerKeyColors)
+                {
+                    k.background.color = Settings.PerKeyBackground[pi];
+                    k.outline.color = Settings.PerKeyOutline[pi];
+                    k.text.color = Settings.PerKeyText[pi];
+                    if (k.value != null) k.value.color = Settings.PerKeyText[pi];
+                }
+                else
+                {
+                    k.background.color = Settings.Background;
+                    k.outline.color = Settings.Outline;
+                    k.text.color = Settings.Text;
+                    if (k.value != null) k.value.color = Settings.Text;
+                }
             }
-            if (Total != null)
-            {
-                Total.background.color = Settings.Background;
-                Total.outline.color = Settings.Outline;
-                Total.text.color = Settings.Text;
-                if (Total.value != null) Total.value.color = Settings.Text;
-            }
+            ApplyGlobalOrPerKey(Kps, 36);
+            ApplyGlobalOrPerKey(Total, 37);
         }
 
         /// <summary>
@@ -961,6 +1007,47 @@ namespace JipperKeyViewer.KeyViewer
             }
             if (Total != null && Total.value != null)
                 Total.value.text = FormatCount(Settings.TotalCount);
+        }
+
+        public void AutoAssignRainbowColors()
+        {
+            int n = 38;
+            Settings.EnablePerKeyColors = true;
+            for (int i = 0; i < n; i++)
+            {
+                float hue = i * 0.618033988f;
+                hue -= Mathf.Floor(hue);
+                // manual HSV to RGB
+                float h = hue * 6f;
+                int sector = (int)h;
+                float f = h - sector;
+                float p = 0.9f * (1f - 0.85f);
+                float q = 0.9f * (1f - 0.85f * f);
+                float t = 0.9f * (1f - 0.85f * (1f - f));
+                float r, g, b;
+                switch (sector % 6)
+                {
+                    case 0: r = 0.9f; g = t; b = p; break;
+                    case 1: r = q; g = 0.9f; b = p; break;
+                    case 2: r = p; g = 0.9f; b = t; break;
+                    case 3: r = p; g = q; b = 0.9f; break;
+                    case 4: r = t; g = p; b = 0.9f; break;
+                    default: r = 0.9f; g = p; b = q; break;
+                }
+                Color baseColor = new Color(r, g, b);
+                float bright = baseColor.grayscale > 0.5f ? 0f : 1f;
+                Settings.PerKeyBackground[i] = baseColor;
+                Settings.PerKeyBackgroundClicked[i] = Color.Lerp(baseColor, Color.white, 0.5f);
+                Settings.PerKeyOutline[i] = baseColor;
+                Settings.PerKeyOutlineClicked[i] = Color.Lerp(baseColor, Color.white, 0.7f);
+                Settings.PerKeyText[i] = new Color(bright, bright, bright);
+                Settings.PerKeyTextClicked[i] = new Color(1f - bright, 1f - bright, 1f - bright);
+                Settings.PerKeyRainColor[i] = baseColor;
+            }
+            ResetKeyViewer();
+            ResetFootKeyViewer();
+            UpdateAllKeyColors();
+            SaveSettings();
         }
     }
 }

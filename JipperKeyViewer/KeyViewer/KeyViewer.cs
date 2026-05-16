@@ -303,6 +303,8 @@ namespace JipperKeyViewer.KeyViewer
                         Settings.footkey14Text = Settings.footkey14Text ?? new string[14];
                         Settings.footkey16Text = Settings.footkey16Text ?? new string[16];
                         Settings.Count = Settings.Count ?? new int[36];
+                        if (Settings.PerKeyBackground == null || Settings.PerKeyBackground.Length != 38)
+                            Settings.InitPerKeyColors();
                     }
                     else
                     {

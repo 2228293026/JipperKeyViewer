@@ -2,7 +2,7 @@
   "Id": "JipperKeyViewer",
   "DisplayName": "Jipper Key Viewer",
   "Author": "HitMargin",
-  "Version": "1.4.1",
+  "Version": "1.5.0",
   "ManagerVersion": "0.27.0",
   "Requirements": [],
   "AssemblyName": "JipperKeyViewer.dll",

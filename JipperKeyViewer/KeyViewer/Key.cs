@@ -28,6 +28,8 @@ namespace JipperKeyViewer.KeyViewer
         public GameObject rain;
         /// <summary>Rain color index (0=row1, 1=row2, 3=row3) / 雨滴颜色索引（0=第1排，1=第2排，3=第3排）</summary>
         public byte color;
+        /// <summary>Pre-computed rain color for this key / 预先计算的该键雨滴颜色</summary>
+        public Color rainColor = Color.white;
         /// <summary>Active rain drops list / 活跃中的雨滴列表</summary>
         public List<RawRain> rainList = new List<RawRain>();
         /// <summary>Queue of newly triggered rain drops awaiting Rain component assignment / 新触发的雨滴队列，等待分配 Rain 组件</summary>
@@ -47,7 +49,7 @@ namespace JipperKeyViewer.KeyViewer
                 Rain rainComponent = rainSystem.GetRainFromPool(rain.transform);
                 rainComponent.rawRain = rawRain;
                 rawRain.rainComponent = rainComponent;
-                rainComponent.image.color = rainSystem.GetRainColor(color);
+                rainComponent.image.color = rainColor;
             }
         }
 

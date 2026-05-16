@@ -72,6 +72,9 @@ namespace JipperKeyViewer.KeyViewer
             ["count_formatting"] = "Use 1,234 for large numbers",
             ["foot_keys_text"] = "Foot Key Text",
             ["hide_main_count"] = "Hide Main Key Count",
+            ["per_key_colors"] = "Per-Key Colors",
+            ["per_key_color_reset"] = "Reset All to Default",
+            ["auto_rainbow"] = "Auto Rainbow KV",
         };
 
         /// <summary>Chinese translations dictionary / 中文字典</summary>
@@ -129,6 +132,9 @@ namespace JipperKeyViewer.KeyViewer
             ["count_formatting"] = "大数字千分位显示 1,234",
             ["foot_keys_text"] = "脚键文本",
             ["hide_main_count"] = "隐藏主按键计数",
+            ["per_key_colors"] = "每键独立颜色",
+            ["per_key_color_reset"] = "全部重置为默认",
+            ["auto_rainbow"] = "自动彩色KV",
         };
 
         /// <summary>Korean translations dictionary / 韩文字典</summary>
@@ -186,6 +192,9 @@ namespace JipperKeyViewer.KeyViewer
             ["count_formatting"] = "큰 숫자에 1,234 형식 사용",
             ["foot_keys_text"] = "발판 키 텍스트",
             ["hide_main_count"] = "메인 키 카운트 숨기기",
+            ["per_key_colors"] = "키별 색상",
+            ["per_key_color_reset"] = "모두 기본값으로 초기화",
+            ["auto_rainbow"] = "자동 무지개 KV",
         };
 
         /// <summary>Path to the lang.json override file / lang.json 覆盖文件路径</summary>

@@ -1084,6 +1084,17 @@ namespace JipperKeyViewer.KeyViewer
             if (Settings.Data.KeyViewerStyle == KeyviewerStyle.Key20)
                 Settings.Data.RainWidthRow3 = FloatSliderField(I18n.Tr("rain_width_row3"), Settings.Data.RainWidthRow3, 10f, 200f, "F0");
 
+            GUILayout.Label(I18n.Tr("rain_start_y") + ":");
+            float newStartY1 = FloatSliderField(I18n.Tr("rain_row1"), Settings.Data.RainStartYRow1, -2000f, 1000f, "F0");
+            if (newStartY1 != Settings.Data.RainStartYRow1) { Settings.Data.RainStartYRow1 = newStartY1; UpdateRainContainerPositions(); }
+            float newStartY2 = FloatSliderField(I18n.Tr("rain_row2"), Settings.Data.RainStartYRow2, -2000f, 1000f, "F0");
+            if (newStartY2 != Settings.Data.RainStartYRow2) { Settings.Data.RainStartYRow2 = newStartY2; UpdateRainContainerPositions(); }
+            if (Settings.Data.KeyViewerStyle == KeyviewerStyle.Key20)
+            {
+                float newStartY3 = FloatSliderField(I18n.Tr("rain_row3"), Settings.Data.RainStartYRow3, -2000f, 1000f, "F0");
+                if (newStartY3 != Settings.Data.RainStartYRow3) { Settings.Data.RainStartYRow3 = newStartY3; UpdateRainContainerPositions(); }
+            }
+
             GUILayout.Space(5);
             bool newRainFade = GUILayout.Toggle(Settings.Data.EnableRainFade, I18n.Tr("rain_fade"));
             if (newRainFade != Settings.Data.EnableRainFade)
@@ -1133,6 +1144,16 @@ namespace JipperKeyViewer.KeyViewer
             {
                 DrawGhostRainShadowSection();
                 DrawGhostRainOutlineSection();
+                GUILayout.Label(I18n.Tr("ghost_rain") + " " + I18n.Tr("rain_start_y") + ":");
+                float newGY1 = FloatSliderField(I18n.Tr("rain_row1"), Settings.Data.GhostRainStartYRow1, -2000f, 1000f, "F0");
+                if (!Mathf.Approximately(newGY1, Settings.Data.GhostRainStartYRow1)) { Settings.Data.GhostRainStartYRow1 = newGY1; UpdateGhostRainStartY(); SaveSettings(); }
+                float newGY2 = FloatSliderField(I18n.Tr("rain_row2"), Settings.Data.GhostRainStartYRow2, -2000f, 1000f, "F0");
+                if (!Mathf.Approximately(newGY2, Settings.Data.GhostRainStartYRow2)) { Settings.Data.GhostRainStartYRow2 = newGY2; UpdateGhostRainStartY(); SaveSettings(); }
+                if (Settings.Data.KeyViewerStyle == KeyviewerStyle.Key20)
+                {
+                    float newGY3 = FloatSliderField(I18n.Tr("rain_row3"), Settings.Data.GhostRainStartYRow3, -2000f, 1000f, "F0");
+                    if (!Mathf.Approximately(newGY3, Settings.Data.GhostRainStartYRow3)) { Settings.Data.GhostRainStartYRow3 = newGY3; UpdateGhostRainStartY(); SaveSettings(); }
+                }
             }
 
             GUILayout.Space(8);

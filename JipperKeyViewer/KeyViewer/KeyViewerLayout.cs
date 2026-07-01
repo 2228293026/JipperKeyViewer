@@ -371,6 +371,46 @@ namespace JipperKeyViewer.KeyViewer
             return text;
         }
 
+        private void UpdateRainContainerPositions()
+        {
+            if (Keys == null) return;
+            foreach (var key in Keys)
+            {
+                if (key?.rain == null) continue;
+                RectTransform rt = key.rain.GetComponent<RectTransform>();
+                if (rt == null) continue;
+                rt.anchoredPosition = new Vector2(0, key.color switch
+                {
+                    0 => Settings.Data.RainStartYRow1,
+                    3 => Settings.Data.RainStartYRow3,
+                    _ => Settings.Data.RainStartYRow2
+                });
+            }
+        }
+
+        private void UpdateGhostRainStartY()
+        {
+            if (Keys == null || rainSystem == null) return;
+            for (int i = 0; i < Keys.Length; i++)
+            {
+                var key = Keys[i];
+                if (key?.rain == null) continue;
+                int row = i < 8 ? 1 : i < 16 ? 2 : 3;
+                float baseY = row == 1 ? Settings.Data.RainStartYRow1
+                    : row == 2 ? Settings.Data.RainStartYRow2
+                    : Settings.Data.RainStartYRow3;
+                float ghostY = row == 1 ? Settings.Data.GhostRainStartYRow1
+                    : row == 2 ? Settings.Data.GhostRainStartYRow2
+                    : Settings.Data.GhostRainStartYRow3;
+                float startY = ghostY - baseY;
+                foreach (var rawRain in key.rainList)
+                {
+                    if (rawRain.isGhost)
+                        rawRain.startY = startY;
+                }
+            }
+        }
+
         private static void SetupRainContainer(Key key, GameObject parent, float sizeX, int raining)
         {
             if (raining >= 0)
@@ -384,9 +424,9 @@ namespace JipperKeyViewer.KeyViewer
                     rt.anchorMin = rt.anchorMax = rt.pivot = Vector2.zero;
                     rt.anchoredPosition = new Vector2(0, raining switch
                     {
-                        0 => -223,
-                        3 => -115,
-                        _ => -169
+                        0 => KeyViewer.Settings.Data.RainStartYRow1,
+                        3 => KeyViewer.Settings.Data.RainStartYRow3,
+                        _ => KeyViewer.Settings.Data.RainStartYRow2
                     });
                     rt.localScale = Vector3.one;
                     key.rain.AddComponent<Canvas>();

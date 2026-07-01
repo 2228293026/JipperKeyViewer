@@ -278,6 +278,7 @@ namespace JipperKeyViewer.KeyViewer
                 r.color = color;
                 r.removed = false;
                 r.elapsedMs = 0f;
+                r.startY = 0f;
                 r.sizeDelta = null;
                 r.anchoredPosition = null;
                 r.rainComponent = null;
@@ -311,6 +312,10 @@ namespace JipperKeyViewer.KeyViewer
             int row = keyIndex < 8 ? 1 : (keyIndex < 16 ? 2 : 3);
 
             RawRain rawRain = GetRawRain(key.color);
+            float baseY = row == 1 ? settings.Data.RainStartYRow1 : row == 2 ? settings.Data.RainStartYRow2 : settings.Data.RainStartYRow3;
+            rawRain.startY = isGhost
+                ? (row == 1 ? settings.Data.GhostRainStartYRow1 : row == 2 ? settings.Data.GhostRainStartYRow2 : settings.Data.GhostRainStartYRow3) - baseY
+                : 0f;
             Rain rainComponent;
             if (isGhost)
             {
@@ -327,9 +332,14 @@ namespace JipperKeyViewer.KeyViewer
             // Ghost-specific or normal-specific shadow/outline settings
             if (isGhost)
             {
-                rainComponent.graphic.shadowEnabled = row == 1 ? settings.Data.EnableGhostRainShadowRow1
+                bool hasShadow = row == 1 ? settings.Data.EnableGhostRainShadowRow1
                     : row == 2 ? settings.Data.EnableGhostRainShadowRow2
                     : settings.Data.EnableGhostRainShadowRow3;
+                bool hasOutline = row == 1 ? settings.Data.EnableGhostRainOutlineRow1
+                    : row == 2 ? settings.Data.EnableGhostRainOutlineRow2
+                    : settings.Data.EnableGhostRainOutlineRow3;
+                rainComponent.graphic.enabled = hasShadow || hasOutline;
+                rainComponent.graphic.shadowEnabled = hasShadow;
                 rainComponent.graphic.shadowColor = row == 1 ? settings.Data.GhostRainShadowColorRow1
                     : row == 2 ? settings.Data.GhostRainShadowColorRow2
                     : settings.Data.GhostRainShadowColorRow3;
@@ -340,9 +350,7 @@ namespace JipperKeyViewer.KeyViewer
                     : row == 2 ? settings.Data.GhostRainShadowOffsetYRow2
                     : settings.Data.GhostRainShadowOffsetYRow3;
 
-                rainComponent.graphic.outlineEnabled = row == 1 ? settings.Data.EnableGhostRainOutlineRow1
-                    : row == 2 ? settings.Data.EnableGhostRainOutlineRow2
-                    : settings.Data.EnableGhostRainOutlineRow3;
+                rainComponent.graphic.outlineEnabled = hasOutline;
                 rainComponent.graphic.outlineColor = row == 1 ? settings.Data.GhostRainOutlineColorRow1
                     : row == 2 ? settings.Data.GhostRainOutlineColorRow2
                     : settings.Data.GhostRainOutlineColorRow3;

@@ -1,3 +1,14 @@
+## v1.6.2
+
+### 🚀 Features
+- **Per-row rain shadow**: Independent shadow toggle, color, X/Y offset for each row (Row1/2/3), separate settings for ghost rain
+- **Per-row rain outline**: Independent outline toggle, color, width for each row (Row1/2/3), separate settings for ghost rain
+- **Per-row rain start height**: `RainStartYRow1/2/3` sliders (−400–−20) control where raindrops emerge relative to each key row, live preview on slider drag
+- **Rain shadow/outline I18n**: Chinese/Korean translations for all shadow/outline UI labels
+
+### 🐛 Bug Fixes
+- **Profile load field leak**: `LoadProfile` used `FromJsonOverwrite` on existing `Settings.Data` — new fields (shadow/outline/start Y) missing from old profile JSONs kept their value from the previous profile, behaving as global settings. Fixed by resetting `Settings.Data = new ProfileData()` before overwrite, so missing fields correctly default.
+
 ## v1.6.1.1
 
 ### 🚀 Features

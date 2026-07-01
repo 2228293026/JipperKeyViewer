@@ -488,6 +488,7 @@ namespace JipperKeyViewer.KeyViewer
             try
             {
                 string json = File.ReadAllText(profilePath);
+                Settings.Data = new ProfileData();
                 JsonUtility.FromJsonOverwrite(json, Settings.Data);
                 return true;
             }

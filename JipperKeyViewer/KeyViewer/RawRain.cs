@@ -5,6 +5,7 @@ namespace JipperKeyViewer.KeyViewer
     public class RawRain
     {
         public float elapsedMs;
+        public float startY;
         public byte color;
         public Vector2 FinalSize;
         public Vector2? sizeDelta;
@@ -24,6 +25,7 @@ namespace JipperKeyViewer.KeyViewer
         {
             elapsedMs += deltaMs;
             float y = elapsedMs * speedFactor;
+            float dropY = startY + y;
             if (updateSize || FinalSize == default)
                 FinalSize = new Vector2(color switch
                 {
@@ -31,9 +33,9 @@ namespace JipperKeyViewer.KeyViewer
                     3 => KeyViewer.Settings.Data.RainWidthRow3,
                     _ => KeyViewer.Settings.Data.RainWidthRow2
                 }, y);
-            if (y > height)
+            if (dropY > height)
             {
-                float sizeY = FinalSize.y - y + height;
+                float sizeY = FinalSize.y - dropY + height;
                 if (sizeY < 0) return false;
                 sizeDelta = new Vector2(FinalSize.x, sizeY);
                 anchoredPosition = new Vector2(0, height);
@@ -41,7 +43,7 @@ namespace JipperKeyViewer.KeyViewer
             else
             {
                 if (updateSize) sizeDelta = FinalSize;
-                anchoredPosition = new Vector2(0, y);
+                anchoredPosition = new Vector2(0, dropY);
             }
             return true;
         }

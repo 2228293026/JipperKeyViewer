@@ -41,6 +41,7 @@ namespace JipperKeyViewer.KeyViewer
             fadingOut = false;
             fadeTimer = 0f;
             graphic.enabled = true;
+            graphic.renderMain = true;
             ghostImage.enabled = false;
         }
 
@@ -54,7 +55,8 @@ namespace JipperKeyViewer.KeyViewer
             transform.localScale = Vector3.one;
             fadingOut = false;
             fadeTimer = 0f;
-            graphic.enabled = false;
+            graphic.enabled = true;   // enabled for shadow/outline support
+            graphic.renderMain = false; // ghost Image draws the main sprite
             ghostImage.enabled = true;
             ghostImage.sprite = sprite;
             ghostImage.type = isTiled ? Image.Type.Tiled : Image.Type.Simple;

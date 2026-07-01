@@ -308,6 +308,8 @@ namespace JipperKeyViewer.KeyViewer
         {
             if (key == null || key.rain == null) return;
 
+            int row = keyIndex < 8 ? 1 : (keyIndex < 16 ? 2 : 3);
+
             RawRain rawRain = GetRawRain(key.color);
             Rain rainComponent;
             if (isGhost)
@@ -321,6 +323,59 @@ namespace JipperKeyViewer.KeyViewer
                 rainComponent = GetRainFromPool(key.rain.transform);
                 rainComponent.graphic.color = key.rainColor;
             }
+
+            // Ghost-specific or normal-specific shadow/outline settings
+            if (isGhost)
+            {
+                rainComponent.graphic.shadowEnabled = row == 1 ? settings.Data.EnableGhostRainShadowRow1
+                    : row == 2 ? settings.Data.EnableGhostRainShadowRow2
+                    : settings.Data.EnableGhostRainShadowRow3;
+                rainComponent.graphic.shadowColor = row == 1 ? settings.Data.GhostRainShadowColorRow1
+                    : row == 2 ? settings.Data.GhostRainShadowColorRow2
+                    : settings.Data.GhostRainShadowColorRow3;
+                rainComponent.graphic.shadowOffsetX = row == 1 ? settings.Data.GhostRainShadowOffsetXRow1
+                    : row == 2 ? settings.Data.GhostRainShadowOffsetXRow2
+                    : settings.Data.GhostRainShadowOffsetXRow3;
+                rainComponent.graphic.shadowOffsetY = row == 1 ? settings.Data.GhostRainShadowOffsetYRow1
+                    : row == 2 ? settings.Data.GhostRainShadowOffsetYRow2
+                    : settings.Data.GhostRainShadowOffsetYRow3;
+
+                rainComponent.graphic.outlineEnabled = row == 1 ? settings.Data.EnableGhostRainOutlineRow1
+                    : row == 2 ? settings.Data.EnableGhostRainOutlineRow2
+                    : settings.Data.EnableGhostRainOutlineRow3;
+                rainComponent.graphic.outlineColor = row == 1 ? settings.Data.GhostRainOutlineColorRow1
+                    : row == 2 ? settings.Data.GhostRainOutlineColorRow2
+                    : settings.Data.GhostRainOutlineColorRow3;
+                rainComponent.graphic.outlineWidth = row == 1 ? settings.Data.GhostRainOutlineWidthRow1
+                    : row == 2 ? settings.Data.GhostRainOutlineWidthRow2
+                    : settings.Data.GhostRainOutlineWidthRow3;
+            }
+            else
+            {
+                rainComponent.graphic.shadowEnabled = row == 1 ? settings.Data.EnableRainShadowRow1
+                    : row == 2 ? settings.Data.EnableRainShadowRow2
+                    : settings.Data.EnableRainShadowRow3;
+                rainComponent.graphic.shadowColor = row == 1 ? settings.Data.RainShadowColorRow1
+                    : row == 2 ? settings.Data.RainShadowColorRow2
+                    : settings.Data.RainShadowColorRow3;
+                rainComponent.graphic.shadowOffsetX = row == 1 ? settings.Data.RainShadowOffsetXRow1
+                    : row == 2 ? settings.Data.RainShadowOffsetXRow2
+                    : settings.Data.RainShadowOffsetXRow3;
+                rainComponent.graphic.shadowOffsetY = row == 1 ? settings.Data.RainShadowOffsetYRow1
+                    : row == 2 ? settings.Data.RainShadowOffsetYRow2
+                    : settings.Data.RainShadowOffsetYRow3;
+
+                rainComponent.graphic.outlineEnabled = row == 1 ? settings.Data.EnableRainOutlineRow1
+                    : row == 2 ? settings.Data.EnableRainOutlineRow2
+                    : settings.Data.EnableRainOutlineRow3;
+                rainComponent.graphic.outlineColor = row == 1 ? settings.Data.RainOutlineColorRow1
+                    : row == 2 ? settings.Data.RainOutlineColorRow2
+                    : settings.Data.RainOutlineColorRow3;
+                rainComponent.graphic.outlineWidth = row == 1 ? settings.Data.RainOutlineWidthRow1
+                    : row == 2 ? settings.Data.RainOutlineWidthRow2
+                    : settings.Data.RainOutlineWidthRow3;
+            }
+
             rainComponent.rawRain = rawRain;
             rawRain.rainComponent = rainComponent;
             rawRain.isGhost = isGhost;

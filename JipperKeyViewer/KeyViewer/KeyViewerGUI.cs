@@ -474,6 +474,13 @@ namespace JipperKeyViewer.KeyViewer
         int kpsColorType = -1;
         int totalColorType = -1;
 
+        // ===== Per-row rain shadow/outline foldout state =====
+        bool[] rainShadowColorExpanded = new bool[3];
+        bool[] rainOutlineColorExpanded = new bool[3];
+        bool[] ghostShadowColorExpanded = new bool[3];
+        bool[] ghostOutlineColorExpanded = new bool[3];
+
+
         private static Color KpsTotalColor(int pi, int t) => pi == 36
             ? t switch { 0 => Settings.Data.KpsBackground, 1 => Settings.Data.KpsOutline, _ => Settings.Data.KpsText }
             : t switch { 0 => Settings.Data.TotalBackground, 1 => Settings.Data.TotalOutline, _ => Settings.Data.TotalText };
@@ -1121,6 +1128,215 @@ namespace JipperKeyViewer.KeyViewer
                 if (!newGhostRain && rainSystem != null && Keys != null)
                     rainSystem.ClearActiveDrops(Keys);
                 SaveSettings();
+            }
+            if (Settings.Data.EnableGhostRain)
+            {
+                DrawGhostRainShadowSection();
+                DrawGhostRainOutlineSection();
+            }
+
+            GUILayout.Space(8);
+            DrawRainShadowSection();
+            DrawRainOutlineSection();
+
+            GUILayout.Space(5);
+        }
+
+        private void DrawGhostRainShadowSection()
+        {
+            GUILayout.Label(I18n.Tr("ghost_rain") + " " + I18n.Tr("rain_shadow"));
+            for (int r = 0; r < 3; r++)
+            {
+                if (r == 2 && Settings.Data.KeyViewerStyle != KeyviewerStyle.Key20) break;
+                string rowLabel = r == 0 ? I18n.Tr("rain_row1") : r == 1 ? I18n.Tr("rain_row2") : I18n.Tr("rain_row3");
+                bool shadowEn = r == 0 ? Settings.Data.EnableGhostRainShadowRow1 : r == 1 ? Settings.Data.EnableGhostRainShadowRow2 : Settings.Data.EnableGhostRainShadowRow3;
+                bool newShadowEn = GUILayout.Toggle(shadowEn, rowLabel);
+                if (newShadowEn != shadowEn)
+                {
+                    if (r == 0) Settings.Data.EnableGhostRainShadowRow1 = newShadowEn;
+                    else if (r == 1) Settings.Data.EnableGhostRainShadowRow2 = newShadowEn;
+                    else Settings.Data.EnableGhostRainShadowRow3 = newShadowEn;
+                    if (rainSystem != null && Keys != null) rainSystem.ClearActiveDrops(Keys);
+                    SaveSettings();
+                }
+                if (!shadowEn) continue;
+                GUILayout.BeginVertical("box");
+                ghostShadowColorExpanded[r] = DrawFoldoutButton(I18n.Tr("rain_shadow_color"), ghostShadowColorExpanded[r]);
+                if (ghostShadowColorExpanded[r])
+                {
+                    Color curCol = r == 0 ? Settings.Data.GhostRainShadowColorRow1 : r == 1 ? Settings.Data.GhostRainShadowColorRow2 : Settings.Data.GhostRainShadowColorRow3;
+                    Color newCol = DrawColorPicker("", curCol, RainShadowColorDefault);
+                    if (newCol != curCol)
+                    {
+                        if (r == 0) Settings.Data.GhostRainShadowColorRow1 = newCol;
+                        else if (r == 1) Settings.Data.GhostRainShadowColorRow2 = newCol;
+                        else Settings.Data.GhostRainShadowColorRow3 = newCol;
+                        SaveSettings();
+                    }
+                }
+                float curOffX = r == 0 ? Settings.Data.GhostRainShadowOffsetXRow1 : r == 1 ? Settings.Data.GhostRainShadowOffsetXRow2 : Settings.Data.GhostRainShadowOffsetXRow3;
+                float curOffY = r == 0 ? Settings.Data.GhostRainShadowOffsetYRow1 : r == 1 ? Settings.Data.GhostRainShadowOffsetYRow2 : Settings.Data.GhostRainShadowOffsetYRow3;
+                float newOffX = FloatSliderField("X " + I18n.Tr("rain_shadow_offset"), curOffX, -10f, 10f);
+                if (newOffX != curOffX)
+                {
+                    if (r == 0) Settings.Data.GhostRainShadowOffsetXRow1 = newOffX;
+                    else if (r == 1) Settings.Data.GhostRainShadowOffsetXRow2 = newOffX;
+                    else Settings.Data.GhostRainShadowOffsetXRow3 = newOffX;
+                    SaveSettings();
+                }
+                float newOffY = FloatSliderField("Y " + I18n.Tr("rain_shadow_offset"), curOffY, -10f, 10f);
+                if (newOffY != curOffY)
+                {
+                    if (r == 0) Settings.Data.GhostRainShadowOffsetYRow1 = newOffY;
+                    else if (r == 1) Settings.Data.GhostRainShadowOffsetYRow2 = newOffY;
+                    else Settings.Data.GhostRainShadowOffsetYRow3 = newOffY;
+                    SaveSettings();
+                }
+                GUILayout.EndVertical();
+            }
+        }
+
+        private void DrawGhostRainOutlineSection()
+        {
+            GUILayout.Label(I18n.Tr("ghost_rain") + " " + I18n.Tr("rain_outline"));
+            for (int r = 0; r < 3; r++)
+            {
+                if (r == 2 && Settings.Data.KeyViewerStyle != KeyviewerStyle.Key20) break;
+                string rowLabel = r == 0 ? I18n.Tr("rain_row1") : r == 1 ? I18n.Tr("rain_row2") : I18n.Tr("rain_row3");
+                bool outlineEn = r == 0 ? Settings.Data.EnableGhostRainOutlineRow1 : r == 1 ? Settings.Data.EnableGhostRainOutlineRow2 : Settings.Data.EnableGhostRainOutlineRow3;
+                bool newOutlineEn = GUILayout.Toggle(outlineEn, rowLabel);
+                if (newOutlineEn != outlineEn)
+                {
+                    if (r == 0) Settings.Data.EnableGhostRainOutlineRow1 = newOutlineEn;
+                    else if (r == 1) Settings.Data.EnableGhostRainOutlineRow2 = newOutlineEn;
+                    else Settings.Data.EnableGhostRainOutlineRow3 = newOutlineEn;
+                    if (rainSystem != null && Keys != null) rainSystem.ClearActiveDrops(Keys);
+                    SaveSettings();
+                }
+                if (!outlineEn) continue;
+                GUILayout.BeginVertical("box");
+                ghostOutlineColorExpanded[r] = DrawFoldoutButton(I18n.Tr("rain_outline_color"), ghostOutlineColorExpanded[r]);
+                if (ghostOutlineColorExpanded[r])
+                {
+                    Color curCol = r == 0 ? Settings.Data.GhostRainOutlineColorRow1 : r == 1 ? Settings.Data.GhostRainOutlineColorRow2 : Settings.Data.GhostRainOutlineColorRow3;
+                    Color newCol = DrawColorPicker("", curCol, RainOutlineColorDefault);
+                    if (newCol != curCol)
+                    {
+                        if (r == 0) Settings.Data.GhostRainOutlineColorRow1 = newCol;
+                        else if (r == 1) Settings.Data.GhostRainOutlineColorRow2 = newCol;
+                        else Settings.Data.GhostRainOutlineColorRow3 = newCol;
+                        SaveSettings();
+                    }
+                }
+                float curW = r == 0 ? Settings.Data.GhostRainOutlineWidthRow1 : r == 1 ? Settings.Data.GhostRainOutlineWidthRow2 : Settings.Data.GhostRainOutlineWidthRow3;
+                float newW = FloatSliderField(I18n.Tr("rain_outline_width"), curW, 0.5f, 10f, "F1");
+                if (newW != curW)
+                {
+                    if (r == 0) Settings.Data.GhostRainOutlineWidthRow1 = newW;
+                    else if (r == 1) Settings.Data.GhostRainOutlineWidthRow2 = newW;
+                    else Settings.Data.GhostRainOutlineWidthRow3 = newW;
+                    SaveSettings();
+                }
+                GUILayout.EndVertical();
+            }
+        }
+
+        private void DrawRainShadowSection()
+        {
+            GUILayout.Label(I18n.Tr("rain_shadow"));
+            for (int r = 0; r < 3; r++)
+            {
+                if (r == 2 && Settings.Data.KeyViewerStyle != KeyviewerStyle.Key20) break;
+                string rowLabel = r == 0 ? I18n.Tr("rain_row1") : r == 1 ? I18n.Tr("rain_row2") : I18n.Tr("rain_row3");
+                bool shadowEn = r == 0 ? Settings.Data.EnableRainShadowRow1 : r == 1 ? Settings.Data.EnableRainShadowRow2 : Settings.Data.EnableRainShadowRow3;
+                bool newShadowEn = GUILayout.Toggle(shadowEn, rowLabel);
+                if (newShadowEn != shadowEn)
+                {
+                    if (r == 0) Settings.Data.EnableRainShadowRow1 = newShadowEn;
+                    else if (r == 1) Settings.Data.EnableRainShadowRow2 = newShadowEn;
+                    else Settings.Data.EnableRainShadowRow3 = newShadowEn;
+                    if (rainSystem != null && Keys != null) rainSystem.ClearActiveDrops(Keys);
+                    SaveSettings();
+                }
+                if (!shadowEn) continue;
+                GUILayout.BeginVertical("box");
+                rainShadowColorExpanded[r] = DrawFoldoutButton(I18n.Tr("rain_shadow_color"), rainShadowColorExpanded[r]);
+                if (rainShadowColorExpanded[r])
+                {
+                    Color curCol = r == 0 ? Settings.Data.RainShadowColorRow1 : r == 1 ? Settings.Data.RainShadowColorRow2 : Settings.Data.RainShadowColorRow3;
+                    Color newCol = DrawColorPicker("", curCol, RainShadowColorDefault);
+                    if (newCol != curCol)
+                    {
+                        if (r == 0) Settings.Data.RainShadowColorRow1 = newCol;
+                        else if (r == 1) Settings.Data.RainShadowColorRow2 = newCol;
+                        else Settings.Data.RainShadowColorRow3 = newCol;
+                        SaveSettings();
+                    }
+                }
+                float curOffX = r == 0 ? Settings.Data.RainShadowOffsetXRow1 : r == 1 ? Settings.Data.RainShadowOffsetXRow2 : Settings.Data.RainShadowOffsetXRow3;
+                float curOffY = r == 0 ? Settings.Data.RainShadowOffsetYRow1 : r == 1 ? Settings.Data.RainShadowOffsetYRow2 : Settings.Data.RainShadowOffsetYRow3;
+                float newOffX = FloatSliderField("X " + I18n.Tr("rain_shadow_offset"), curOffX, -10f, 10f);
+                if (newOffX != curOffX)
+                {
+                    if (r == 0) Settings.Data.RainShadowOffsetXRow1 = newOffX;
+                    else if (r == 1) Settings.Data.RainShadowOffsetXRow2 = newOffX;
+                    else Settings.Data.RainShadowOffsetXRow3 = newOffX;
+                    SaveSettings();
+                }
+                float newOffY = FloatSliderField("Y " + I18n.Tr("rain_shadow_offset"), curOffY, -10f, 10f);
+                if (newOffY != curOffY)
+                {
+                    if (r == 0) Settings.Data.RainShadowOffsetYRow1 = newOffY;
+                    else if (r == 1) Settings.Data.RainShadowOffsetYRow2 = newOffY;
+                    else Settings.Data.RainShadowOffsetYRow3 = newOffY;
+                    SaveSettings();
+                }
+                GUILayout.EndVertical();
+            }
+        }
+
+        private void DrawRainOutlineSection()
+        {
+            GUILayout.Label(I18n.Tr("rain_outline"));
+            for (int r = 0; r < 3; r++)
+            {
+                if (r == 2 && Settings.Data.KeyViewerStyle != KeyviewerStyle.Key20) break;
+                string rowLabel = r == 0 ? I18n.Tr("rain_row1") : r == 1 ? I18n.Tr("rain_row2") : I18n.Tr("rain_row3");
+                bool outlineEn = r == 0 ? Settings.Data.EnableRainOutlineRow1 : r == 1 ? Settings.Data.EnableRainOutlineRow2 : Settings.Data.EnableRainOutlineRow3;
+                bool newOutlineEn = GUILayout.Toggle(outlineEn, rowLabel);
+                if (newOutlineEn != outlineEn)
+                {
+                    if (r == 0) Settings.Data.EnableRainOutlineRow1 = newOutlineEn;
+                    else if (r == 1) Settings.Data.EnableRainOutlineRow2 = newOutlineEn;
+                    else Settings.Data.EnableRainOutlineRow3 = newOutlineEn;
+                    if (rainSystem != null && Keys != null) rainSystem.ClearActiveDrops(Keys);
+                    SaveSettings();
+                }
+                if (!outlineEn) continue;
+                GUILayout.BeginVertical("box");
+                rainOutlineColorExpanded[r] = DrawFoldoutButton(I18n.Tr("rain_outline_color"), rainOutlineColorExpanded[r]);
+                if (rainOutlineColorExpanded[r])
+                {
+                    Color curCol = r == 0 ? Settings.Data.RainOutlineColorRow1 : r == 1 ? Settings.Data.RainOutlineColorRow2 : Settings.Data.RainOutlineColorRow3;
+                    Color newCol = DrawColorPicker("", curCol, RainOutlineColorDefault);
+                    if (newCol != curCol)
+                    {
+                        if (r == 0) Settings.Data.RainOutlineColorRow1 = newCol;
+                        else if (r == 1) Settings.Data.RainOutlineColorRow2 = newCol;
+                        else Settings.Data.RainOutlineColorRow3 = newCol;
+                        SaveSettings();
+                    }
+                }
+                float curW = r == 0 ? Settings.Data.RainOutlineWidthRow1 : r == 1 ? Settings.Data.RainOutlineWidthRow2 : Settings.Data.RainOutlineWidthRow3;
+                float newW = FloatSliderField(I18n.Tr("rain_outline_width"), curW, 0.5f, 10f, "F1");
+                if (newW != curW)
+                {
+                    if (r == 0) Settings.Data.RainOutlineWidthRow1 = newW;
+                    else if (r == 1) Settings.Data.RainOutlineWidthRow2 = newW;
+                    else Settings.Data.RainOutlineWidthRow3 = newW;
+                    SaveSettings();
+                }
+                GUILayout.EndVertical();
             }
         }
 

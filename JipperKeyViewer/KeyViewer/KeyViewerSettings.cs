@@ -129,6 +129,52 @@ namespace JipperKeyViewer.KeyViewer
         public Color GhostRainColor2 = KeyViewer.GhostRainColor2Default;
         public Color GhostRainColor3 = KeyViewer.GhostRainColor3Default;
 
+        public bool EnableRainShadowRow1;
+        public bool EnableRainShadowRow2;
+        public bool EnableRainShadowRow3;
+        public Color RainShadowColorRow1 = KeyViewer.RainShadowColorDefault;
+        public Color RainShadowColorRow2 = KeyViewer.RainShadowColorDefault;
+        public Color RainShadowColorRow3 = KeyViewer.RainShadowColorDefault;
+        public float RainShadowOffsetXRow1 = 3f;
+        public float RainShadowOffsetYRow1 = -3f;
+        public float RainShadowOffsetXRow2 = 3f;
+        public float RainShadowOffsetYRow2 = -3f;
+        public float RainShadowOffsetXRow3 = 3f;
+        public float RainShadowOffsetYRow3 = -3f;
+
+        public bool EnableRainOutlineRow1;
+        public bool EnableRainOutlineRow2;
+        public bool EnableRainOutlineRow3;
+        public Color RainOutlineColorRow1 = KeyViewer.RainOutlineColorDefault;
+        public Color RainOutlineColorRow2 = KeyViewer.RainOutlineColorDefault;
+        public Color RainOutlineColorRow3 = KeyViewer.RainOutlineColorDefault;
+        public float RainOutlineWidthRow1 = 2f;
+        public float RainOutlineWidthRow2 = 2f;
+        public float RainOutlineWidthRow3 = 2f;
+
+        public bool EnableGhostRainShadowRow1;
+        public bool EnableGhostRainShadowRow2;
+        public bool EnableGhostRainShadowRow3;
+        public Color GhostRainShadowColorRow1 = KeyViewer.RainShadowColorDefault;
+        public Color GhostRainShadowColorRow2 = KeyViewer.RainShadowColorDefault;
+        public Color GhostRainShadowColorRow3 = KeyViewer.RainShadowColorDefault;
+        public float GhostRainShadowOffsetXRow1 = 3f;
+        public float GhostRainShadowOffsetYRow1 = -3f;
+        public float GhostRainShadowOffsetXRow2 = 3f;
+        public float GhostRainShadowOffsetYRow2 = -3f;
+        public float GhostRainShadowOffsetXRow3 = 3f;
+        public float GhostRainShadowOffsetYRow3 = -3f;
+
+        public bool EnableGhostRainOutlineRow1;
+        public bool EnableGhostRainOutlineRow2;
+        public bool EnableGhostRainOutlineRow3;
+        public Color GhostRainOutlineColorRow1 = KeyViewer.RainOutlineColorDefault;
+        public Color GhostRainOutlineColorRow2 = KeyViewer.RainOutlineColorDefault;
+        public Color GhostRainOutlineColorRow3 = KeyViewer.RainOutlineColorDefault;
+        public float GhostRainOutlineWidthRow1 = 2f;
+        public float GhostRainOutlineWidthRow2 = 2f;
+        public float GhostRainOutlineWidthRow3 = 2f;
+
         public bool EnablePerKeyColors = false;
         public Color[] PerKeyBackground;
         public Color[] PerKeyBackgroundClicked;

@@ -71,6 +71,12 @@
     { "key": "profile", "en": "Profile", "zh": "配置", "ko": "프로필" },
     { "key": "save_as", "en": "Save As", "zh": "另存为", "ko": "다른 이름으로 저장" },
     { "key": "rename", "en": "Rename", "zh": "重命名", "ko": "이름 바꾸기" },
-    { "key": "delete", "en": "Delete", "zh": "删除", "ko": "삭제" }
+    { "key": "delete", "en": "Delete", "zh": "删除", "ko": "삭제" },
+    { "key": "rain_shadow", "en": "Rain Shadow", "zh": "雨滴阴影", "ko": "빗줄 그림자" },
+    { "key": "rain_shadow_color", "en": "Shadow Color", "zh": "阴影颜色", "ko": "그림자 색상" },
+    { "key": "rain_shadow_offset", "en": "Shadow Offset", "zh": "阴影偏移", "ko": "그림자 오프셋" },
+    { "key": "rain_outline", "en": "Rain Outline", "zh": "雨滴描边", "ko": "빗줄 아웃라인" },
+    { "key": "rain_outline_color", "en": "Outline Color", "zh": "描边颜色", "ko": "아웃라인 색상" },
+    { "key": "rain_outline_width", "en": "Outline Width", "zh": "描边宽度", "ko": "아웃라인 두께" }
   ]
 }

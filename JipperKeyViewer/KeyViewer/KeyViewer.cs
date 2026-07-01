@@ -32,6 +32,9 @@ namespace JipperKeyViewer.KeyViewer
         public static readonly Color GhostRainColor2Default = new(1, 1, 1, 0.6f);
         public static readonly Color GhostRainColor3Default = new(1, 1, 1, 0.6f);
 
+        public static readonly Color RainShadowColorDefault = new(0, 0, 0, 0.35f);
+        public static readonly Color RainOutlineColorDefault = new(1, 1, 1, 0.5f);
+
         // Back-row key index mapping for each layout style / 每种布局样式的后排按键索引映射
         // Each byte array defines which keys go in the second row, in display order / 每个字节数组定义了第二排有哪些按键及其显示顺序
         public static readonly byte[] BackSequence8 = Array.Empty<byte>();

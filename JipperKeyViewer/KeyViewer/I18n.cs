@@ -96,6 +96,13 @@ namespace JipperKeyViewer.KeyViewer
             ["save_as"] = "Save As",
             ["rename"] = "Rename",
             ["delete"] = "Delete",
+
+            ["rain_shadow"] = "Rain Shadow",
+            ["rain_shadow_color"] = "Shadow Color",
+            ["rain_shadow_offset"] = "Shadow Offset",
+            ["rain_outline"] = "Rain Outline",
+            ["rain_outline_color"] = "Outline Color",
+            ["rain_outline_width"] = "Outline Width",
         };
 
         /// <summary>Chinese translations dictionary / 中文字典</summary>
@@ -177,6 +184,13 @@ namespace JipperKeyViewer.KeyViewer
             ["save_as"] = "另存为",
             ["rename"] = "重命名",
             ["delete"] = "删除",
+
+            ["rain_shadow"] = "雨滴阴影",
+            ["rain_shadow_color"] = "阴影颜色",
+            ["rain_shadow_offset"] = "阴影偏移",
+            ["rain_outline"] = "雨滴描边",
+            ["rain_outline_color"] = "描边颜色",
+            ["rain_outline_width"] = "描边宽度",
         };
 
         /// <summary>Korean translations dictionary / 韩文字典</summary>
@@ -258,6 +272,13 @@ namespace JipperKeyViewer.KeyViewer
             ["save_as"] = "다른 이름으로 저장",
             ["rename"] = "이름 바꾸기",
             ["delete"] = "삭제",
+
+            ["rain_shadow"] = "빗줄 그림자",
+            ["rain_shadow_color"] = "그림자 색상",
+            ["rain_shadow_offset"] = "그림자 오프셋",
+            ["rain_outline"] = "빗줄 아웃라인",
+            ["rain_outline_color"] = "아웃라인 색상",
+            ["rain_outline_width"] = "아웃라인 두께",
         };
 
         /// <summary>Path to the lang.json override file / lang.json 覆盖文件路径</summary>

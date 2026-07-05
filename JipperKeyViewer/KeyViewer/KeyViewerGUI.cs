@@ -996,6 +996,24 @@ namespace JipperKeyViewer.KeyViewer
                 SaveSettings();
             }
 
+            // Standard key width toggle: only show for layouts with mixed-width back rows
+            // 标准按键宽度开关：仅在有宽窄键混排的布局显示
+            bool hasNonStandardWidth = Settings.Data.KeyViewerStyle switch
+            {
+                KeyviewerStyle.Key10 or KeyviewerStyle.Key12 or KeyviewerStyle.Key20 => true,
+                _ => false
+            };
+            if (hasNonStandardWidth)
+            {
+                bool newStdWidth = GUILayout.Toggle(Settings.Data.StandardKeyWidth, I18n.Tr("standard_key_width"));
+                if (newStdWidth != Settings.Data.StandardKeyWidth)
+                {
+                    Settings.Data.StandardKeyWidth = newStdWidth;
+                    ChangeKeyViewer();
+                    SaveSettings();
+                }
+            }
+
             GUILayout.Label(I18n.Tr("foot_keys") + ":");
             FootKeyviewerStyle newFootStyle = (FootKeyviewerStyle)GUILayout.SelectionGrid((int)Settings.Data.FootKeyViewerStyle, FootKeyLayoutNames, 5);
             if (newFootStyle != Settings.Data.FootKeyViewerStyle)

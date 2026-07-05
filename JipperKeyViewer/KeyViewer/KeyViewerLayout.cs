@@ -92,6 +92,63 @@ namespace JipperKeyViewer.KeyViewer
 
         private static LayoutDesc GetLayout(KeyviewerStyle style)
         {
+            // Standardized layout: all back-row keys 50px, KPS/Total fill ends
+            // 标准模式：后排统一50px宽，KPS/Total填满两端
+            if (Settings?.Data?.StandardKeyWidth == true)
+            {
+                switch (style)
+                {
+                    case KeyviewerStyle.Key10:
+                        return new LayoutDesc
+                        {
+                            frontY = 279, bottomY = 200,
+                            extras = new ExtraSlot[]
+                            {
+                                new() { index = 8, x = 162, y = 225, w = 50, rainRow = 1 },
+                                new() { index = 9, x = 216, y = 225, w = 50, rainRow = 1 },
+                                new() { index = -1, x = 0, y = 225, w = 158, rainRow = -1 },
+                                new() { index = -2, x = 270, y = 225, w = 158, rainRow = -1 },
+                            }
+                        };
+                    case KeyviewerStyle.Key12:
+                        return new LayoutDesc
+                        {
+                            frontY = 279, bottomY = 200,
+                            extras = new ExtraSlot[]
+                            {
+                                new() { index = 9, x = 108, y = 225, w = 50, rainRow = 1 },
+                                new() { index = 8, x = 162, y = 225, w = 50, rainRow = 1 },
+                                new() { index = 10, x = 216, y = 225, w = 50, rainRow = 1 },
+                                new() { index = 11, x = 270, y = 225, w = 50, rainRow = 1 },
+                                new() { index = -1, x = 0, y = 225, w = 104, rainRow = -1 },
+                                new() { index = -2, x = 324, y = 225, w = 104, rainRow = -1 },
+                            }
+                        };
+                    case KeyviewerStyle.Key20:
+                        return new LayoutDesc
+                        {
+                            frontY = 333, bottomY = 200,
+                            extras = new ExtraSlot[]
+                            {
+                                new() { index = 12, x = 0, y = 279, w = 50, rainRow = 1 },
+                                new() { index = 13, x = 54, y = 279, w = 50, rainRow = 1 },
+                                new() { index = 9, x = 108, y = 279, w = 50, rainRow = 1 },
+                                new() { index = 8, x = 162, y = 279, w = 50, rainRow = 1 },
+                                new() { index = 10, x = 216, y = 279, w = 50, rainRow = 1 },
+                                new() { index = 11, x = 270, y = 279, w = 50, rainRow = 1 },
+                                new() { index = 14, x = 324, y = 279, w = 50, rainRow = 1 },
+                                new() { index = 15, x = 378, y = 279, w = 50, rainRow = 1 },
+                                new() { index = 17, x = 108, y = 225, w = 50, rainRow = 3 },
+                                new() { index = 16, x = 162, y = 225, w = 50, rainRow = 3 },
+                                new() { index = 18, x = 216, y = 225, w = 50, rainRow = 3 },
+                                new() { index = 19, x = 270, y = 225, w = 50, rainRow = 3 },
+                                new() { index = -1, x = 0, y = 225, w = 104, rainRow = -1 },
+                                new() { index = -2, x = 324, y = 225, w = 104, rainRow = -1 },
+                            }
+                        };
+                }
+            }
+
             return style switch
             {
                 KeyviewerStyle.Key8 => new LayoutDesc

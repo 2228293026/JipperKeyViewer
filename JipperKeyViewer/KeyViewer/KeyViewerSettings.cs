@@ -139,6 +139,7 @@ namespace JipperKeyViewer.KeyViewer
         public bool HideMainKeyCount = false;
         public bool EnablePerKeyKps = false;
         public bool StreamerMode = false;
+        public bool StandardKeyWidth = false;
 
         public Color GhostRainColor = KeyViewer.GhostRainColorDefault;
         public Color GhostRainColor2 = KeyViewer.GhostRainColor2Default;

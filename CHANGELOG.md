@@ -1,6 +1,7 @@
 ## v1.6.3
 
 ### 🚀 Features
+- **Standard Key Width mode**: New toggle `StandardKeyWidth` that converts mixed-width back rows (12K, 10K, 20K third row) to uniform 50px keys with widened KPS/Total filling the ends — matching KorenResourcePack's layout style. Toggle triggers an immediate layout rebuild.
 - **Ghost rain independent height/speed/width**: New `GhostRainHeightRow1/2/3`, `GhostRainSpeedRow1/2/3`, `GhostRainWidthRow1/2/3` sliders under the ghost rain section. Ghost rain now has full per-row control independent from normal rain.
 
 ### 🐛 Bug Fixes

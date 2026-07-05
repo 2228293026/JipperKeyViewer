@@ -86,6 +86,7 @@
     { "key": "ghost_rain_height", "en": "Ghost Rain Height", "zh": "鬼雨高度", "ko": "고스트 빗줄 높이" },
     { "key": "ghost_rain_speed", "en": "Ghost Rain Speed", "zh": "鬼雨速度", "ko": "고스트 빗줄 속도" },
     { "key": "ghost_rain_width", "en": "Ghost Rain Width", "zh": "鬼雨宽度", "ko": "고스트 빗줄 너비" },
-    { "key": "enable", "en": "Enable", "zh": "启用", "ko": "활성화" }
+    { "key": "enable", "en": "Enable", "zh": "启用", "ko": "활성화" },
+    { "key": "standard_key_width", "en": "Standard Key Width", "zh": "标准按键宽度", "ko": "표준 키 너비" }
   ]
 }

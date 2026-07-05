@@ -1062,6 +1062,38 @@ namespace JipperKeyViewer.KeyViewer
                 if (Total != null) Total.gameObject.SetActive(!newStreamer);
                 SaveSettings();
             }
+
+            float newFontSize = FloatSliderField(I18n.Tr("key_font_size"), Settings.Data.KeyFontSize, 8f, 72f, "F0");
+            if (newFontSize != Settings.Data.KeyFontSize)
+            {
+                Settings.Data.KeyFontSize = newFontSize;
+                UpdateAllFonts();
+                SaveSettings();
+            }
+
+            bool newPressAnim = GUILayout.Toggle(Settings.Data.EnablePressAnimation, I18n.Tr("press_animation"));
+            if (newPressAnim != Settings.Data.EnablePressAnimation)
+            {
+                Settings.Data.EnablePressAnimation = newPressAnim;
+                SaveSettings();
+            }
+
+            if (Settings.Data.EnablePressAnimation)
+            {
+                float newScale = FloatSliderField(I18n.Tr("press_anim_scale"), Settings.Data.PressAnimationScale, 0.5f, 0.95f);
+                if (newScale != Settings.Data.PressAnimationScale)
+                {
+                    Settings.Data.PressAnimationScale = newScale;
+                    SaveSettings();
+                }
+
+                bool newRainAnim = GUILayout.Toggle(Settings.Data.EnablePressAnimationOnRain, I18n.Tr("press_anim_rain"));
+                if (newRainAnim != Settings.Data.EnablePressAnimationOnRain)
+                {
+                    Settings.Data.EnablePressAnimationOnRain = newRainAnim;
+                    SaveSettings();
+                }
+            }
         }
 
         private void DrawRainSection()

@@ -1,6 +1,7 @@
 // Key detection and rebinding logic / 按键检测和重新绑定逻辑
 // Handles listening for new key presses during rebinding and converting KeyCodes to display strings / 处理重绑定期间监听新按键，以及将 KeyCode 转换为显示字符串
 
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -223,6 +224,13 @@ namespace JipperKeyViewer.KeyViewer
                 {
                     UpdateKeyColors(idx, current);
                     key.isPressed = current;
+                    if (Settings.Data.EnablePressAnimation)
+                    {
+                        float target = current ? Settings.Data.PressAnimationScale : 1f;
+                        if (key.currentAnim != null)
+                            StopCoroutine(key.currentAnim);
+                        key.currentAnim = StartCoroutine(AnimateKeyScale(key, target, 0.08f));
+                    }
                     if (current)
                     {
                         countArr[idx]++;
@@ -346,6 +354,47 @@ namespace JipperKeyViewer.KeyViewer
                 key.text.color = pressed ? Settings.Data.TextClicked : Settings.Data.Text;
             }
             if (key.value != null) key.value.color = key.text.color;
+        }
+
+        /// <summary>
+        /// Smoothly animate key visuals scale (center-pivot wrapper).
+        /// When EnablePressAnimationOnRain is on, scales full key transform with pivot compensation instead.
+        /// 平滑缩放按键：默认只缩放 Visuals 包裹层（雨滴不动），开启雨滴动画时缩放整个按键+位置补偿
+        /// </summary>
+        private IEnumerator AnimateKeyScale(Key key, float target, float duration)
+        {
+            bool affectRain = Settings.Data.EnablePressAnimationOnRain;
+            Transform animTarget;
+            Vector2 origPos = Vector2.zero;
+            float width = 0f;
+            if (affectRain)
+            {
+                // Scale full key including rain — pivot (0, 0.5) needs compensation / 缩放整个按键包含雨滴
+                RectTransform rt = key.transform as RectTransform;
+                animTarget = rt;
+                origPos = rt.anchoredPosition;
+                width = rt.sizeDelta.x;
+            }
+            else
+            {
+                // Scale visuals wrapper only — center-pivot, no compensation needed / 仅缩放视觉层
+                animTarget = key.visuals;
+            }
+            float startS = animTarget.localScale.x;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float p = Mathf.Min(1f, elapsed / duration);
+                float s = Mathf.Lerp(startS, target, p);
+                animTarget.localScale = new Vector3(s, s, 1);
+                if (affectRain)
+                    (animTarget as RectTransform).anchoredPosition = origPos + new Vector2(width * (startS - s) * 0.5f, 0);
+                yield return null;
+            }
+            animTarget.localScale = new Vector3(target, target, 1);
+            if (affectRain)
+                (animTarget as RectTransform).anchoredPosition = origPos + new Vector2(width * (startS - target) * 0.5f, 0);
         }
     }
 }

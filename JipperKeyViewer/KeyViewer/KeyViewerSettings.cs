@@ -148,6 +148,11 @@ namespace JipperKeyViewer.KeyViewer
         public bool StreamerMode = false;
         public bool StandardKeyWidth = false;
 
+        public float KeyFontSize = 20f;
+        public bool EnablePressAnimation = true;
+        public float PressAnimationScale = 0.85f;
+        public bool EnablePressAnimationOnRain = false;
+
         public Color GhostRainColor = KeyViewer.GhostRainColorDefault;
         public Color GhostRainColor2 = KeyViewer.GhostRainColor2Default;
         public Color GhostRainColor3 = KeyViewer.GhostRainColor3Default;

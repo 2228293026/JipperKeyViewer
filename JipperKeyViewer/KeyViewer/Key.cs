@@ -32,5 +32,9 @@ namespace JipperKeyViewer.KeyViewer
         public List<RawRain> rainList = new List<RawRain>();
         /// <summary>Whether this key is currently pressed / 当前是否被按下</summary>
         public bool isPressed;
+        /// <summary>Running press-animation coroutine (null if none) / 运行中的按键动画协程（无则为 null）</summary>
+        public Coroutine currentAnim;
+        /// <summary>Visuals wrapper — scaled on press so rain outside it stays unaffected / 视觉包裹层，按下时缩放此层，雨滴容器在外面不受影响</summary>
+        public Transform visuals;
     }
 }

@@ -109,6 +109,10 @@ namespace JipperKeyViewer.KeyViewer
             ["ghost_rain_width"] = "Ghost Rain Width",
             ["enable"] = "Enable",
             ["standard_key_width"] = "Standard Key Width",
+            ["key_font_size"] = "Key Font Size",
+            ["press_animation"] = "Press Animation",
+            ["press_anim_scale"] = "Anim Scale",
+            ["press_anim_rain"] = "Animate Rain",
         };
 
         /// <summary>Chinese translations dictionary / 中文字典</summary>
@@ -203,6 +207,10 @@ namespace JipperKeyViewer.KeyViewer
             ["ghost_rain_width"] = "鬼雨宽度",
             ["enable"] = "启用",
             ["standard_key_width"] = "标准按键宽度",
+            ["key_font_size"] = "按键字号",
+            ["press_animation"] = "按键动画",
+            ["press_anim_scale"] = "动画缩放",
+            ["press_anim_rain"] = "雨滴动画",
         };
 
         /// <summary>Korean translations dictionary / 韩文字典</summary>
@@ -297,6 +305,10 @@ namespace JipperKeyViewer.KeyViewer
             ["ghost_rain_width"] = "고스트 빗줄 너비",
             ["enable"] = "활성화",
             ["standard_key_width"] = "표준 키 너비",
+            ["key_font_size"] = "키 글꼴 크기",
+            ["press_animation"] = "키 애니메이션",
+            ["press_anim_scale"] = "애니메이션 크기",
+            ["press_anim_rain"] = "빗줄 애니메이션",
         };
 
         /// <summary>Path to the lang.json override file / lang.json 覆盖文件路径</summary>

@@ -151,6 +151,7 @@ namespace JipperKeyViewer.KeyViewer
                 t.font = currentFont;
                 t.fontMaterial = shadowMat;
                 t.fontStyle = style;
+                t.fontSizeMax = Settings.Data.KeyFontSize;
             }
             if (Keys != null)
             {

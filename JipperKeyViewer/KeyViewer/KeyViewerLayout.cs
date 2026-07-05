@@ -404,11 +404,22 @@ namespace JipperKeyViewer.KeyViewer
             transform.localScale = Vector3.one;
             Key key = obj.AddComponent<Key>();
             key.isPressed = false;
-            key.background = CreateImage(obj, "Background", sizeX, slim, keyBackgroundSprite, settings.Data.Background);
-            key.outline = CreateImage(obj, "Outline", sizeX, slim, keyOutlineSprite, settings.Data.Outline);
-            key.text = CreateKeyText(obj, sizeX, slim, count, settings);
+            // Visuals wrapper: center-pivot so scale animation is naturally centered / 视觉包裹层：轴心居中，缩放自动从中心向四周
+            // Rain container stays outside — unaffected by press animation / 雨滴容器在包裹层外，不受缩放影响
+            GameObject visuals = new("Visuals");
+            RectTransform vrt = visuals.AddComponent<RectTransform>();
+            vrt.SetParent(obj.transform);
+            vrt.sizeDelta = new Vector2(sizeX, slim ? 30 : 50);
+            vrt.anchorMin = vrt.anchorMax = new Vector2(0, 0.5f);
+            vrt.pivot = new Vector2(0.5f, 0.5f);
+            vrt.anchoredPosition = new Vector2(sizeX * 0.5f, 0);
+            vrt.localScale = Vector3.one;
+            key.visuals = visuals.transform;
+            key.background = CreateImage(visuals, "Background", sizeX, slim, keyBackgroundSprite, settings.Data.Background);
+            key.outline = CreateImage(visuals, "Outline", sizeX, slim, keyOutlineSprite, settings.Data.Outline);
+            key.text = CreateKeyText(visuals, sizeX, slim, count, settings);
             if (count)
-                key.value = CreateCountText(obj, sizeX, slim, settings);
+                key.value = CreateCountText(visuals, sizeX, slim, settings);
             UpdateKeyText(key, i);
             SetupRainContainer(key, obj, sizeX, raining);
             ApplyKeyColors(key, i, raining);
@@ -498,7 +509,7 @@ namespace JipperKeyViewer.KeyViewer
             text.fontStyle = (FontStyles)settings.Data.FontStyleFlags;
             text.enableAutoSizing = true;
             text.fontSizeMin = 0;
-            text.fontSizeMax = 20;
+            text.fontSizeMax = settings.Data.KeyFontSize;
             text.alignment = alignment;
             text.color = settings.Data.Text;
             text.raycastTarget = false;

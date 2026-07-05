@@ -66,8 +66,8 @@ namespace JipperKeyViewer.KeyViewer
             {
                 Color sc = shadowColor;
                 sc.a *= baseCol.a;
-                var sr = new Rect(xL + shadowOffsetX, yB + shadowOffsetY, xR - xL, yT - yB);
-                AddQuad(vh, sr, sc, sc);
+                DrawRainQuad(vh, xL + shadowOffsetX, xR + shadowOffsetX, yB + shadowOffsetY, yT + shadowOffsetY, h, sc,
+                    dNear, dFar, trackH, fade, reverseFade, span, simple);
             }
 
             // Outline quad(s) (between shadow and main)

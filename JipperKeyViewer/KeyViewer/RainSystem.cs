@@ -426,7 +426,7 @@ namespace JipperKeyViewer.KeyViewer
         {
             if (keyIndex < 8) return settings.Data.EnableRainForRow1;
             if (keyIndex < 16) return settings.Data.EnableRainForRow2;
-            if (keyIndex < 20) return settings.Data.EnableRainForRow3;
+            if (keyIndex < KeyViewer.FootKeyBase) return settings.Data.EnableRainForRow3;
             return false;
         }
     }

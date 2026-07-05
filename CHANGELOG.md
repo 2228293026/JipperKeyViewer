@@ -1,19 +1,29 @@
 ## v1.6.3
 
 ### 🚀 Features
-- **Standard Key Width mode**: New toggle `StandardKeyWidth` that converts mixed-width back rows (12K, 10K, 20K third row) to uniform 50px keys with widened KPS/Total filling the ends — matching KorenResourcePack's layout style. Toggle triggers an immediate layout rebuild.
-- **Ghost rain independent height/speed/width**: New `GhostRainHeightRow1/2/3`, `GhostRainSpeedRow1/2/3`, `GhostRainWidthRow1/2/3` sliders under the ghost rain section. Ghost rain now has full per-row control independent from normal rain.
+- **24K layout**: New 24-key layout (8+8+8) — three full rows of 8 keys each at 50px, all 54px apart. Foot keys use indices 24-39, allowing up to 16K foot key selection. Ghost key bindings and third-row rain settings fully supported. Layout tuned with frontY=375, KPS/Total at y=221, 6px gap between rows and KPS (matching 16K standard).
+- **Standard Key Width mode**: Toggle `StandardKeyWidth` that converts mixed-width back rows (12K key 8/10 from 77→50px, 10K 129→50px, 20K third row 77→50px) with widened KPS/Total filling the ends — matching KorenResourcePack's uniform layout style.
+- **Ghost rain independent height/speed/width**: New `GhostRainHeightRow1/2/3`, `GhostRainSpeedRow1/2/3`, `GhostRainWidthRow1/2/3` sliders under the ghost rain section.
 
 ### 🐛 Bug Fixes
-- **12K grid rain position**: Back row keys (9,8,10,11) now share the front row's rain container (matching JipperResourcePack's RainPool sharing). Rain drops appear at the correct X position aligned with the front column, instead of being centered within the wide (77px) key bounds.
-- **10K rain position**: Back row keys (8,9) now also share front row containers (8→3, 9→4), consistent with 12K and JipperResourcePack behavior.
-- **Rain render order with shared containers**: When front and back row rain drops share the same container, the back row drops were sometimes hidden behind front row drops. Fixed by explicitly setting `SetSiblingIndex` per row (front=0, middle=2, third=4; ghost=base+1), matching JipperResourcePack's depth ordering.
-- **14K layout height inconsistent with 16K**: Switch from 16K to 14K caused the overlay to jump downward by 21px. Normalized all 14K Y values (frontY 299→320, etc.) to match 16K.
-- **20K third row ghost key UI reversed**: Ghost key buttons for the third row used sequential indices 16→17→18→19, but the actual key layout shows 17→16→18→19 (left to right). Now uses `BackSequence20[8..12]` for correct visual order.
-- **Custom position foldout conflated with toggle**: The foldout button was also acting as the on/off switch, making it impossible to keep the feature enabled while collapsing the section. Separated into a proper foldout + internal toggle.
+- **12K/10K grid rain position**: Back row keys with non-standard widths (12K key 8/10=77px, 10K key 8/9=129px) now share the front row's RainLine (key 9→2, 8→3, 10→4, 11→5 for 12K; 8→3, 9→4 for 10K). Rain drops align with the front column instead of centering within wide keys.
+- **Rain render order with shared containers**: Back row drops hidden behind front row drops in shared containers. Fixed by `SetSiblingIndex((row-1)*2 + isGhost)` — front=0, middle=2, third=4, ghost=base+1.
+- **14K layout jump**: Switching from 16K to 14K dropped the overlay by 21px. All 14K Y values normalized to 16K (frontY 299→320, backY 245→266, KPS 199→220).
+- **8K layout too high with DownLocation**: 8K repositioned as "16K minus second row" — frontY=266 (16K's back row position), KPS/Total y=220 (16K KPS position). DownLocation now aligns KPS at y=20 matching 16K.
+- **20K third row ghost key UI reversed**: Ghost key buttons showed 16,17,18,19 but visual layout is 17,16,18,19. Now uses `BackSequence20[8..12]`.
+- **Custom position foldout conflated with toggle**: Foldout was acting as on/off switch. Now separate expand state `CustomPositionExpanded` + internal enable toggle.
+- **DrawMainKeyRows third row loop guard**: `i < keyCodes.Length` was checking loop index instead of `backSequence[i]`. Corrected guard.
+- **24K third row rain not showing**: `IsRainEnabledForKey` capped at index 20, blocking indices 20-23. Changed to `keyIndex < FootKeyBase`.
+- **24K KPS/Total overlapping third row**: KPS/Total at y=165 overlapped with third row (y=232). Raised to y=221 with 6px gap.
+- **24K layout switching stale keys**: Switching out of 24K left Keys[20-23] with stale 24K main key objects. Fixed `ChangeKeyViewer()` to also call `ResetFootKeyViewer()`.
+- **24K foot key limit removed**: MaxKeySlots=40 allows 14K/16K foot keys in 24K mode (indices 24-39).
+- **Crash on settings load**: `InitPerKeyColors` called `FootKeyBase` before `Settings` was assigned, causing NullReferenceException. Replaced with `MaxKeySlots` constant.
 
 ### 🧹 Refactor
-- **Rain container sharing**: Added `ApplyRainContainerSharing()` / `ShareRainContainer()` to `KeyViewerLayout`. 12K back row and 20K third row wide keys now redirect to the corresponding front row's RainLine. `UpdateRainContainerPositions` uses `HashSet<RectTransform>` dedup to avoid double-positioning shared containers.
+- **Rain container sharing**: `ApplyRainContainerSharing()` / `ShareRainContainer()` redirects back-row `key.rain` to front row's RainLine. `UpdateRainContainerPositions` uses `HashSet<RectTransform>` dedup.
+- **Dynamic foot key base**: `FootKeyBase` property replaces hardcoded 20 throughout the codebase (24 for 24K, 20 otherwise).
+- **MaxKeySlots=40**: All key arrays (`Keys`, `Count`, `keyPressTimes`, `lastPerKeyKps`) use `MaxKeySlots`. Per-key color arrays use `MaxKeySlots + 2`. `KeyIndex` returns `Keys.Length`/`+1` for KPS/Total. All hardcoded 36/37/38/20 boundaries removed.
+- **HasThirdRow property**: Replaces `style == Key20` checks in 18 locations across rain settings, shadow/outline, and ghost rain sections. Covers both 20K and 24K.
 
 ## v1.6.2
 

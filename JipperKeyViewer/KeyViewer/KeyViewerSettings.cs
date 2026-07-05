@@ -42,6 +42,12 @@ namespace JipperKeyViewer.KeyViewer
             KeyCode.LeftControl, KeyCode.D, KeyCode.RightShift, KeyCode.Semicolon
         };
         public string[] key20Text = new string[20];
+        public KeyCode[] key24 = {
+            KeyCode.Tab, KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.E, KeyCode.P, KeyCode.Equals, KeyCode.Backspace, KeyCode.Backslash,
+            KeyCode.Space, KeyCode.C, KeyCode.Comma, KeyCode.Period, KeyCode.CapsLock, KeyCode.LeftShift, KeyCode.Return, KeyCode.H,
+            KeyCode.LeftControl, KeyCode.D, KeyCode.RightShift, KeyCode.Q, KeyCode.Z, KeyCode.X, KeyCode.V, KeyCode.B
+        };
+        public string[] key24Text = new string[24];
 
         public KeyCode[] footkey2 = { KeyCode.F8, KeyCode.F3 };
         public KeyCode[] footkey4 = { KeyCode.F8, KeyCode.F3, KeyCode.F7, KeyCode.F2 };
@@ -67,8 +73,9 @@ namespace JipperKeyViewer.KeyViewer
         public KeyCode[] GhostKey14 = new KeyCode[14];
         public KeyCode[] GhostKey16 = new KeyCode[16];
         public KeyCode[] GhostKey20 = new KeyCode[20];
+        public KeyCode[] GhostKey24 = new KeyCode[24];
 
-        public int[] Count = new int[36];
+        public int[] Count = new int[KeyViewer.MaxKeySlots];
         public int TotalCount;
 
         public bool DownLocation;
@@ -208,6 +215,7 @@ namespace JipperKeyViewer.KeyViewer
             key14Text = key14Text ?? new string[14];
             key16Text = key16Text ?? new string[16];
             key20Text = key20Text ?? new string[20];
+            key24Text = key24Text ?? new string[24];
             footkey2Text = footkey2Text ?? new string[2];
             footkey4Text = footkey4Text ?? new string[4];
             footkey6Text = footkey6Text ?? new string[6];
@@ -222,20 +230,21 @@ namespace JipperKeyViewer.KeyViewer
             GhostKey14 = GhostKey14 ?? new KeyCode[14];
             GhostKey16 = GhostKey16 ?? new KeyCode[16];
             GhostKey20 = GhostKey20 ?? new KeyCode[20];
-            Count = Count ?? new int[36];
-            if (PerKeyBackground == null || PerKeyBackground.Length != 38 ||
-                PerKeyBackgroundClicked == null || PerKeyBackgroundClicked.Length != 38 ||
-                PerKeyOutline == null || PerKeyOutline.Length != 38 ||
-                PerKeyOutlineClicked == null || PerKeyOutlineClicked.Length != 38 ||
-                PerKeyText == null || PerKeyText.Length != 38 ||
-                PerKeyTextClicked == null || PerKeyTextClicked.Length != 38 ||
-                PerKeyRainColor == null || PerKeyRainColor.Length != 38)
+            GhostKey24 = GhostKey24 ?? new KeyCode[24];
+            Count = Count ?? new int[KeyViewer.MaxKeySlots];
+            if (PerKeyBackground == null || PerKeyBackground.Length != KeyViewer.MaxKeySlots + 2 ||
+                PerKeyBackgroundClicked == null || PerKeyBackgroundClicked.Length != KeyViewer.MaxKeySlots + 2 ||
+                PerKeyOutline == null || PerKeyOutline.Length != KeyViewer.MaxKeySlots + 2 ||
+                PerKeyOutlineClicked == null || PerKeyOutlineClicked.Length != KeyViewer.MaxKeySlots + 2 ||
+                PerKeyText == null || PerKeyText.Length != KeyViewer.MaxKeySlots + 2 ||
+                PerKeyTextClicked == null || PerKeyTextClicked.Length != KeyViewer.MaxKeySlots + 2 ||
+                PerKeyRainColor == null || PerKeyRainColor.Length != KeyViewer.MaxKeySlots + 2)
                 InitPerKeyColors();
         }
 
         public void InitPerKeyColors()
         {
-            int n = 38;
+            int n = KeyViewer.MaxKeySlots + 2;
             PerKeyBackground = new Color[n];
             PerKeyBackgroundClicked = new Color[n];
             PerKeyOutline = new Color[n];
@@ -253,7 +262,7 @@ namespace JipperKeyViewer.KeyViewer
                 PerKeyTextClicked[i] = KeyViewer.TextClicked;
                 if (i < 8) PerKeyRainColor[i] = KeyViewer.RainColor;
                 else if (i < 16) PerKeyRainColor[i] = KeyViewer.RainColor2;
-                else if (i < 20) PerKeyRainColor[i] = KeyViewer.RainColor3;
+                else if (i < KeyViewer.MaxKeySlots) PerKeyRainColor[i] = KeyViewer.RainColor3;
                 else PerKeyRainColor[i] = KeyViewer.RainColor;
             }
         }

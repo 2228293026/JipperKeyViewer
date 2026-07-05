@@ -43,11 +43,19 @@ namespace JipperKeyViewer.KeyViewer
         public static readonly byte[] BackSequence14 = new byte[] { 9, 8, 10, 11, 12, 13 };
         public static readonly byte[] BackSequence16 = new byte[] { 12, 13, 9, 8, 10, 11, 14, 15 };
         public static readonly byte[] BackSequence20 = new byte[] { 12, 13, 9, 8, 10, 11, 14, 15, 17, 16, 18, 19 };
+        public static readonly byte[] BackSequence24 = new byte[] { 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23 };
 
         /// <summary>Display names for main key layout selection grid / 主按键布局选择网格的显示名称</summary>
-        static readonly string[] KeyLayoutNames = { "12K", "16K", "20K", "10K", "8K", "14K" };
+        static readonly string[] KeyLayoutNames = { "12K", "16K", "20K", "10K", "8K", "14K", "24K" };
         /// <summary>Display names for foot key layout selection grid / 脚键布局选择网格的显示名称</summary>
         static readonly string[] FootKeyLayoutNames = { "Off", "2K", "4K", "6K", "8K", "10K", "12K", "14K", "16K" };
+
+        /// <summary>Foot key starting index (20 for normal layouts, 24 for 24K) / 脚键起始索引</summary>
+        internal static int FootKeyBase => Settings.Data.KeyViewerStyle == KeyviewerStyle.Key24 ? 24 : 20;
+        /// <summary>Whether the current layout has a third row of keys / 当前布局是否有第三排按键</summary>
+        internal static bool HasThirdRow => Settings.Data.KeyViewerStyle is KeyviewerStyle.Key20 or KeyviewerStyle.Key24;
+        /// <summary>Maximum key slots (keys can be at indices 0..MaxKeySlots-1) / 最大键位槽数</summary>
+        internal const int MaxKeySlots = 40;
 
         /// <summary>
         /// Static constructor: pre-compute AllKeyCodes (all non-Joystick keys) for input detection / 静态构造函数：预计算 AllKeyCodes（所有非摇杆按键），用于按键检测
@@ -418,8 +426,8 @@ namespace JipperKeyViewer.KeyViewer
             Settings.Data.footkey12Text = Settings.Data.footkey12Text ?? new string[12];
             Settings.Data.footkey14Text = Settings.Data.footkey14Text ?? new string[14];
             Settings.Data.footkey16Text = Settings.Data.footkey16Text ?? new string[16];
-            Settings.Data.Count = Settings.Data.Count ?? new int[36];
-            if (Settings.Data.PerKeyBackground == null || Settings.Data.PerKeyBackground.Length != 38)
+            Settings.Data.Count = Settings.Data.Count ?? new int[MaxKeySlots];
+            if (Settings.Data.PerKeyBackground == null || Settings.Data.PerKeyBackground.Length != MaxKeySlots + 2)
                 Settings.Data.InitPerKeyColors();
         }
 

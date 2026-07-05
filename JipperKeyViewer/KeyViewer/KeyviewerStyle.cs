@@ -18,6 +18,8 @@ namespace JipperKeyViewer.KeyViewer
         /// <summary>8-key layout (single row) / 8键布局（单排）</summary>
         Key8,
         /// <summary>14-key layout (8+6) / 14键布局（8+6）</summary>
-        Key14
+        Key14,
+        /// <summary>24-key layout (8+8+8) / 24键布局（8+8+8）</summary>
+        Key24
     }
 }

@@ -193,7 +193,7 @@ namespace JipperKeyViewer.KeyViewer
             KeyCode[] keyCodes = GetKeyCode();
             DrawMainKeyRows(I18n.Tr("row1_keys"), I18n.Tr("row2_keys"), I18n.Tr("row3_keys"),
                 keyCodes, (i, _) => { SelectedKey = i; changeState = 0; });
-            DrawFootKeyRows(I18n.Tr("foot_keys_list"), 20,
+            DrawFootKeyRows(I18n.Tr("foot_keys_list"), FootKeyBase,
                 (i, _) => { SelectedKey = i; changeState = 0; });
             if (SelectedKey != -1 && changeState == 0)
                 GUILayout.Label("<b>" + I18n.Tr("press_new_key") + "</b>");
@@ -343,9 +343,9 @@ namespace JipperKeyViewer.KeyViewer
             DrawMainKeyRows(I18n.Tr("row1_text"), I18n.Tr("row2_text"), I18n.Tr("row3_text"),
                 keyCodes, (i, _) => { SelectedKey = i; changeState = 1; },
                 (i, kc) => GetKeyTextLabel(keyTexts, keyCodes, i));
-            DrawFootKeyRows(I18n.Tr("foot_keys_text"), 20,
+            DrawFootKeyRows(I18n.Tr("foot_keys_text"), FootKeyBase,
                 (i, _) => { SelectedKey = i; changeState = 1; },
-                (i, kc) => GetFootKeyTextLabel(footKeyTexts, footKeyCodes, i - 20));
+                (i, kc) => GetFootKeyTextLabel(footKeyTexts, footKeyCodes, i - FootKeyBase));
 
             if (SelectedKey != -1 && changeState == 1)
                 DrawTextEditArea(keyTexts, keyCodes, footKeyTexts, footKeyCodes);
@@ -364,7 +364,7 @@ namespace JipperKeyViewer.KeyViewer
         {
             GUILayout.BeginHorizontal();
             GUILayout.Label(I18n.Tr("input_text") + ":");
-            if (SelectedKey < 20)
+            if (SelectedKey < FootKeyBase)
                 DrawMainKeyTextField(keyTexts, keyCodes);
             else
                 DrawFootKeyTextField(footKeyTexts, footKeyCodes);
@@ -373,7 +373,7 @@ namespace JipperKeyViewer.KeyViewer
             GUILayout.BeginHorizontal();
             if (GUILayout.Button(I18n.Tr("reset")))
             {
-                if (SelectedKey < 20)
+                if (SelectedKey < FootKeyBase)
                 {
                     keyTexts[SelectedKey] = null;
                     if (Keys != null && SelectedKey < Keys.Length && Keys[SelectedKey] != null)
@@ -381,7 +381,7 @@ namespace JipperKeyViewer.KeyViewer
                 }
                 else
                 {
-                    int footIndex = SelectedKey - 20;
+                    int footIndex = SelectedKey - FootKeyBase;
                     footKeyTexts[footIndex] = null;
                     if (Keys != null && SelectedKey < Keys.Length && Keys[SelectedKey] != null)
                         Keys[SelectedKey].text.text = KeyToString(footKeyCodes[footIndex]);
@@ -412,7 +412,7 @@ namespace JipperKeyViewer.KeyViewer
 
         private void DrawFootKeyTextField(string[] footKeyTexts, KeyCode[] footKeyCodes)
         {
-            int footIndex = SelectedKey - 20;
+            int footIndex = SelectedKey - FootKeyBase;
             string currentText = footKeyTexts != null && !string.IsNullOrEmpty(footKeyTexts[footIndex])
                 ? footKeyTexts[footIndex] : KeyToString(footKeyCodes[footIndex]);
             string newText = GUILayout.TextField(currentText, GUILayout.Width(150));
@@ -586,12 +586,12 @@ namespace JipperKeyViewer.KeyViewer
                 GUILayout.EndHorizontal();
             }
 
-            if (Settings.Data.KeyViewerStyle == KeyviewerStyle.Key20)
+            if (backSequence.Length >= 8)
             {
                 GUILayout.Label(I18n.Tr("row3_keys") + ":");
                 GUILayout.BeginHorizontal();
-                for (int i = 16; i < 20 && i < keyCodes.Length; i++)
-                    DrawPerKeyColorBtn(i, KeyToString(keyCodes[i]));
+                for (int b = 8; b < backSequence.Length && backSequence[b] < keyCodes.Length; b++)
+                    DrawPerKeyColorBtn(backSequence[b], KeyToString(keyCodes[backSequence[b]]));
                 GUILayout.EndHorizontal();
             }
 
@@ -605,18 +605,18 @@ namespace JipperKeyViewer.KeyViewer
                     int start = r * 8;
                     int end = Mathf.Min(start + 8, footKeyCodes.Length);
                     for (int f = start; f < end; f++)
-                        DrawPerKeyColorBtn(20 + f, KeyToString(footKeyCodes[f]));
+                        DrawPerKeyColorBtn(FootKeyBase + f, KeyToString(footKeyCodes[f]));
                     GUILayout.EndHorizontal();
                 }
             }
 
             GUILayout.Space(5);
             GUILayout.BeginHorizontal();
-            DrawPerKeyColorBtn(36, "KPS");
-            DrawPerKeyColorBtn(37, "Total");
+            DrawPerKeyColorBtn(MaxKeySlots, "KPS");
+            DrawPerKeyColorBtn(MaxKeySlots + 1, "Total");
             GUILayout.EndHorizontal();
 
-            if (perKeyColorSelected >= 0 && perKeyColorSelected < 38)
+            if (perKeyColorSelected >= 0 && perKeyColorSelected < MaxKeySlots + 2)
                 DrawPerKeyColorEditor(perKeyColorSelected);
 
             if (GUILayout.Button(I18n.Tr("per_key_color_reset")))
@@ -647,14 +647,14 @@ namespace JipperKeyViewer.KeyViewer
 
         private static string PerKeyLabel(int s) => s switch
         {
-            36 => "KPS",
-            37 => "Total",
+            MaxKeySlots => "KPS",
+            MaxKeySlots + 1 => "Total",
             _ => KeyToString(GetKeyCodeForIndex(s))
         };
 
-        private static int[] PerKeyTypeOrder(int s) => s >= 36
+        private static int[] PerKeyTypeOrder(int s) => s >= MaxKeySlots
             ? new int[] { 0, 2, 4 }
-            : s >= 20 ? new int[] { 0, 1, 2, 3, 4, 5 }
+            : s >= FootKeyBase ? new int[] { 0, 1, 2, 3, 4, 5 }
             : new int[] { 0, 1, 2, 3, 4, 5, 6 };
 
         private bool DrawColorFoldout(int t, string name)
@@ -668,7 +668,7 @@ namespace JipperKeyViewer.KeyViewer
             GUILayout.Space(5);
             GUILayout.Label("Key " + s + " (" + PerKeyLabel(s) + ")");
             // Foot keys (s >= 20) intentionally skip rain color; PerKeyTypeOrder excludes type 6 for them
-            string rainKey = s < 8 ? "color_rain1" : s < 16 ? "color_rain2" : s < 20 ? "color_rain3" : "";
+            string rainKey = s < 8 ? "color_rain1" : s < 16 ? "color_rain2" : s < FootKeyBase ? "color_rain3" : "";
 
             string[] typeNames = {
                 I18n.Tr("color_bg"), I18n.Tr("color_bg_clicked"),
@@ -706,7 +706,7 @@ namespace JipperKeyViewer.KeyViewer
                 GUILayout.EndHorizontal();
             }
 
-            if (s < 36 && Settings.Data.Count != null && s < Settings.Data.Count.Length)
+            if (s < MaxKeySlots && Settings.Data.Count != null && s < Settings.Data.Count.Length)
                 DrawPerKeyCountReset(s);
         }
 
@@ -746,7 +746,7 @@ namespace JipperKeyViewer.KeyViewer
             KeyCode[] main = GetKeyCode();
             if (main != null && idx < main.Length) return main[idx];
             KeyCode[] foot = GetFootKeyCode();
-            int fi = idx - 20;
+            int fi = idx - FootKeyBase;
             if (foot != null && fi >= 0 && fi < foot.Length) return foot[fi];
             return KeyCode.None;
         }
@@ -1084,26 +1084,26 @@ namespace JipperKeyViewer.KeyViewer
             GUILayout.BeginHorizontal();
             Settings.Data.EnableRainForRow1 = GUILayout.Toggle(Settings.Data.EnableRainForRow1, I18n.Tr("rain_row1"));
             Settings.Data.EnableRainForRow2 = GUILayout.Toggle(Settings.Data.EnableRainForRow2, I18n.Tr("rain_row2"));
-            if (Settings.Data.KeyViewerStyle == KeyviewerStyle.Key20)
+            if (HasThirdRow)
                 Settings.Data.EnableRainForRow3 = GUILayout.Toggle(Settings.Data.EnableRainForRow3, I18n.Tr("rain_row3"));
             GUILayout.EndHorizontal();
 
             GUILayout.Label(I18n.Tr("rain_height") + ":");
             Settings.Data.RainHeightRow1 = FloatSliderField(I18n.Tr("rain_row1"), Settings.Data.RainHeightRow1, 1f, 2000f);
             Settings.Data.RainHeightRow2 = FloatSliderField(I18n.Tr("rain_row2"), Settings.Data.RainHeightRow2, 1f, 2000f);
-            if (Settings.Data.KeyViewerStyle == KeyviewerStyle.Key20)
+            if (HasThirdRow)
                 Settings.Data.RainHeightRow3 = FloatSliderField(I18n.Tr("rain_row3"), Settings.Data.RainHeightRow3, 1f, 2000f);
 
             GUILayout.Label(I18n.Tr("rain_speed") + ":");
             Settings.Data.RainSpeedRow1 = FloatSliderField(I18n.Tr("rain_row1"), Settings.Data.RainSpeedRow1, 50f, 2000f, "F0");
             Settings.Data.RainSpeedRow2 = FloatSliderField(I18n.Tr("rain_row2"), Settings.Data.RainSpeedRow2, 50f, 2000f, "F0");
-            if (Settings.Data.KeyViewerStyle == KeyviewerStyle.Key20)
+            if (HasThirdRow)
                 Settings.Data.RainSpeedRow3 = FloatSliderField(I18n.Tr("rain_row3"), Settings.Data.RainSpeedRow3, 50f, 2000f, "F0");
 
             GUILayout.Label(I18n.Tr("rain_width") + ":");
             Settings.Data.RainWidthRow1 = FloatSliderField(I18n.Tr("rain_width_row1"), Settings.Data.RainWidthRow1, 10f, 200f, "F0");
             Settings.Data.RainWidthRow2 = FloatSliderField(I18n.Tr("rain_width_row2"), Settings.Data.RainWidthRow2, 10f, 200f, "F0");
-            if (Settings.Data.KeyViewerStyle == KeyviewerStyle.Key20)
+            if (HasThirdRow)
                 Settings.Data.RainWidthRow3 = FloatSliderField(I18n.Tr("rain_width_row3"), Settings.Data.RainWidthRow3, 10f, 200f, "F0");
 
             GUILayout.Label(I18n.Tr("rain_start_y") + ":");
@@ -1111,7 +1111,7 @@ namespace JipperKeyViewer.KeyViewer
             if (newStartY1 != Settings.Data.RainStartYRow1) { Settings.Data.RainStartYRow1 = newStartY1; UpdateRainContainerPositions(); }
             float newStartY2 = FloatSliderField(I18n.Tr("rain_row2"), Settings.Data.RainStartYRow2, -2000f, 1000f, "F0");
             if (newStartY2 != Settings.Data.RainStartYRow2) { Settings.Data.RainStartYRow2 = newStartY2; UpdateRainContainerPositions(); }
-            if (Settings.Data.KeyViewerStyle == KeyviewerStyle.Key20)
+            if (HasThirdRow)
             {
                 float newStartY3 = FloatSliderField(I18n.Tr("rain_row3"), Settings.Data.RainStartYRow3, -2000f, 1000f, "F0");
                 if (newStartY3 != Settings.Data.RainStartYRow3) { Settings.Data.RainStartYRow3 = newStartY3; UpdateRainContainerPositions(); }
@@ -1171,7 +1171,7 @@ namespace JipperKeyViewer.KeyViewer
                 if (!Mathf.Approximately(newGY1, Settings.Data.GhostRainStartYRow1)) { Settings.Data.GhostRainStartYRow1 = newGY1; UpdateGhostRainStartY(); SaveSettings(); }
                 float newGY2 = FloatSliderField(I18n.Tr("rain_row2"), Settings.Data.GhostRainStartYRow2, -2000f, 1000f, "F0");
                 if (!Mathf.Approximately(newGY2, Settings.Data.GhostRainStartYRow2)) { Settings.Data.GhostRainStartYRow2 = newGY2; UpdateGhostRainStartY(); SaveSettings(); }
-                if (Settings.Data.KeyViewerStyle == KeyviewerStyle.Key20)
+                if (HasThirdRow)
                 {
                     float newGY3 = FloatSliderField(I18n.Tr("rain_row3"), Settings.Data.GhostRainStartYRow3, -2000f, 1000f, "F0");
                     if (!Mathf.Approximately(newGY3, Settings.Data.GhostRainStartYRow3)) { Settings.Data.GhostRainStartYRow3 = newGY3; UpdateGhostRainStartY(); SaveSettings(); }
@@ -1180,19 +1180,19 @@ namespace JipperKeyViewer.KeyViewer
                 GUILayout.Label(I18n.Tr("ghost_rain_height") + ":");
                 Settings.Data.GhostRainHeightRow1 = FloatSliderField(I18n.Tr("rain_row1"), Settings.Data.GhostRainHeightRow1, 1f, 2000f);
                 Settings.Data.GhostRainHeightRow2 = FloatSliderField(I18n.Tr("rain_row2"), Settings.Data.GhostRainHeightRow2, 1f, 2000f);
-                if (Settings.Data.KeyViewerStyle == KeyviewerStyle.Key20)
+                if (HasThirdRow)
                     Settings.Data.GhostRainHeightRow3 = FloatSliderField(I18n.Tr("rain_row3"), Settings.Data.GhostRainHeightRow3, 1f, 2000f);
 
                 GUILayout.Label(I18n.Tr("ghost_rain_speed") + ":");
                 Settings.Data.GhostRainSpeedRow1 = FloatSliderField(I18n.Tr("rain_row1"), Settings.Data.GhostRainSpeedRow1, 50f, 2000f, "F0");
                 Settings.Data.GhostRainSpeedRow2 = FloatSliderField(I18n.Tr("rain_row2"), Settings.Data.GhostRainSpeedRow2, 50f, 2000f, "F0");
-                if (Settings.Data.KeyViewerStyle == KeyviewerStyle.Key20)
+                if (HasThirdRow)
                     Settings.Data.GhostRainSpeedRow3 = FloatSliderField(I18n.Tr("rain_row3"), Settings.Data.GhostRainSpeedRow3, 50f, 2000f, "F0");
 
                 GUILayout.Label(I18n.Tr("ghost_rain_width") + ":");
                 Settings.Data.GhostRainWidthRow1 = FloatSliderField(I18n.Tr("rain_row1"), Settings.Data.GhostRainWidthRow1, 10f, 200f, "F0");
                 Settings.Data.GhostRainWidthRow2 = FloatSliderField(I18n.Tr("rain_row2"), Settings.Data.GhostRainWidthRow2, 10f, 200f, "F0");
-                if (Settings.Data.KeyViewerStyle == KeyviewerStyle.Key20)
+                if (HasThirdRow)
                     Settings.Data.GhostRainWidthRow3 = FloatSliderField(I18n.Tr("rain_row3"), Settings.Data.GhostRainWidthRow3, 10f, 200f, "F0");
             }
 
@@ -1208,7 +1208,7 @@ namespace JipperKeyViewer.KeyViewer
             GUILayout.Label(I18n.Tr("ghost_rain") + " " + I18n.Tr("rain_shadow"));
             for (int r = 0; r < 3; r++)
             {
-                if (r == 2 && Settings.Data.KeyViewerStyle != KeyviewerStyle.Key20) break;
+                if (r == 2 && !HasThirdRow) break;
                 string rowLabel = r == 0 ? I18n.Tr("rain_row1") : r == 1 ? I18n.Tr("rain_row2") : I18n.Tr("rain_row3");
                 bool shadowEn = r == 0 ? Settings.Data.EnableGhostRainShadowRow1 : r == 1 ? Settings.Data.EnableGhostRainShadowRow2 : Settings.Data.EnableGhostRainShadowRow3;
                 bool newShadowEn = GUILayout.Toggle(shadowEn, rowLabel);
@@ -1262,7 +1262,7 @@ namespace JipperKeyViewer.KeyViewer
             GUILayout.Label(I18n.Tr("ghost_rain") + " " + I18n.Tr("rain_outline"));
             for (int r = 0; r < 3; r++)
             {
-                if (r == 2 && Settings.Data.KeyViewerStyle != KeyviewerStyle.Key20) break;
+                if (r == 2 && !HasThirdRow) break;
                 string rowLabel = r == 0 ? I18n.Tr("rain_row1") : r == 1 ? I18n.Tr("rain_row2") : I18n.Tr("rain_row3");
                 bool outlineEn = r == 0 ? Settings.Data.EnableGhostRainOutlineRow1 : r == 1 ? Settings.Data.EnableGhostRainOutlineRow2 : Settings.Data.EnableGhostRainOutlineRow3;
                 bool newOutlineEn = GUILayout.Toggle(outlineEn, rowLabel);
@@ -1307,7 +1307,7 @@ namespace JipperKeyViewer.KeyViewer
             GUILayout.Label(I18n.Tr("rain_shadow"));
             for (int r = 0; r < 3; r++)
             {
-                if (r == 2 && Settings.Data.KeyViewerStyle != KeyviewerStyle.Key20) break;
+                if (r == 2 && !HasThirdRow) break;
                 string rowLabel = r == 0 ? I18n.Tr("rain_row1") : r == 1 ? I18n.Tr("rain_row2") : I18n.Tr("rain_row3");
                 bool shadowEn = r == 0 ? Settings.Data.EnableRainShadowRow1 : r == 1 ? Settings.Data.EnableRainShadowRow2 : Settings.Data.EnableRainShadowRow3;
                 bool newShadowEn = GUILayout.Toggle(shadowEn, rowLabel);
@@ -1361,7 +1361,7 @@ namespace JipperKeyViewer.KeyViewer
             GUILayout.Label(I18n.Tr("rain_outline"));
             for (int r = 0; r < 3; r++)
             {
-                if (r == 2 && Settings.Data.KeyViewerStyle != KeyviewerStyle.Key20) break;
+                if (r == 2 && !HasThirdRow) break;
                 string rowLabel = r == 0 ? I18n.Tr("rain_row1") : r == 1 ? I18n.Tr("rain_row2") : I18n.Tr("rain_row3");
                 bool outlineEn = r == 0 ? Settings.Data.EnableRainOutlineRow1 : r == 1 ? Settings.Data.EnableRainOutlineRow2 : Settings.Data.EnableRainOutlineRow3;
                 bool newOutlineEn = GUILayout.Toggle(outlineEn, rowLabel);

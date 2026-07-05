@@ -76,13 +76,13 @@ namespace JipperKeyViewer.KeyViewer
             KeyCode[] keyCodes = GetKeyCode();
             KeyCode[] footKeyCodes = GetFootKeyCode();
             string[] keyTexts = GetKeyText();
-            if (SelectedKey < 20)
+            if (SelectedKey < FootKeyBase)
             {
                 keyCodes[SelectedKey] = keyCode;
             }
-            else if (footKeyCodes != null && SelectedKey - 20 < footKeyCodes.Length)
+            else if (footKeyCodes != null && SelectedKey - FootKeyBase < footKeyCodes.Length)
             {
-                footKeyCodes[SelectedKey - 20] = keyCode;
+                footKeyCodes[SelectedKey - FootKeyBase] = keyCode;
             }
             else
             {
@@ -92,12 +92,12 @@ namespace JipperKeyViewer.KeyViewer
             if (Keys != null && SelectedKey < Keys.Length && Keys[SelectedKey] != null)
             {
                 string displayText;
-                if (SelectedKey < 20 && !string.IsNullOrEmpty(keyTexts[SelectedKey]))
+                if (SelectedKey < FootKeyBase && !string.IsNullOrEmpty(keyTexts[SelectedKey]))
                     displayText = keyTexts[SelectedKey];
-                else if (SelectedKey >= 20)
+                else if (SelectedKey >= FootKeyBase)
                 {
                     string[] footTexts = GetFootKeyText();
-                    int footIndex = SelectedKey - 20;
+                    int footIndex = SelectedKey - FootKeyBase;
                     displayText = footTexts != null && footIndex < footTexts.Length && !string.IsNullOrEmpty(footTexts[footIndex])
                         ? footTexts[footIndex] : KeyToString(keyCode);
                 }
@@ -195,7 +195,7 @@ namespace JipperKeyViewer.KeyViewer
             }
             ProcessKeyGroup(cachedMainKeys, 0, elapsedMilliseconds);
             if (cachedFootKeys != null)
-                ProcessKeyGroup(cachedFootKeys, 20, elapsedMilliseconds);
+                ProcessKeyGroup(cachedFootKeys, FootKeyBase, elapsedMilliseconds);
             if (Total != null && Total.value != null && lastTotal != Settings.Data.TotalCount)
             {
                 lastTotal = Settings.Data.TotalCount;
@@ -333,7 +333,7 @@ namespace JipperKeyViewer.KeyViewer
             if (Keys == null || i >= Keys.Length) return;
             Key key = Keys[i];
             if (key == null) return;
-            if (Settings.Data.EnablePerKeyColors && i < 36)
+            if (Settings.Data.EnablePerKeyColors && i < MaxKeySlots)
             {
                 key.background.color = pressed ? Settings.Data.PerKeyBackgroundClicked[i] : Settings.Data.PerKeyBackground[i];
                 key.outline.color = pressed ? Settings.Data.PerKeyOutlineClicked[i] : Settings.Data.PerKeyOutline[i];

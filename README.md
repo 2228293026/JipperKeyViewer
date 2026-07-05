@@ -25,7 +25,7 @@ Both build from the same solution (`JipperKeyViewer.slnx`) and share the same fe
 ## Features / 功能
 
 - Real-time on-screen key display with press feedback / 实时按键显示，按下时颜色变化
-- Multiple layouts: 8K, 10K, 12K, 14K, 16K, 20K + foot keys 2K-16K / 多布局 + 脚键
+- Multiple layouts: 8K, 10K, 12K, 14K, 16K, 20K, **24K** + foot keys 2K-16K / 多布局 + 脚键
 - KPS counter & total key count / KPS 统计和总按键计数
 - Per-key KPS display / 每键独立 KPS 显示
 - Rain effect with smooth fade-out on key release / 雨滴特效，松开按键时平滑淡出
@@ -37,6 +37,7 @@ Both build from the same solution (`JipperKeyViewer.slnx`) and share the same fe
 - Streamer mode (hide KPS/Total) / 流媒体模式（隐藏 KPS/Total）
 - Count formatting (1,234) / 大数字千分位格式化
 - Fully customizable: colors, fonts, position, size / 完全自定义：颜色、字体、位置、大小
+- **Standard Key Width**: normalize mixed-width back rows to uniform 50px (10K/12K/20K third row) / **标准按键宽度**：统一宽窄混排后排为 50px
 - Font style options: Bold, Italic, Underline, etc. / 字体样式：粗体、斜体、下划线等
 - Normalized custom positioning (0–1 range), auto-adapts to any resolution / 归一化自定义位置，自动适配任意分辨率
 - i18n: English / Chinese / Korean / 中英韩三语
@@ -150,7 +151,7 @@ All settings are saved to `config/settings.json` and can be edited in the UMM se
 
 | Category | Options |
 |----------|---------|
-| **Layout** | Main: 8K/10K/12K/14K/16K/20K, Foot: Off/2K-16K |
+| **Layout** | Main: 8K/10K/12K/14K/16K/20K/**24K**, Standard Key Width toggle, Foot: Off/2K-16K |
 | **Position** | Custom position (X/Y 0-1), place below toggle |
 | **Size** | Scale slider (0.1x – 2.0x) |
 | **Colors** | Background, Outline, Text (normal + pressed), Rain (per-row), KPS, Total |

@@ -226,7 +226,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 GUILayout.Label(row3Label + ":");
                 GUILayout.BeginHorizontal();
-                for (int i = 8; i < backSequence.Length && i < keyCodes.Length; i++)
+                for (int i = 8; i < backSequence.Length && backSequence[i] < keyCodes.Length; i++)
                     if (GUILayout.Button(labelFunc(backSequence[i], keyCodes[backSequence[i]])))
                         onKeyClick(backSequence[i], keyCodes[backSequence[i]]);
                 GUILayout.EndHorizontal();

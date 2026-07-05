@@ -5,6 +5,7 @@
 
 ### 🐛 Bug Fixes
 - **12K grid rain position**: Back row keys (9,8,10,11) now share the front row's rain container (matching JipperResourcePack's RainPool sharing). Rain drops appear at the correct X position aligned with the front column, instead of being centered within the wide (77px) key bounds.
+- **10K rain position**: Back row keys (8,9) now also share front row containers (8→3, 9→4), consistent with 12K and JipperResourcePack behavior.
 - **Rain render order with shared containers**: When front and back row rain drops share the same container, the back row drops were sometimes hidden behind front row drops. Fixed by explicitly setting `SetSiblingIndex` per row (front=0, middle=2, third=4; ghost=base+1), matching JipperResourcePack's depth ordering.
 - **14K layout height inconsistent with 16K**: Switch from 16K to 14K caused the overlay to jump downward by 21px. Normalized all 14K Y values (frontY 299→320, etc.) to match 16K.
 - **20K third row ghost key UI reversed**: Ghost key buttons for the third row used sequential indices 16→17→18→19, but the actual key layout shows 17→16→18→19 (left to right). Now uses `BackSequence20[8..12]` for correct visual order.

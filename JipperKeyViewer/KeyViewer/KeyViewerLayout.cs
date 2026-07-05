@@ -210,6 +210,11 @@ namespace JipperKeyViewer.KeyViewer
         {
             switch (Settings.Data.KeyViewerStyle)
             {
+                case KeyviewerStyle.Key10:
+                    // Back row [8,9] → front [3,4]
+                    ShareRainContainer(8, 3);
+                    ShareRainContainer(9, 4);
+                    break;
                 case KeyviewerStyle.Key12:
                     // Back row [9,8,10,11] → front [2,3,4,5]
                     ShareRainContainer(9, 2);

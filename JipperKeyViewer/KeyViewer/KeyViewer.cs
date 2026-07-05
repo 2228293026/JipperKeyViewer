@@ -95,6 +95,8 @@ namespace JipperKeyViewer.KeyViewer
         bool RainExpanded;
         /// <summary>Per-color-section expanded state in settings / 设置中每个颜色区域的展开状态</summary>
         bool[] ColorExpanded;
+        /// <summary>Whether the custom position section in settings is expanded / 设置中自定义位置区域是否展开</summary>
+        bool CustomPositionExpanded;
         /// <summary>Currently selected key index for rebinding (-1 = none) / 当前为重新绑定选中的按键索引（-1 = 无）</summary>
         int SelectedKey = -1;
         /// <summary>Current rebind mode: 0=key, 1=text, 2=ghost key / 当前重绑定模式：0=按键，1=文本，2=鬼键</summary>

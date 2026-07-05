@@ -117,6 +117,15 @@ namespace JipperKeyViewer.KeyViewer
         public float GhostRainStartYRow1 = -223f;
         public float GhostRainStartYRow2 = -169f;
         public float GhostRainStartYRow3 = -115f;
+        public float GhostRainSpeedRow1 = 100f;
+        public float GhostRainSpeedRow2 = 100f;
+        public float GhostRainSpeedRow3 = 100f;
+        public float GhostRainHeightRow1 = 275f;
+        public float GhostRainHeightRow2 = 275f;
+        public float GhostRainHeightRow3 = 275f;
+        public float GhostRainWidthRow1 = 50f;
+        public float GhostRainWidthRow2 = 40f;
+        public float GhostRainWidthRow3 = 30f;
 
         public Vector2 MainKeyViewerPosition = new Vector2(0, 1);
         public Vector2 FootKeyViewerPosition = new Vector2(0.24f, 1f);

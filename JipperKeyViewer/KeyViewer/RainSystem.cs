@@ -20,8 +20,12 @@ namespace JipperKeyViewer.KeyViewer
 
         private readonly float[] rowSpeeds = new float[3];
         private readonly float[] rowHeights = new float[3];
+        private readonly float[] ghostRowSpeeds = new float[3];
+        private readonly float[] ghostRowHeights = new float[3];
         private float cachedRainSpeed1, cachedRainSpeed2, cachedRainSpeed3;
         private float cachedRainHeight1, cachedRainHeight2, cachedRainHeight3;
+        private float cachedGhostSpeed1, cachedGhostSpeed2, cachedGhostSpeed3;
+        private float cachedGhostHeight1, cachedGhostHeight2, cachedGhostHeight3;
 
         public RainSystem(KeyViewerSettings settings)
         {
@@ -59,7 +63,10 @@ namespace JipperKeyViewer.KeyViewer
         {
             if (cachedRainSpeed1 == settings.Data.RainSpeedRow1 && cachedRainSpeed2 == settings.Data.RainSpeedRow2 &&
                 cachedRainSpeed3 == settings.Data.RainSpeedRow3 && cachedRainHeight1 == settings.Data.RainHeightRow1 &&
-                cachedRainHeight2 == settings.Data.RainHeightRow2 && cachedRainHeight3 == settings.Data.RainHeightRow3)
+                cachedRainHeight2 == settings.Data.RainHeightRow2 && cachedRainHeight3 == settings.Data.RainHeightRow3 &&
+                cachedGhostSpeed1 == settings.Data.GhostRainSpeedRow1 && cachedGhostSpeed2 == settings.Data.GhostRainSpeedRow2 &&
+                cachedGhostSpeed3 == settings.Data.GhostRainSpeedRow3 && cachedGhostHeight1 == settings.Data.GhostRainHeightRow1 &&
+                cachedGhostHeight2 == settings.Data.GhostRainHeightRow2 && cachedGhostHeight3 == settings.Data.GhostRainHeightRow3)
                 return;
             rowSpeeds[0] = settings.Data.RainSpeedRow1 / 300f;
             rowSpeeds[1] = settings.Data.RainSpeedRow2 / 300f;
@@ -67,20 +74,34 @@ namespace JipperKeyViewer.KeyViewer
             rowHeights[0] = settings.Data.RainHeightRow1;
             rowHeights[1] = settings.Data.RainHeightRow2;
             rowHeights[2] = settings.Data.RainHeightRow3;
+            ghostRowSpeeds[0] = settings.Data.GhostRainSpeedRow1 / 300f;
+            ghostRowSpeeds[1] = settings.Data.GhostRainSpeedRow2 / 300f;
+            ghostRowSpeeds[2] = settings.Data.GhostRainSpeedRow3 / 300f;
+            ghostRowHeights[0] = settings.Data.GhostRainHeightRow1;
+            ghostRowHeights[1] = settings.Data.GhostRainHeightRow2;
+            ghostRowHeights[2] = settings.Data.GhostRainHeightRow3;
             cachedRainSpeed1 = settings.Data.RainSpeedRow1;
             cachedRainSpeed2 = settings.Data.RainSpeedRow2;
             cachedRainSpeed3 = settings.Data.RainSpeedRow3;
             cachedRainHeight1 = settings.Data.RainHeightRow1;
             cachedRainHeight2 = settings.Data.RainHeightRow2;
             cachedRainHeight3 = settings.Data.RainHeightRow3;
+            cachedGhostSpeed1 = settings.Data.GhostRainSpeedRow1;
+            cachedGhostSpeed2 = settings.Data.GhostRainSpeedRow2;
+            cachedGhostSpeed3 = settings.Data.GhostRainSpeedRow3;
+            cachedGhostHeight1 = settings.Data.GhostRainHeightRow1;
+            cachedGhostHeight2 = settings.Data.GhostRainHeightRow2;
+            cachedGhostHeight3 = settings.Data.GhostRainHeightRow3;
         }
 
         private void UpdateSingleRainDrop(RawRain rain, Key key, int j, int row, float dtSec)
         {
             if (rain.removed) return;
 
+            float speed = rain.isGhost ? ghostRowSpeeds[row] : rowSpeeds[row];
+            float height = rain.isGhost ? ghostRowHeights[row] : rowHeights[row];
             float dt = dtSec * 1000f;
-            if (!rain.UpdateLocation(rain.growing, rowSpeeds[row], rowHeights[row], dt))
+            if (!rain.UpdateLocation(rain.growing, speed, height, dt))
             {
                 ReturnRainAndRawRain(rain, key, j);
                 return;
@@ -91,7 +112,7 @@ namespace JipperKeyViewer.KeyViewer
 
             ApplyRainTransforms(rain, r);
             UpdateFadeOut(r, dtSec, rain, key, j);
-            UpdateTrailEdge(rain, r, row);
+            UpdateTrailEdge(rain, r, speed, height);
         }
 
         private static void ApplyRainTransforms(RawRain rain, Rain r)
@@ -121,18 +142,18 @@ namespace JipperKeyViewer.KeyViewer
                 ReturnRainAndRawRain(rain, key, j);
         }
 
-        private void UpdateTrailEdge(RawRain rain, Rain r, int row)
+        private void UpdateTrailEdge(RawRain rain, Rain r, float speed, float height)
         {
-            float trailEdgeDist = rain.elapsedMs * rowSpeeds[row];
-            float drawH = trailEdgeDist > rowHeights[row]
-                ? rain.FinalSize.y - trailEdgeDist + rowHeights[row]
+            float trailEdgeDist = rain.elapsedMs * speed;
+            float drawH = trailEdgeDist > height
+                ? rain.FinalSize.y - trailEdgeDist + height
                 : (rain.growing ? trailEdgeDist : rain.FinalSize.y);
-            trailEdgeDist = Mathf.Min(trailEdgeDist, rowHeights[row]);
+            trailEdgeDist = Mathf.Min(trailEdgeDist, height);
 
             float dFar = trailEdgeDist;
             float dNear = dFar - drawH;
             float fp = settings.Data.EnableRainGradient && !rain.isGhost ? settings.Data.RainFadePx : 0f;
-            r.graphic.SetFadeParams(dNear, dFar, rowHeights[row], fp, false);
+            r.graphic.SetFadeParams(dNear, dFar, height, fp, false);
         }
 
         private void ReturnRainAndRawRain(RawRain rain, Key key, int listIndex)
@@ -321,7 +342,6 @@ namespace JipperKeyViewer.KeyViewer
             {
                 rainComponent = GetRainFromPool(key.rain.transform, GhostRainSprite, true);
                 rainComponent.ghostImage.color = GetGhostRainColor(key.color);
-                rainComponent.transform.SetAsLastSibling();
             }
             else
             {
@@ -383,6 +403,10 @@ namespace JipperKeyViewer.KeyViewer
                     : row == 2 ? settings.Data.RainOutlineWidthRow2
                     : settings.Data.RainOutlineWidthRow3;
             }
+
+            // Set render order: front row behind, middle row in front, third row on top
+            // (1,3,5 for ghost rain so ghost is always above normal within the same row)
+            rainComponent.transform.SetSiblingIndex((row - 1) * 2 + (isGhost ? 1 : 0));
 
             rainComponent.rawRain = rawRain;
             rawRain.rainComponent = rainComponent;

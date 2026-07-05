@@ -104,6 +104,10 @@ namespace JipperKeyViewer.KeyViewer
             ["rain_outline"] = "Rain Outline",
             ["rain_outline_color"] = "Outline Color",
             ["rain_outline_width"] = "Outline Width",
+            ["ghost_rain_height"] = "Ghost Rain Height",
+            ["ghost_rain_speed"] = "Ghost Rain Speed",
+            ["ghost_rain_width"] = "Ghost Rain Width",
+            ["enable"] = "Enable",
         };
 
         /// <summary>Chinese translations dictionary / 中文字典</summary>
@@ -193,6 +197,10 @@ namespace JipperKeyViewer.KeyViewer
             ["rain_outline"] = "雨滴描边",
             ["rain_outline_color"] = "描边颜色",
             ["rain_outline_width"] = "描边宽度",
+            ["ghost_rain_height"] = "鬼雨高度",
+            ["ghost_rain_speed"] = "鬼雨速度",
+            ["ghost_rain_width"] = "鬼雨宽度",
+            ["enable"] = "启用",
         };
 
         /// <summary>Korean translations dictionary / 韩文字典</summary>
@@ -282,6 +290,10 @@ namespace JipperKeyViewer.KeyViewer
             ["rain_outline"] = "빗줄 아웃라인",
             ["rain_outline_color"] = "아웃라인 색상",
             ["rain_outline_width"] = "아웃라인 두께",
+            ["ghost_rain_height"] = "고스트 빗줄 높이",
+            ["ghost_rain_speed"] = "고스트 빗줄 속도",
+            ["ghost_rain_width"] = "고스트 빗줄 너비",
+            ["enable"] = "활성화",
         };
 
         /// <summary>Path to the lang.json override file / lang.json 覆盖文件路径</summary>

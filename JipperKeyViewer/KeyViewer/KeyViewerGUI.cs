@@ -222,13 +222,13 @@ namespace JipperKeyViewer.KeyViewer
                 GUILayout.EndHorizontal();
             }
 
-            if (Settings.Data.KeyViewerStyle == KeyviewerStyle.Key20)
+            if (backSequence.Length > 8)
             {
                 GUILayout.Label(row3Label + ":");
                 GUILayout.BeginHorizontal();
-                for (int i = 16; i < 20 && i < keyCodes.Length; i++)
-                    if (GUILayout.Button(labelFunc(i, keyCodes[i])))
-                        onKeyClick(i, keyCodes[i]);
+                for (int i = 8; i < backSequence.Length && i < keyCodes.Length; i++)
+                    if (GUILayout.Button(labelFunc(backSequence[i], keyCodes[backSequence[i]])))
+                        onKeyClick(backSequence[i], keyCodes[backSequence[i]]);
                 GUILayout.EndHorizontal();
             }
         }
@@ -293,12 +293,12 @@ namespace JipperKeyViewer.KeyViewer
                 GUILayout.EndHorizontal();
             }
 
-            if (Settings.Data.KeyViewerStyle == KeyviewerStyle.Key20)
+            if (backSequence.Length > 8)
             {
                 GUILayout.Label(I18n.Tr("row3_keys") + ":");
                 GUILayout.BeginHorizontal();
-                for (int i = 16; i < 20; i++)
-                    DrawGhostKeyButton(i, ghostKeyCodes);
+                for (int i = 8; i < backSequence.Length; i++)
+                    DrawGhostKeyButton(backSequence[i], ghostKeyCodes);
                 GUILayout.EndHorizontal();
             }
 
@@ -924,12 +924,17 @@ namespace JipperKeyViewer.KeyViewer
 
         private void DrawCustomPositionSection()
         {
-            bool newCustomPosition = DrawFoldoutButton(I18n.Tr("custom_pos"), Settings.Data.CustomPositionEnabled);
-            if (newCustomPosition != Settings.Data.CustomPositionEnabled)
+            CustomPositionExpanded = DrawFoldoutButton(I18n.Tr("custom_pos"), CustomPositionExpanded);
+            if (!CustomPositionExpanded) return;
+
+            GUILayout.BeginVertical("box");
+            bool newEnabled = GUILayout.Toggle(Settings.Data.CustomPositionEnabled,
+                I18n.Tr("custom_pos") + " " + I18n.Tr("enable"));
+            if (newEnabled != Settings.Data.CustomPositionEnabled)
             {
-                Settings.Data.CustomPositionEnabled = newCustomPosition;
+                Settings.Data.CustomPositionEnabled = newEnabled;
                 SaveSettings();
-                if (Settings.Data.CustomPositionEnabled)
+                if (newEnabled)
                 {
                     ResetKeyViewerPosition();
                     ResetFootKeyViewerPosition();
@@ -943,7 +948,6 @@ namespace JipperKeyViewer.KeyViewer
 
             if (Settings.Data.CustomPositionEnabled)
             {
-                GUILayout.BeginVertical("box");
                 GUILayout.Label(I18n.Tr("main_key_pos") + ":");
                 Vector2 tempMainPos = Settings.Data.MainKeyViewerPosition;
                 Vector2 tempFootPos = Settings.Data.FootKeyViewerPosition;
@@ -977,8 +981,8 @@ namespace JipperKeyViewer.KeyViewer
                     ResetFootKeyViewerPosition();
                     SaveSettings();
                 }
-                GUILayout.EndVertical();
             }
+            GUILayout.EndVertical();
         }
 
         private void DrawLayoutSection()
@@ -1154,6 +1158,24 @@ namespace JipperKeyViewer.KeyViewer
                     float newGY3 = FloatSliderField(I18n.Tr("rain_row3"), Settings.Data.GhostRainStartYRow3, -2000f, 1000f, "F0");
                     if (!Mathf.Approximately(newGY3, Settings.Data.GhostRainStartYRow3)) { Settings.Data.GhostRainStartYRow3 = newGY3; UpdateGhostRainStartY(); SaveSettings(); }
                 }
+
+                GUILayout.Label(I18n.Tr("ghost_rain_height") + ":");
+                Settings.Data.GhostRainHeightRow1 = FloatSliderField(I18n.Tr("rain_row1"), Settings.Data.GhostRainHeightRow1, 1f, 2000f);
+                Settings.Data.GhostRainHeightRow2 = FloatSliderField(I18n.Tr("rain_row2"), Settings.Data.GhostRainHeightRow2, 1f, 2000f);
+                if (Settings.Data.KeyViewerStyle == KeyviewerStyle.Key20)
+                    Settings.Data.GhostRainHeightRow3 = FloatSliderField(I18n.Tr("rain_row3"), Settings.Data.GhostRainHeightRow3, 1f, 2000f);
+
+                GUILayout.Label(I18n.Tr("ghost_rain_speed") + ":");
+                Settings.Data.GhostRainSpeedRow1 = FloatSliderField(I18n.Tr("rain_row1"), Settings.Data.GhostRainSpeedRow1, 50f, 2000f, "F0");
+                Settings.Data.GhostRainSpeedRow2 = FloatSliderField(I18n.Tr("rain_row2"), Settings.Data.GhostRainSpeedRow2, 50f, 2000f, "F0");
+                if (Settings.Data.KeyViewerStyle == KeyviewerStyle.Key20)
+                    Settings.Data.GhostRainSpeedRow3 = FloatSliderField(I18n.Tr("rain_row3"), Settings.Data.GhostRainSpeedRow3, 50f, 2000f, "F0");
+
+                GUILayout.Label(I18n.Tr("ghost_rain_width") + ":");
+                Settings.Data.GhostRainWidthRow1 = FloatSliderField(I18n.Tr("rain_row1"), Settings.Data.GhostRainWidthRow1, 10f, 200f, "F0");
+                Settings.Data.GhostRainWidthRow2 = FloatSliderField(I18n.Tr("rain_row2"), Settings.Data.GhostRainWidthRow2, 10f, 200f, "F0");
+                if (Settings.Data.KeyViewerStyle == KeyviewerStyle.Key20)
+                    Settings.Data.GhostRainWidthRow3 = FloatSliderField(I18n.Tr("rain_row3"), Settings.Data.GhostRainWidthRow3, 10f, 200f, "F0");
             }
 
             GUILayout.Space(8);

@@ -82,6 +82,10 @@
     { "key": "rain_outline", "en": "Rain Outline", "zh": "雨滴描边", "ko": "빗줄 아웃라인" },
     { "key": "rain_outline_color", "en": "Outline Color", "zh": "描边颜色", "ko": "아웃라인 색상" },
     { "key": "rain_outline_width", "en": "Outline Width", "zh": "描边宽度", "ko": "아웃라인 두께" },
-    { "key": "rain_start_y", "en": "Start Height", "zh": "起始高度", "ko": "시작 높이" }
+    { "key": "rain_start_y", "en": "Start Height", "zh": "起始高度", "ko": "시작 높이" },
+    { "key": "ghost_rain_height", "en": "Ghost Rain Height", "zh": "鬼雨高度", "ko": "고스트 빗줄 높이" },
+    { "key": "ghost_rain_speed", "en": "Ghost Rain Speed", "zh": "鬼雨速度", "ko": "고스트 빗줄 속도" },
+    { "key": "ghost_rain_width", "en": "Ghost Rain Width", "zh": "鬼雨宽度", "ko": "고스트 빗줄 너비" },
+    { "key": "enable", "en": "Enable", "zh": "启用", "ko": "활성화" }
   ]
 }

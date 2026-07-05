@@ -129,17 +129,17 @@ namespace JipperKeyViewer.KeyViewer
                 },
                 KeyviewerStyle.Key14 => new LayoutDesc
                 {
-                    frontY = 299, bottomY = 184,
+                    frontY = 320, bottomY = 205,
                     extras = new ExtraSlot[]
                     {
-                        new() { index = 9, x = 54, y = 245, w = 50, rainRow = 1 },
-                        new() { index = 8, x = 108, y = 245, w = 50, rainRow = 1 },
-                        new() { index = 10, x = 162, y = 245, w = 50, rainRow = 1 },
-                        new() { index = 11, x = 216, y = 245, w = 50, rainRow = 1 },
-                        new() { index = 12, x = 270, y = 245, w = 50, rainRow = 1 },
-                        new() { index = 13, x = 324, y = 245, w = 50, rainRow = 1 },
-                        new() { index = -1, x = 0, y = 199, w = 212, rainRow = -1, slim = true },
-                        new() { index = -2, x = 216, y = 199, w = 212, rainRow = -1, slim = true },
+                        new() { index = 9, x = 54, y = 266, w = 50, rainRow = 1 },
+                        new() { index = 8, x = 108, y = 266, w = 50, rainRow = 1 },
+                        new() { index = 10, x = 162, y = 266, w = 50, rainRow = 1 },
+                        new() { index = 11, x = 216, y = 266, w = 50, rainRow = 1 },
+                        new() { index = 12, x = 270, y = 266, w = 50, rainRow = 1 },
+                        new() { index = 13, x = 324, y = 266, w = 50, rainRow = 1 },
+                        new() { index = -1, x = 0, y = 220, w = 212, rainRow = -1, slim = true },
+                        new() { index = -2, x = 216, y = 220, w = 212, rainRow = -1, slim = true },
                     }
                 },
                 KeyviewerStyle.Key16 => new LayoutDesc
@@ -196,6 +196,48 @@ namespace JipperKeyViewer.KeyViewer
                 else if (e.index == -2) Total = key;
                 else Keys[e.index] = key;
             }
+            // Share rain containers for back rows with non-standard widths / 共享非标准宽度后排的雨滴容器
+            ApplyRainContainerSharing();
+        }
+
+        /// <summary>
+        /// Redirect back-row rain containers to front-row ones for layouts with non-standard key widths.
+        /// Matches JipperResourcePack's RainPool sharing — rain drops inherit front row's X position and width,
+        /// while per-row settings (color, speed, height) remain from the pressed key's row.
+        /// 将非标准宽度的后排雨滴容器重指向前排按键，雨滴位置与前列对齐
+        /// </summary>
+        private void ApplyRainContainerSharing()
+        {
+            switch (Settings.Data.KeyViewerStyle)
+            {
+                case KeyviewerStyle.Key12:
+                    // Back row [9,8,10,11] → front [2,3,4,5]
+                    ShareRainContainer(9, 2);
+                    ShareRainContainer(8, 3);
+                    ShareRainContainer(10, 4);
+                    ShareRainContainer(11, 5);
+                    break;
+                case KeyviewerStyle.Key20:
+                    // Third row [17,16,18,19] → front [2,3,4,5] (same positions as 12K back)
+                    ShareRainContainer(17, 2);
+                    ShareRainContainer(16, 3);
+                    ShareRainContainer(18, 4);
+                    ShareRainContainer(19, 5);
+                    break;
+            }
+        }
+
+        private void ShareRainContainer(int backIndex, int frontIndex)
+        {
+            if (backIndex < 0 || backIndex >= Keys.Length || frontIndex < 0 || frontIndex >= Keys.Length) return;
+            var backKey = Keys[backIndex];
+            var frontKey = Keys[frontIndex];
+            if (backKey?.rain == null || frontKey?.rain == null) return;
+            // Destroy the back key's own RainLine (with its Canvas + GraphicRaycaster),
+            // so we don't have orphaned UI elements in the scene.
+            if (backKey.rain != frontKey.rain)
+                Object.Destroy(backKey.rain);
+            backKey.rain = frontKey.rain;
         }
 
         private void RepositionMainKeys(LayoutDesc layout, float baseX, float baseY)
@@ -374,11 +416,12 @@ namespace JipperKeyViewer.KeyViewer
         private void UpdateRainContainerPositions()
         {
             if (Keys == null) return;
+            var processed = new HashSet<RectTransform>();
             foreach (var key in Keys)
             {
                 if (key?.rain == null) continue;
                 RectTransform rt = key.rain.GetComponent<RectTransform>();
-                if (rt == null) continue;
+                if (rt == null || !processed.Add(rt)) continue;
                 rt.anchoredPosition = new Vector2(0, key.color switch
                 {
                     0 => Settings.Data.RainStartYRow1,

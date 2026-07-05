@@ -279,7 +279,8 @@ namespace JipperKeyViewer.KeyViewer
                 else if (e.index == -2) Total = key;
                 else Keys[e.index] = key;
             }
-            // Share rain containers for back rows with non-standard widths / 共享非标准宽度后排的雨滴容器
+            // Keep each key's own RainLine — adjust X offset and width for front-column alignment
+            // 每键独立雨滴容器，不共享，只调 X 偏移和宽度对齐前列
             ApplyRainContainerSharing();
         }
 
@@ -324,11 +325,18 @@ namespace JipperKeyViewer.KeyViewer
             var backKey = Keys[backIndex];
             var frontKey = Keys[frontIndex];
             if (backKey?.rain == null || frontKey?.rain == null) return;
-            // Destroy the back key's own RainLine (with its Canvas + GraphicRaycaster),
-            // so we don't have orphaned UI elements in the scene.
-            if (backKey.rain != frontKey.rain)
-                Object.Destroy(backKey.rain);
-            backKey.rain = frontKey.rain;
+            if (backKey.rain == frontKey.rain) return;
+
+            // Keep back key's own RainLine — just align its X and width to the front column.
+            // Each key keeps its own container, so Z-order is naturally correct (no Canvas hack needed).
+            // 保留后排按键的雨滴容器，不共享，只调 X 偏移对齐前列，宽度改为标准 50px
+            RectTransform rt = backKey.rain.GetComponent<RectTransform>();
+            float frontX = frontKey.GetComponent<RectTransform>().anchoredPosition.x;
+            float backX = backKey.GetComponent<RectTransform>().anchoredPosition.x;
+            backKey.rainOffsetX = frontX - backX;
+            Vector2 pos = rt.anchoredPosition;
+            rt.anchoredPosition = new Vector2(backKey.rainOffsetX, pos.y);
+            rt.sizeDelta = new Vector2(50, rt.sizeDelta.y);
         }
 
         private void RepositionMainKeys(LayoutDesc layout, float baseX, float baseY)
@@ -525,7 +533,7 @@ namespace JipperKeyViewer.KeyViewer
                 if (key?.rain == null) continue;
                 RectTransform rt = key.rain.GetComponent<RectTransform>();
                 if (rt == null || !processed.Add(rt)) continue;
-                rt.anchoredPosition = new Vector2(0, key.color switch
+                rt.anchoredPosition = new Vector2(key.rainOffsetX, key.color switch
                 {
                     0 => Settings.Data.RainStartYRow1,
                     3 => Settings.Data.RainStartYRow3,
@@ -576,7 +584,6 @@ namespace JipperKeyViewer.KeyViewer
                     });
                     rt.localScale = Vector3.one;
                     key.rain.AddComponent<Canvas>();
-                    key.rain.AddComponent<GraphicRaycaster>();
                 }
                 key.color = (byte)raining;
             }

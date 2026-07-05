@@ -36,5 +36,7 @@ namespace JipperKeyViewer.KeyViewer
         public Coroutine currentAnim;
         /// <summary>Visuals wrapper — scaled on press so rain outside it stays unaffected / 视觉包裹层，按下时缩放此层，雨滴容器在外面不受影响</summary>
         public Transform visuals;
+        /// <summary>X offset for rain container alignment (0 for standard keys) / 雨滴容器的 X 偏移（标准按键为 0）</summary>
+        public float rainOffsetX;
     }
 }

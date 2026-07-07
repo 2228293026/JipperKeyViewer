@@ -250,6 +250,16 @@ namespace JipperKeyViewer.KeyViewer
         public void InitPerKeyColors()
         {
             int n = KeyViewer.MaxKeySlots + 2;
+
+            // 保存旧数组引用，用于迁移已有数据
+            var oldBg = PerKeyBackground;
+            var oldBgClicked = PerKeyBackgroundClicked;
+            var oldOutline = PerKeyOutline;
+            var oldOutlineClicked = PerKeyOutlineClicked;
+            var oldText = PerKeyText;
+            var oldTextClicked = PerKeyTextClicked;
+            var oldRain = PerKeyRainColor;
+
             PerKeyBackground = new Color[n];
             PerKeyBackgroundClicked = new Color[n];
             PerKeyOutline = new Color[n];
@@ -259,13 +269,18 @@ namespace JipperKeyViewer.KeyViewer
             PerKeyRainColor = new Color[n];
             for (int i = 0; i < n; i++)
             {
-                PerKeyBackground[i] = KeyViewer.Background;
-                PerKeyBackgroundClicked[i] = KeyViewer.BackgroundClicked;
-                PerKeyOutline[i] = KeyViewer.Outline;
-                PerKeyOutlineClicked[i] = KeyViewer.OutlineClicked;
-                PerKeyText[i] = KeyViewer.Text;
-                PerKeyTextClicked[i] = KeyViewer.TextClicked;
-                if (i < 8) PerKeyRainColor[i] = KeyViewer.RainColor;
+                PerKeyBackground[i] = oldBg != null && i < oldBg.Length ? oldBg[i] : KeyViewer.Background;
+                PerKeyBackgroundClicked[i] = oldBgClicked != null && i < oldBgClicked.Length
+                    ? oldBgClicked[i] : KeyViewer.BackgroundClicked;
+                PerKeyOutline[i] = oldOutline != null && i < oldOutline.Length ? oldOutline[i] : KeyViewer.Outline;
+                PerKeyOutlineClicked[i] = oldOutlineClicked != null && i < oldOutlineClicked.Length
+                    ? oldOutlineClicked[i] : KeyViewer.OutlineClicked;
+                PerKeyText[i] = oldText != null && i < oldText.Length ? oldText[i] : KeyViewer.Text;
+                PerKeyTextClicked[i] = oldTextClicked != null && i < oldTextClicked.Length
+                    ? oldTextClicked[i] : KeyViewer.TextClicked;
+                if (oldRain != null && i < oldRain.Length)
+                    PerKeyRainColor[i] = oldRain[i];
+                else if (i < 8) PerKeyRainColor[i] = KeyViewer.RainColor;
                 else if (i < 16) PerKeyRainColor[i] = KeyViewer.RainColor2;
                 else if (i < KeyViewer.MaxKeySlots) PerKeyRainColor[i] = KeyViewer.RainColor3;
                 else PerKeyRainColor[i] = KeyViewer.RainColor;

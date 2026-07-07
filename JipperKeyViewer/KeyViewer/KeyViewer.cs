@@ -245,6 +245,7 @@ namespace JipperKeyViewer.KeyViewer
         /// </summary>
         void OnDisable()
         {
+            SaveSettings();
             DisableKeyViewer();
         }
 
@@ -427,7 +428,13 @@ namespace JipperKeyViewer.KeyViewer
             Settings.Data.footkey14Text = Settings.Data.footkey14Text ?? new string[14];
             Settings.Data.footkey16Text = Settings.Data.footkey16Text ?? new string[16];
             Settings.Data.Count = Settings.Data.Count ?? new int[MaxKeySlots];
-            if (Settings.Data.PerKeyBackground == null || Settings.Data.PerKeyBackground.Length != MaxKeySlots + 2)
+            if (Settings.Data.PerKeyBackground == null || Settings.Data.PerKeyBackground.Length != MaxKeySlots + 2 ||
+                Settings.Data.PerKeyBackgroundClicked == null || Settings.Data.PerKeyBackgroundClicked.Length != MaxKeySlots + 2 ||
+                Settings.Data.PerKeyOutline == null || Settings.Data.PerKeyOutline.Length != MaxKeySlots + 2 ||
+                Settings.Data.PerKeyOutlineClicked == null || Settings.Data.PerKeyOutlineClicked.Length != MaxKeySlots + 2 ||
+                Settings.Data.PerKeyText == null || Settings.Data.PerKeyText.Length != MaxKeySlots + 2 ||
+                Settings.Data.PerKeyTextClicked == null || Settings.Data.PerKeyTextClicked.Length != MaxKeySlots + 2 ||
+                Settings.Data.PerKeyRainColor == null || Settings.Data.PerKeyRainColor.Length != MaxKeySlots + 2)
                 Settings.Data.InitPerKeyColors();
         }
 

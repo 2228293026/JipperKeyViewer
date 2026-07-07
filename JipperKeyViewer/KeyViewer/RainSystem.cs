@@ -341,7 +341,9 @@ namespace JipperKeyViewer.KeyViewer
             if (isGhost)
             {
                 rainComponent = GetRainFromPool(key.rain.transform, GhostRainSprite, true);
-                rainComponent.ghostImage.color = GetGhostRainColor(key.color);
+                rainComponent.ghostImage.color = settings.Data.EnablePerKeyColors
+                    ? settings.Data.PerKeyGhostRainColor[keyIndex]
+                    : GetGhostRainColor(key.color);
             }
             else
             {

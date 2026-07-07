@@ -211,6 +211,7 @@ namespace JipperKeyViewer.KeyViewer
         public Color[] PerKeyText;
         public Color[] PerKeyTextClicked;
         public Color[] PerKeyRainColor;
+        public Color[] PerKeyGhostRainColor;
 
         public ProfileData()
         {
@@ -245,6 +246,7 @@ namespace JipperKeyViewer.KeyViewer
             PerKeyText = SafeEnsure(PerKeyText, n, KeyViewer.Text);
             PerKeyTextClicked = SafeEnsure(PerKeyTextClicked, n, KeyViewer.TextClicked);
             PerKeyRainColor = SafeEnsure(PerKeyRainColor, n, KeyViewer.RainColor);
+            PerKeyGhostRainColor = SafeEnsure(PerKeyGhostRainColor, n, KeyViewer.GhostRainColorDefault);
         }
 
         private static Color[] SafeEnsure(Color[] arr, int len, Color fill)
@@ -268,6 +270,7 @@ namespace JipperKeyViewer.KeyViewer
             var oldText = PerKeyText;
             var oldTextClicked = PerKeyTextClicked;
             var oldRain = PerKeyRainColor;
+            var oldGhostRain = PerKeyGhostRainColor;
 
             PerKeyBackground = new Color[n];
             PerKeyBackgroundClicked = new Color[n];
@@ -276,6 +279,7 @@ namespace JipperKeyViewer.KeyViewer
             PerKeyText = new Color[n];
             PerKeyTextClicked = new Color[n];
             PerKeyRainColor = new Color[n];
+            PerKeyGhostRainColor = new Color[n];
 
             for (int i = 0; i < n; i++)
             {
@@ -304,6 +308,8 @@ namespace JipperKeyViewer.KeyViewer
                     else if (i < KeyViewer.MaxKeySlots) PerKeyRainColor[i] = KeyViewer.RainColor;
                     else PerKeyRainColor[i] = KeyViewer.RainColor;
                 }
+                PerKeyGhostRainColor[i] = oldGhostRain != null && i < oldGhostRain.Length
+                    ? oldGhostRain[i] : KeyViewer.GhostRainColorDefault;
             }
         }
     }

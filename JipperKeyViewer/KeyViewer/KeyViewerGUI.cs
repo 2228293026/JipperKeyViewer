@@ -658,7 +658,7 @@ namespace JipperKeyViewer.KeyViewer
         private static int[] PerKeyTypeOrder(int s) => s >= MaxKeySlots
             ? new int[] { 0, 2, 4 }
             : s >= FootKeyBase ? new int[] { 0, 1, 2, 3, 4, 5 }
-            : new int[] { 0, 1, 2, 3, 4, 5, 6 };
+            : new int[] { 0, 1, 2, 3, 4, 5, 6, 7 };
 
         private bool DrawColorFoldout(int t, string name)
         {
@@ -670,23 +670,24 @@ namespace JipperKeyViewer.KeyViewer
         {
             GUILayout.Space(5);
             GUILayout.Label("Key " + s + " (" + PerKeyLabel(s) + ")");
-            // Foot keys (s >= 20) intentionally skip rain color; PerKeyTypeOrder excludes type 6 for them
+            // Foot keys skip rain color types (6,7); PerKeyTypeOrder excludes them
             string rainKey = s < 8 ? "color_rain1" : s < 16 ? "color_rain2" : s < FootKeyBase ? "color_rain3" : "";
 
             string[] typeNames = {
                 I18n.Tr("color_bg"), I18n.Tr("color_bg_clicked"),
                 I18n.Tr("color_outline"), I18n.Tr("color_outline_clicked"),
                 I18n.Tr("color_text"), I18n.Tr("color_text_clicked"),
-                I18n.Tr(rainKey) + " (" + s + ")"
+                I18n.Tr(rainKey), "Ghost " + I18n.Tr(rainKey)
             };
             Color[] values = {
                 Settings.Data.PerKeyBackground[s], Settings.Data.PerKeyBackgroundClicked[s],
                 Settings.Data.PerKeyOutline[s], Settings.Data.PerKeyOutlineClicked[s],
                 Settings.Data.PerKeyText[s], Settings.Data.PerKeyTextClicked[s],
-                Settings.Data.PerKeyRainColor[s]
+                Settings.Data.PerKeyRainColor[s], Settings.Data.PerKeyGhostRainColor[s]
             };
             Color[] defaults = {
-                Background, BackgroundClicked, Outline, OutlineClicked, Text, TextClicked, RainColor
+                Background, BackgroundClicked, Outline, OutlineClicked, Text, TextClicked,
+                RainColor, GhostRainColorDefault
             };
 
             int[] typeOrder = PerKeyTypeOrder(s);
@@ -724,6 +725,7 @@ namespace JipperKeyViewer.KeyViewer
                 case 4: Settings.Data.PerKeyText[s] = color; break;
                 case 5: Settings.Data.PerKeyTextClicked[s] = color; break;
                 case 6: Settings.Data.PerKeyRainColor[s] = color; break;
+                case 7: Settings.Data.PerKeyGhostRainColor[s] = color; break;
             }
         }
 

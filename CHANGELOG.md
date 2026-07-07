@@ -1,3 +1,27 @@
+## v1.6.4
+
+### 🚀 Features
+- **Key Font Size**: New `KeyFontSize` slider (8–72) replaces hardcoded `fontSizeMax=20`. Adjust key label text size live — fixes Tab (⇥) and Space (␣) rendering too small without `<size>` tag hacks.
+- **Key Press Animation**: Keys shrink smoothly on press, return on release (80ms lerp coroutine). Toggle `EnablePressAnimation`, adjust `PressAnimationScale` (0.5–0.95), and optionally `EnablePressAnimationOnRain` so rain drops animate together. Visuals wrapper isolates scaling from rain containers.
+- **Per-Key Ghost Rain Color**: New `PerKeyGhostRainColor` array with dedicated color picker in per-key color editor — set each key's ghost rain color independently from normal rain.
+
+### 🐛 Bug Fixes
+- **14K back row alignment**: Corrected to match "16K cut off outermost columns" — `BackSequence14={13,9,8,10,11,12}` with keys centered at columns 1–6 (x=54–324). Per-key counts stay at consistent screen positions when switching between layouts.
+- **Rain container no-sharing**: Each key keeps its own RainLine; `ShareRainContainer` now only adjusts X offset and width for front-column alignment instead of destroying/redirecting. Eliminates Z-order issues between rows without Canvas sorting hacks.
+- **Canvas.sortingOrder removed**: `FixRainContainerSortOrder()` removed — caused rain containers to override parent-key layering. GraphicRaycaster also removed from RainLine (unnecessary).
+- **RainGraphic shadow gradient**: Shadow quad changed from solid-color `AddQuad` to `DrawRainQuad` — follows the top-edge gradient fade along with main rain and outline.
+- **24K back sequence**: Corrected `BackSequence24` to match row 2/row 3 layout order.
+- **AutoAssignRainbowColors**: Refactored to assign colors per-layout key count (+ foot keys + KPS/Total) instead of sequential index.
+- **Animation null-guard**: Added `if (animTarget == null) yield break;` in coroutine to prevent NRE on destroyed keys.
+- **NRE on load**: Color array initialization uses `SafeEnsure` helper; `InitPerKeyColors` rain color loop uses `footBase`.
+
+### 🧹 Refactor
+- **FootKeyBase fixed to 24**: Removed conditional (was `Key24 ? 24 : 20`). V3→V4 migration shifts foot key data from indices 20 → 24 for all profiles.
+- **Image-based rain shadow/outline**: Added `shadowImage`/`outlineImage` child objects on Rain with `SetupShadow`/`SetupOutline` methods. Gradient texture synced to all three images.
+- **EnsureColorArray/SafeEnsure**: Unified helper replaces per-field null checks for color arrays.
+- **PerKeyTypeOrder extended**: Includes type 7 (ghost rain color) for main keys.
+- **Settings.Version bumped**: 3 → 4 for foot base migration.
+
 ## v1.6.3
 
 ### 🚀 Features

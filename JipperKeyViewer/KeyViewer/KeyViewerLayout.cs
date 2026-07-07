@@ -190,12 +190,12 @@ namespace JipperKeyViewer.KeyViewer
                     frontY = 320, bottomY = 205,
                     extras = new ExtraSlot[]
                     {
-                        new() { index = 9, x = 54, y = 266, w = 50, rainRow = 1 },
-                        new() { index = 8, x = 108, y = 266, w = 50, rainRow = 1 },
-                        new() { index = 10, x = 162, y = 266, w = 50, rainRow = 1 },
-                        new() { index = 11, x = 216, y = 266, w = 50, rainRow = 1 },
-                        new() { index = 12, x = 270, y = 266, w = 50, rainRow = 1 },
-                        new() { index = 13, x = 324, y = 266, w = 50, rainRow = 1 },
+                        new() { index = 13, x = 54, y = 266, w = 50, rainRow = 1 },
+                        new() { index = 9, x = 108, y = 266, w = 50, rainRow = 1 },
+                        new() { index = 8, x = 162, y = 266, w = 50, rainRow = 1 },
+                        new() { index = 10, x = 216, y = 266, w = 50, rainRow = 1 },
+                        new() { index = 11, x = 270, y = 266, w = 50, rainRow = 1 },
+                        new() { index = 12, x = 324, y = 266, w = 50, rainRow = 1 },
                         new() { index = -1, x = 0, y = 220, w = 212, rainRow = -1, slim = true },
                         new() { index = -2, x = 216, y = 220, w = 212, rainRow = -1, slim = true },
                     }
@@ -243,20 +243,20 @@ namespace JipperKeyViewer.KeyViewer
                     frontY = 375, bottomY = 205,
                     extras = new ExtraSlot[]
                     {
-                        new() { index = 8, x = 0, y = 321, w = 50, rainRow = 1 },
-                        new() { index = 9, x = 54, y = 321, w = 50, rainRow = 1 },
-                        new() { index = 10, x = 108, y = 321, w = 50, rainRow = 1 },
-                        new() { index = 11, x = 162, y = 321, w = 50, rainRow = 1 },
-                        new() { index = 12, x = 216, y = 321, w = 50, rainRow = 1 },
-                        new() { index = 13, x = 270, y = 321, w = 50, rainRow = 1 },
+                        new() { index = 12, x = 0, y = 321, w = 50, rainRow = 1 },
+                        new() { index = 13, x = 54, y = 321, w = 50, rainRow = 1 },
+                        new() { index = 9, x = 108, y = 321, w = 50, rainRow = 1 },
+                        new() { index = 8, x = 162, y = 321, w = 50, rainRow = 1 },
+                        new() { index = 10, x = 216, y = 321, w = 50, rainRow = 1 },
+                        new() { index = 11, x = 270, y = 321, w = 50, rainRow = 1 },
                         new() { index = 14, x = 324, y = 321, w = 50, rainRow = 1 },
                         new() { index = 15, x = 378, y = 321, w = 50, rainRow = 1 },
-                        new() { index = 16, x = 0, y = 267, w = 50, rainRow = 3 },
-                        new() { index = 17, x = 54, y = 267, w = 50, rainRow = 3 },
+                        new() { index = 17, x = 0, y = 267, w = 50, rainRow = 3 },
+                        new() { index = 16, x = 54, y = 267, w = 50, rainRow = 3 },
                         new() { index = 18, x = 108, y = 267, w = 50, rainRow = 3 },
                         new() { index = 19, x = 162, y = 267, w = 50, rainRow = 3 },
-                        new() { index = 20, x = 216, y = 267, w = 50, rainRow = 3 },
-                        new() { index = 21, x = 270, y = 267, w = 50, rainRow = 3 },
+                        new() { index = 21, x = 216, y = 267, w = 50, rainRow = 3 },
+                        new() { index = 20, x = 270, y = 267, w = 50, rainRow = 3 },
                         new() { index = 22, x = 324, y = 267, w = 50, rainRow = 3 },
                         new() { index = 23, x = 378, y = 267, w = 50, rainRow = 3 },
                         new() { index = -1, x = 0, y = 221, w = 212, rainRow = -1, slim = true },
@@ -715,10 +715,14 @@ namespace JipperKeyViewer.KeyViewer
 
         private static int FootKeySize(FootKeyviewerStyle style) => style switch
         {
-            FootKeyviewerStyle.Key2 => 2,   FootKeyviewerStyle.Key4 => 4,
-            FootKeyviewerStyle.Key6 => 6,   FootKeyviewerStyle.Key8 => 8,
-            FootKeyviewerStyle.Key10 => 10, FootKeyviewerStyle.Key12 => 12,
-            FootKeyviewerStyle.Key14 => 14, FootKeyviewerStyle.Key16 => 16,
+            FootKeyviewerStyle.Key2 => 2,
+            FootKeyviewerStyle.Key4 => 4,
+            FootKeyviewerStyle.Key6 => 6,
+            FootKeyviewerStyle.Key8 => 8,
+            FootKeyviewerStyle.Key10 => 10,
+            FootKeyviewerStyle.Key12 => 12,
+            FootKeyviewerStyle.Key14 => 14,
+            FootKeyviewerStyle.Key16 => 16,
             _ => 0
         };
 
@@ -926,7 +930,7 @@ namespace JipperKeyViewer.KeyViewer
             if (Keys != null)
             {
                 rainSystem.ClearActiveDrops(Keys);
-                for (int i = 0; i < Math.Max(FootKeyBase, 20); i++)
+                for (int i = 0; i < FootKeyBase; i++)
                 {
                     if (Keys[i] != null && Keys[i].gameObject != null)
                         Object.Destroy(Keys[i].gameObject);
@@ -1121,13 +1125,24 @@ namespace JipperKeyViewer.KeyViewer
 
         public void AutoAssignRainbowColors()
         {
-            int n = MaxKeySlots + 2;
-            Settings.Data.EnablePerKeyColors = true;
-            for (int i = 0; i < n; i++)
+            int mainCount = Settings.Data.KeyViewerStyle switch
             {
-                float hue = i * 0.618033988f;
+                KeyviewerStyle.Key8 => 8,
+                KeyviewerStyle.Key10 => 10,
+                KeyviewerStyle.Key12 => 12,
+                KeyviewerStyle.Key14 => 14,
+                KeyviewerStyle.Key16 => 16,
+                KeyviewerStyle.Key20 => 20,
+                KeyviewerStyle.Key24 => 24,
+                _ => 16
+            };
+            int footCount = FootKeySize(Settings.Data.FootKeyViewerStyle);
+            Settings.Data.EnablePerKeyColors = true;
+            int slot = 0;
+            void AssignSlot(int i)
+            {
+                float hue = slot * 0.618033988f;
                 hue -= Mathf.Floor(hue);
-                // manual HSV to RGB
                 float h = hue * 6f;
                 int sector = (int)h;
                 float f = h - sector;
@@ -1153,7 +1168,12 @@ namespace JipperKeyViewer.KeyViewer
                 Settings.Data.PerKeyText[i] = new Color(bright, bright, bright);
                 Settings.Data.PerKeyTextClicked[i] = new Color(1f - bright, 1f - bright, 1f - bright);
                 Settings.Data.PerKeyRainColor[i] = baseColor;
+                slot++;
             }
+            for (int i = 0; i < mainCount; i++) AssignSlot(i);
+            for (int i = 0; i < footCount; i++) AssignSlot(FootKeyBase + i);
+            AssignSlot(MaxKeySlots);
+            AssignSlot(MaxKeySlots + 1);
             ResetKeyViewer();
             ResetFootKeyViewer();
             SaveSettings();

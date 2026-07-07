@@ -155,14 +155,34 @@ namespace JipperKeyViewer.KeyViewer
         {
             return s switch
             {
-                "Plus" => "+", "Minus" => "-", "Multiply" => "*", "Divide" => "/",
-                "Enter" => "\u21B5", "Equals" => "=", "Period" => ".", "Return" => "\u21B5",
-                "None" => " ", "Tab" => "\u21E5", "Backslash" => "\\", "Backspace" => "Back",
-                "Slash" => "/", "LBracket" => "[", "RBracket" => "]", "Semicolon" => ";",
-                "Comma" => ",", "Quote" => "'", "UpArrow" => "\u2191", "DownArrow" => "\u2193",
-                "LArrow" => "\u2190", "RArrow" => "\u2192", "Space" => "\u2423",
-                "BackQuote" => "`", "PageDown" => "Pg\u2193", "PageUp" => "Pg\u2191",
-                "CapsLock" => "\u21EA", "Insert" => "Ins",
+                "Plus" => "+",
+                "Minus" => "-",
+                "Multiply" => "*",
+                "Divide" => "/",
+                "Enter" => "\u21B5",
+                "Equals" => "=",
+                "Period" => ".",
+                "Return" => "\u21B5",
+                "None" => " ",
+                "Tab" => "\u21E5",
+                "Backslash" => "\\",
+                "Backspace" => "Back",
+                "Slash" => "/",
+                "LBracket" => "[",
+                "RBracket" => "]",
+                "Semicolon" => ";",
+                "Comma" => ",",
+                "Quote" => "'",
+                "UpArrow" => "\u2191",
+                "DownArrow" => "\u2193",
+                "LArrow" => "\u2190",
+                "RArrow" => "\u2192",
+                "Space" => "\u2423",
+                "BackQuote" => "`",
+                "PageDown" => "Pg\u2193",
+                "PageUp" => "Pg\u2191",
+                "CapsLock" => "\u21EA",
+                "Insert" => "Ins",
                 _ => s
             };
         }
@@ -384,6 +404,7 @@ namespace JipperKeyViewer.KeyViewer
             float elapsed = 0f;
             while (elapsed < duration)
             {
+                if (animTarget == null) yield break;
                 elapsed += Time.unscaledDeltaTime;
                 float p = Mathf.Min(1f, elapsed / duration);
                 float s = Mathf.Lerp(startS, target, p);
@@ -392,6 +413,7 @@ namespace JipperKeyViewer.KeyViewer
                     (animTarget as RectTransform).anchoredPosition = origPos + new Vector2(width * (startS - s) * 0.5f, 0);
                 yield return null;
             }
+            if (animTarget == null) yield break;
             animTarget.localScale = new Vector3(target, target, 1);
             if (affectRain)
                 (animTarget as RectTransform).anchoredPosition = origPos + new Vector2(width * (startS - target) * 0.5f, 0);

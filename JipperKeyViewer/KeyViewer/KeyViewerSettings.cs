@@ -149,8 +149,8 @@ namespace JipperKeyViewer.KeyViewer
         public bool StandardKeyWidth = false;
 
         public float KeyFontSize = 20f;
-        public bool EnablePressAnimation = true;
-        public float PressAnimationScale = 0.85f;
+        public bool EnablePressAnimation = false;
+        public float PressAnimationScale = 0.95f;
         public bool EnablePressAnimationOnRain = false;
 
         public Color GhostRainColor = KeyViewer.GhostRainColorDefault;
@@ -237,21 +237,30 @@ namespace JipperKeyViewer.KeyViewer
             GhostKey20 = GhostKey20 ?? new KeyCode[20];
             GhostKey24 = GhostKey24 ?? new KeyCode[24];
             Count = Count ?? new int[KeyViewer.MaxKeySlots];
-            if (PerKeyBackground == null || PerKeyBackground.Length != KeyViewer.MaxKeySlots + 2 ||
-                PerKeyBackgroundClicked == null || PerKeyBackgroundClicked.Length != KeyViewer.MaxKeySlots + 2 ||
-                PerKeyOutline == null || PerKeyOutline.Length != KeyViewer.MaxKeySlots + 2 ||
-                PerKeyOutlineClicked == null || PerKeyOutlineClicked.Length != KeyViewer.MaxKeySlots + 2 ||
-                PerKeyText == null || PerKeyText.Length != KeyViewer.MaxKeySlots + 2 ||
-                PerKeyTextClicked == null || PerKeyTextClicked.Length != KeyViewer.MaxKeySlots + 2 ||
-                PerKeyRainColor == null || PerKeyRainColor.Length != KeyViewer.MaxKeySlots + 2)
-                InitPerKeyColors();
+            int n = KeyViewer.MaxKeySlots + 2;
+            PerKeyBackground = SafeEnsure(PerKeyBackground, n, KeyViewer.Background);
+            PerKeyBackgroundClicked = SafeEnsure(PerKeyBackgroundClicked, n, KeyViewer.BackgroundClicked);
+            PerKeyOutline = SafeEnsure(PerKeyOutline, n, KeyViewer.Outline);
+            PerKeyOutlineClicked = SafeEnsure(PerKeyOutlineClicked, n, KeyViewer.OutlineClicked);
+            PerKeyText = SafeEnsure(PerKeyText, n, KeyViewer.Text);
+            PerKeyTextClicked = SafeEnsure(PerKeyTextClicked, n, KeyViewer.TextClicked);
+            PerKeyRainColor = SafeEnsure(PerKeyRainColor, n, KeyViewer.RainColor);
+        }
+
+        private static Color[] SafeEnsure(Color[] arr, int len, Color fill)
+        {
+            if (arr != null && arr.Length == len) return arr;
+            Color[] r = new Color[len];
+            for (int i = 0; i < len; i++)
+                r[i] = (arr != null && i < arr.Length) ? arr[i] : fill;
+            return r;
         }
 
         public void InitPerKeyColors()
         {
             int n = KeyViewer.MaxKeySlots + 2;
+            int footBase = KeyViewer.FootKeyBase;
 
-            // 保存旧数组引用，用于迁移已有数据
             var oldBg = PerKeyBackground;
             var oldBgClicked = PerKeyBackgroundClicked;
             var oldOutline = PerKeyOutline;
@@ -267,6 +276,7 @@ namespace JipperKeyViewer.KeyViewer
             PerKeyText = new Color[n];
             PerKeyTextClicked = new Color[n];
             PerKeyRainColor = new Color[n];
+
             for (int i = 0; i < n; i++)
             {
                 PerKeyBackground[i] = oldBg != null && i < oldBg.Length ? oldBg[i] : KeyViewer.Background;
@@ -278,12 +288,22 @@ namespace JipperKeyViewer.KeyViewer
                 PerKeyText[i] = oldText != null && i < oldText.Length ? oldText[i] : KeyViewer.Text;
                 PerKeyTextClicked[i] = oldTextClicked != null && i < oldTextClicked.Length
                     ? oldTextClicked[i] : KeyViewer.TextClicked;
+            }
+
+            for (int i = 0; i < n; i++)
+            {
                 if (oldRain != null && i < oldRain.Length)
+                {
                     PerKeyRainColor[i] = oldRain[i];
-                else if (i < 8) PerKeyRainColor[i] = KeyViewer.RainColor;
-                else if (i < 16) PerKeyRainColor[i] = KeyViewer.RainColor2;
-                else if (i < KeyViewer.MaxKeySlots) PerKeyRainColor[i] = KeyViewer.RainColor3;
-                else PerKeyRainColor[i] = KeyViewer.RainColor;
+                }
+                else
+                {
+                    if (i < 8) PerKeyRainColor[i] = KeyViewer.RainColor;
+                    else if (i < 16) PerKeyRainColor[i] = KeyViewer.RainColor2;
+                    else if (i < footBase) PerKeyRainColor[i] = KeyViewer.RainColor3;
+                    else if (i < KeyViewer.MaxKeySlots) PerKeyRainColor[i] = KeyViewer.RainColor;
+                    else PerKeyRainColor[i] = KeyViewer.RainColor;
+                }
             }
         }
     }
@@ -295,7 +315,7 @@ namespace JipperKeyViewer.KeyViewer
     [System.Serializable]
     public class KeyViewerSettings
     {
-        public int Version = 3;
+        public int Version = 4;
         public string CurrentProfile = "Default";
         public string[] ProfileNames = new[] { "Default" };
         public string Language = "en";

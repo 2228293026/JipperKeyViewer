@@ -40,10 +40,10 @@ namespace JipperKeyViewer.KeyViewer
         public static readonly byte[] BackSequence8 = Array.Empty<byte>();
         public static readonly byte[] BackSequence10 = new byte[] { 8, 9 };
         public static readonly byte[] BackSequence12 = new byte[] { 9, 8, 10, 11 };
-        public static readonly byte[] BackSequence14 = new byte[] { 9, 8, 10, 11, 12, 13 };
+        public static readonly byte[] BackSequence14 = new byte[] { 13, 9, 8, 10, 11, 12 };
         public static readonly byte[] BackSequence16 = new byte[] { 12, 13, 9, 8, 10, 11, 14, 15 };
         public static readonly byte[] BackSequence20 = new byte[] { 12, 13, 9, 8, 10, 11, 14, 15, 17, 16, 18, 19 };
-        public static readonly byte[] BackSequence24 = new byte[] { 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23 };
+        public static readonly byte[] BackSequence24 = new byte[] { 12, 13, 9, 8, 10, 11, 14, 15, 17, 16, 18, 19, 21, 20, 23, 22 };
 
         /// <summary>Display names for main key layout selection grid / 主按键布局选择网格的显示名称</summary>
         static readonly string[] KeyLayoutNames = { "12K", "16K", "20K", "10K", "8K", "14K", "24K" };
@@ -51,7 +51,7 @@ namespace JipperKeyViewer.KeyViewer
         static readonly string[] FootKeyLayoutNames = { "Off", "2K", "4K", "6K", "8K", "10K", "12K", "14K", "16K" };
 
         /// <summary>Foot key starting index (20 for normal layouts, 24 for 24K) / 脚键起始索引</summary>
-        internal static int FootKeyBase => Settings.Data.KeyViewerStyle == KeyviewerStyle.Key24 ? 24 : 20;
+        internal static int FootKeyBase => 24;
         /// <summary>Whether the current layout has a third row of keys / 当前布局是否有第三排按键</summary>
         internal static bool HasThirdRow => Settings.Data.KeyViewerStyle is KeyviewerStyle.Key20 or KeyviewerStyle.Key24;
         /// <summary>Maximum key slots (keys can be at indices 0..MaxKeySlots-1) / 最大键位槽数</summary>
@@ -352,6 +352,11 @@ namespace JipperKeyViewer.KeyViewer
 
                 if (Settings.Version < 2) MigrateV1toV2();
                 if (Settings.Version < 3) MigrateV2toV3();
+                if (Settings.Version < 4)
+                {
+                    LoadProfileFromMeta();
+                    MigrateV3toV4();
+                }
                 else LoadProfileFromMeta();
 
                 EnsureSettingsArrays();
@@ -389,6 +394,125 @@ namespace JipperKeyViewer.KeyViewer
             Main.Mod.Logger.Log("Migration v2→v3 complete");
         }
 
+        private void MigrateV3toV4()
+        {
+            Main.Mod.Logger.Log("Migrating settings v3 → v4: FootKeyBase fixed to 24");
+            Settings.Version = 4;
+            var d = Settings.Data;
+            const int oldFootBase = 20;
+
+            if (d.KeyViewerStyle == KeyviewerStyle.Key24)
+            {
+                SaveCurrentProfile();
+                SaveMetaOnly();
+                return;
+            }
+
+            int footSize = d.FootKeyViewerStyle switch
+            {
+                FootKeyviewerStyle.Key2 => 2,
+                FootKeyviewerStyle.Key4 => 4,
+                FootKeyviewerStyle.Key6 => 6,
+                FootKeyviewerStyle.Key8 => 8,
+                FootKeyviewerStyle.Key10 => 10,
+                FootKeyviewerStyle.Key12 => 12,
+                FootKeyviewerStyle.Key14 => 14,
+                FootKeyviewerStyle.Key16 => 16,
+                _ => 0
+            };
+            if (footSize == 0)
+            {
+                SaveCurrentProfile();
+                SaveMetaOnly();
+                return;
+            }
+
+            static void ShiftColorArray(Color[] arr, int from, int to, int count)
+            {
+                if (arr == null) return;
+                for (int i = count - 1; i >= 0; i--)
+                {
+                    if (to + i < arr.Length)
+                        arr[to + i] = from + i < arr.Length ? arr[from + i] : default;
+                }
+                for (int i = 0; i < count && from + i < arr.Length; i++)
+                    arr[from + i] = default;
+            }
+
+            Array.Copy(d.Count, oldFootBase, d.Count, FootKeyBase, footSize);
+            Array.Clear(d.Count, oldFootBase, footSize);
+            ShiftColorArray(d.PerKeyBackground, oldFootBase, FootKeyBase, footSize);
+            ShiftColorArray(d.PerKeyBackgroundClicked, oldFootBase, FootKeyBase, footSize);
+            ShiftColorArray(d.PerKeyOutline, oldFootBase, FootKeyBase, footSize);
+            ShiftColorArray(d.PerKeyOutlineClicked, oldFootBase, FootKeyBase, footSize);
+            ShiftColorArray(d.PerKeyText, oldFootBase, FootKeyBase, footSize);
+            ShiftColorArray(d.PerKeyTextClicked, oldFootBase, FootKeyBase, footSize);
+            ShiftColorArray(d.PerKeyRainColor, oldFootBase, FootKeyBase, footSize);
+
+            SaveCurrentProfile();
+            MigrateAllProfileFiles();
+            SaveMetaOnly();
+            Main.Mod.Logger.Log("Migration v3→v4 complete");
+        }
+
+        private void MigrateAllProfileFiles()
+        {
+            if (Settings.ProfileNames == null) return;
+            string savedProfile = Settings.CurrentProfile;
+            foreach (string name in Settings.ProfileNames)
+            {
+                if (name == savedProfile) continue;
+                try
+                {
+                    string path = GetProfilePath(name);
+                    if (!File.Exists(path)) continue;
+                    string json = File.ReadAllText(path);
+                    var pd = new ProfileData();
+                    JsonUtility.FromJsonOverwrite(json, pd);
+                    if (pd.KeyViewerStyle == KeyviewerStyle.Key24) continue;
+                    int fs = pd.FootKeyViewerStyle switch
+                    {
+                        FootKeyviewerStyle.Key2 => 2,
+                        FootKeyviewerStyle.Key4 => 4,
+                        FootKeyviewerStyle.Key6 => 6,
+                        FootKeyviewerStyle.Key8 => 8,
+                        FootKeyviewerStyle.Key10 => 10,
+                        FootKeyviewerStyle.Key12 => 12,
+                        FootKeyviewerStyle.Key14 => 14,
+                        FootKeyviewerStyle.Key16 => 16,
+                        _ => 0
+                    };
+                    if (fs == 0) continue;
+                    const int oldBase = 20;
+                    Array.Copy(pd.Count, oldBase, pd.Count, FootKeyBase, fs);
+                    Array.Clear(pd.Count, oldBase, fs);
+                    static void Shift(Color[] a, int from, int to, int n)
+                    {
+                        if (a == null) return;
+                        for (int i = n - 1; i >= 0; i--)
+                        {
+                            if (to + i < a.Length)
+                                a[to + i] = from + i < a.Length ? a[from + i] : default;
+                        }
+                        for (int i = 0; i < n && from + i < a.Length; i++)
+                            a[from + i] = default;
+                    }
+                    Shift(pd.PerKeyBackground, oldBase, FootKeyBase, fs);
+                    Shift(pd.PerKeyBackgroundClicked, oldBase, FootKeyBase, fs);
+                    Shift(pd.PerKeyOutline, oldBase, FootKeyBase, fs);
+                    Shift(pd.PerKeyOutlineClicked, oldBase, FootKeyBase, fs);
+                    Shift(pd.PerKeyText, oldBase, FootKeyBase, fs);
+                    Shift(pd.PerKeyTextClicked, oldBase, FootKeyBase, fs);
+                    Shift(pd.PerKeyRainColor, oldBase, FootKeyBase, fs);
+                    File.WriteAllText(path, JsonUtility.ToJson(pd, true));
+                }
+                catch (Exception e)
+                {
+                    Main.Mod.Logger.Warning($"Failed to migrate profile '{name}': {e.Message}");
+                }
+            }
+        }
+
         private void LoadProfileFromMeta()
         {
             string profileName = !string.IsNullOrEmpty(Settings.CurrentProfile)
@@ -410,6 +534,15 @@ namespace JipperKeyViewer.KeyViewer
             }
         }
 
+        private static Color[] EnsureColorArray(Color[] arr, int n, Color fill)
+        {
+            if (arr != null && arr.Length == n) return arr;
+            Color[] result = new Color[n];
+            for (int i = 0; i < n; i++)
+                result[i] = arr != null && i < arr.Length ? arr[i] : fill;
+            return result;
+        }
+
         /// <summary>Ensure all settings arrays are initialized / 确保所有设置数组已初始化</summary>
         private static void EnsureSettingsArrays()
         {
@@ -419,6 +552,7 @@ namespace JipperKeyViewer.KeyViewer
             Settings.Data.key14Text = Settings.Data.key14Text ?? new string[14];
             Settings.Data.key16Text = Settings.Data.key16Text ?? new string[16];
             Settings.Data.key20Text = Settings.Data.key20Text ?? new string[20];
+            Settings.Data.key24Text = Settings.Data.key24Text ?? new string[24];
             Settings.Data.footkey2Text = Settings.Data.footkey2Text ?? new string[2];
             Settings.Data.footkey4Text = Settings.Data.footkey4Text ?? new string[4];
             Settings.Data.footkey6Text = Settings.Data.footkey6Text ?? new string[6];
@@ -428,14 +562,14 @@ namespace JipperKeyViewer.KeyViewer
             Settings.Data.footkey14Text = Settings.Data.footkey14Text ?? new string[14];
             Settings.Data.footkey16Text = Settings.Data.footkey16Text ?? new string[16];
             Settings.Data.Count = Settings.Data.Count ?? new int[MaxKeySlots];
-            if (Settings.Data.PerKeyBackground == null || Settings.Data.PerKeyBackground.Length != MaxKeySlots + 2 ||
-                Settings.Data.PerKeyBackgroundClicked == null || Settings.Data.PerKeyBackgroundClicked.Length != MaxKeySlots + 2 ||
-                Settings.Data.PerKeyOutline == null || Settings.Data.PerKeyOutline.Length != MaxKeySlots + 2 ||
-                Settings.Data.PerKeyOutlineClicked == null || Settings.Data.PerKeyOutlineClicked.Length != MaxKeySlots + 2 ||
-                Settings.Data.PerKeyText == null || Settings.Data.PerKeyText.Length != MaxKeySlots + 2 ||
-                Settings.Data.PerKeyTextClicked == null || Settings.Data.PerKeyTextClicked.Length != MaxKeySlots + 2 ||
-                Settings.Data.PerKeyRainColor == null || Settings.Data.PerKeyRainColor.Length != MaxKeySlots + 2)
-                Settings.Data.InitPerKeyColors();
+            int n = MaxKeySlots + 2;
+            Settings.Data.PerKeyBackground = EnsureColorArray(Settings.Data.PerKeyBackground, n, Settings.Data.Background);
+            Settings.Data.PerKeyBackgroundClicked = EnsureColorArray(Settings.Data.PerKeyBackgroundClicked, n, Settings.Data.BackgroundClicked);
+            Settings.Data.PerKeyOutline = EnsureColorArray(Settings.Data.PerKeyOutline, n, Settings.Data.Outline);
+            Settings.Data.PerKeyOutlineClicked = EnsureColorArray(Settings.Data.PerKeyOutlineClicked, n, Settings.Data.OutlineClicked);
+            Settings.Data.PerKeyText = EnsureColorArray(Settings.Data.PerKeyText, n, Settings.Data.Text);
+            Settings.Data.PerKeyTextClicked = EnsureColorArray(Settings.Data.PerKeyTextClicked, n, Settings.Data.TextClicked);
+            Settings.Data.PerKeyRainColor = EnsureColorArray(Settings.Data.PerKeyRainColor, n, Settings.Data.RainColor);
         }
 
         private void ClearKpsTimers()
@@ -505,7 +639,6 @@ namespace JipperKeyViewer.KeyViewer
             try
             {
                 string json = File.ReadAllText(profilePath);
-                Settings.Data = new ProfileData();
                 JsonUtility.FromJsonOverwrite(json, Settings.Data);
                 return true;
             }
@@ -530,6 +663,11 @@ namespace JipperKeyViewer.KeyViewer
             Settings.CurrentProfile = newName;
             EnsureSettingsArrays();
             ClearKpsTimers();
+            cachedKeyStyle = (KeyviewerStyle)(-1);
+            cachedFootStyle = (FootKeyviewerStyle)(-1);
+            cachedMainKeys = null;
+            cachedFootKeys = null;
+            cachedGhostKeys = null;
             // Rebuild overlay for new settings
             ResetKeyViewer();
             ResetFootKeyViewer();

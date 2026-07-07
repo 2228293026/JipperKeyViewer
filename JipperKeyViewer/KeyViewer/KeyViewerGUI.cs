@@ -217,8 +217,11 @@ namespace JipperKeyViewer.KeyViewer
                 GUILayout.Label(row2Label + ":");
                 GUILayout.BeginHorizontal();
                 for (int i = 0; i < backSequence.Length && i < 8; i++)
+                {
+                    if (backSequence[i] >= keyCodes.Length) continue;
                     if (GUILayout.Button(labelFunc(backSequence[i], keyCodes[backSequence[i]])))
                         onKeyClick(backSequence[i], keyCodes[backSequence[i]]);
+                }
                 GUILayout.EndHorizontal();
             }
 
@@ -464,9 +467,9 @@ namespace JipperKeyViewer.KeyViewer
                 }
             }
             GUILayout.Space(5);
-            DrawKpsTotalColors(36, I18n.Tr("kps_colors"), ref kpsColorType);
+            DrawKpsTotalColors(MaxKeySlots, I18n.Tr("kps_colors"), ref kpsColorType);
             GUILayout.Space(3);
-            DrawKpsTotalColors(37, I18n.Tr("total_colors"), ref totalColorType);
+            DrawKpsTotalColors(MaxKeySlots + 1, I18n.Tr("total_colors"), ref totalColorType);
             GUILayout.EndVertical();
         }
 
@@ -481,13 +484,13 @@ namespace JipperKeyViewer.KeyViewer
         bool[] ghostOutlineColorExpanded = new bool[3];
 
 
-        private static Color KpsTotalColor(int pi, int t) => pi == 36
+        private static Color KpsTotalColor(int pi, int t) => pi == MaxKeySlots
             ? t switch { 0 => Settings.Data.KpsBackground, 1 => Settings.Data.KpsOutline, _ => Settings.Data.KpsText }
             : t switch { 0 => Settings.Data.TotalBackground, 1 => Settings.Data.TotalOutline, _ => Settings.Data.TotalText };
 
         private static void SetKpsTotalColor(int pi, int t, Color c)
         {
-            if (pi == 36)
+            if (pi == MaxKeySlots)
             {
                 if (t == 0) Settings.Data.KpsBackground = c;
                 else if (t == 1) Settings.Data.KpsOutline = c;
@@ -620,7 +623,7 @@ namespace JipperKeyViewer.KeyViewer
                 DrawPerKeyColorEditor(perKeyColorSelected);
 
             if (GUILayout.Button(I18n.Tr("per_key_color_reset")))
-                { Settings.Data.InitPerKeyColors(); UpdateAllKeyColors(); SaveSettings(); }
+            { Settings.Data.InitPerKeyColors(); UpdateAllKeyColors(); SaveSettings(); }
             if (GUILayout.Button(I18n.Tr("auto_rainbow")))
                 AutoAssignRainbowColors();
 

@@ -44,7 +44,7 @@ namespace JipperKeyViewer.KeyViewer
             }
 
             if (added > 0)
-                Main.Mod.Logger.Log($"KeyViewer: Converted {added} traditional font(s) to TMP_FontAsset");
+                Loader.Log($"KeyViewer: Converted {added} traditional font(s) to TMP_FontAsset");
         }
 
         /// <summary>
@@ -57,11 +57,11 @@ namespace JipperKeyViewer.KeyViewer
             fontList.Clear();
             shadowMaterials.Clear();
 
-            string modPath = Path.GetDirectoryName(Main.Mod?.Path) ?? ".";
+            string modPath = Loader.ModPath;
             string assetsDir = Path.Combine(modPath, "assets");
 
             if (!Directory.Exists(assetsDir))
-                Main.Mod.Logger.Warning($"KeyViewer: assets/ directory not found at {assetsDir}, bundled resources will be missing");
+                Loader.Warning($"KeyViewer: assets/ directory not found at {assetsDir}, bundled resources will be missing");
 
             ScanGameFonts();
 
@@ -73,9 +73,9 @@ namespace JipperKeyViewer.KeyViewer
             LoadCJKFontFromFile(assetsDir, "cjkFonts-regular-normalized.otf", "CJK (Default)", fontList);
 
             if (keyBackgroundSprite == null)
-                Main.Mod.Logger.Warning("KeyViewer: KeyBackground.png not found in assets/");
+                Loader.Warning("KeyViewer: KeyBackground.png not found in assets/");
             if (keyOutlineSprite == null)
-                Main.Mod.Logger.Warning("KeyViewer: KeyOutline.png not found in assets/");
+                Loader.Warning("KeyViewer: KeyOutline.png not found in assets/");
 
             ScanCustomFonts();
             LinkFallbackFonts();
@@ -132,7 +132,7 @@ namespace JipperKeyViewer.KeyViewer
                         }
                     }
                     if (_cachedLoadImage == null)
-                        Main.Mod.Logger.Error("KeyViewer: ImageConversion.LoadImage not found via reflection, sprites will be missing");
+                        Loader.Error("KeyViewer: ImageConversion.LoadImage not found via reflection, sprites will be missing");
                 }
                 if (_cachedLoadImage != null)
                 {
@@ -147,7 +147,7 @@ namespace JipperKeyViewer.KeyViewer
             }
             catch (Exception e)
             {
-                Main.Mod.Logger.Error($"KeyViewer: Failed to load sprite from '{path}': {e.Message}");
+                Loader.Error($"KeyViewer: Failed to load sprite from '{path}': {e.Message}");
                 return null;
             }
         }
@@ -172,7 +172,7 @@ namespace JipperKeyViewer.KeyViewer
             }
             catch (Exception e)
             {
-                Main.Mod.Logger.Error($"KeyViewer: Failed to load font '{fileName}': {e.Message}");
+                Loader.Error($"KeyViewer: Failed to load font '{fileName}': {e.Message}");
             }
         }
 
@@ -196,7 +196,7 @@ namespace JipperKeyViewer.KeyViewer
             }
             catch (Exception e)
             {
-                Main.Mod.Logger.Error($"KeyViewer: Failed to load CJK font '{fileName}': {e.Message}");
+                Loader.Error($"KeyViewer: Failed to load CJK font '{fileName}': {e.Message}");
             }
         }
 
@@ -253,7 +253,7 @@ namespace JipperKeyViewer.KeyViewer
             var fontMat = GetFontMaterial(font);
             if (fontMat == null)
             {
-                Main.Mod.Logger.Error("KeyViewer: Cannot get material from font asset, skipping shadow");
+                Loader.Error("KeyViewer: Cannot get material from font asset, skipping shadow");
                 return null;
             }
             mat = new Material(fontMat);
@@ -299,7 +299,7 @@ namespace JipperKeyViewer.KeyViewer
                 string foundBy = cachedMaterialMember != null
                     ? $"{cachedMaterialMember.MemberType} \"{cachedMaterialMember.Name}\""
                     : "none";
-                Main.Mod.Logger.Log($"KeyViewer: Font material resolved via {foundBy}");
+                Loader.Log($"KeyViewer: Font material resolved via {foundBy}");
             }
             return result;
         }
@@ -329,13 +329,13 @@ namespace JipperKeyViewer.KeyViewer
         /// </summary>
         void ScanCustomFonts()
         {
-            string modPath = Path.GetDirectoryName(Main.Mod?.Path) ?? ".";
+            string modPath = Loader.ModPath;
             string customFontDir = Path.Combine(modPath, "CustomFont");
 
             if (!Directory.Exists(customFontDir))
             {
                 Directory.CreateDirectory(customFontDir);
-                Main.Mod.Logger.Log($"KeyViewer: Created CustomFont directory at {customFontDir}");
+                Loader.Log($"KeyViewer: Created CustomFont directory at {customFontDir}");
                 return;
             }
 
@@ -347,7 +347,7 @@ namespace JipperKeyViewer.KeyViewer
 
             if (fontFiles.Length == 0)
             {
-                Main.Mod.Logger.Log($"KeyViewer: No .ttf/.otf files found in CustomFont directory");
+                Loader.Log($"KeyViewer: No .ttf/.otf files found in CustomFont directory");
                 return;
             }
 
@@ -370,7 +370,7 @@ namespace JipperKeyViewer.KeyViewer
                     }
                     if (exists)
                     {
-                        Main.Mod.Logger.Log($"KeyViewer: Custom font '{fileName}' already loaded, skipping");
+                        Loader.Log($"KeyViewer: Custom font '{fileName}' already loaded, skipping");
                         continue;
                     }
 
@@ -382,12 +382,12 @@ namespace JipperKeyViewer.KeyViewer
                     }
                     else
                     {
-                        Main.Mod.Logger.Error($"KeyViewer: Failed to create TMP_FontAsset from '{fontPath}'");
+                        Loader.Error($"KeyViewer: Failed to create TMP_FontAsset from '{fontPath}'");
                     }
                 }
                 catch (Exception e)
                 {
-                    Main.Mod.Logger.Error($"KeyViewer: Failed to load custom font '{fontPath}': {e.Message}");
+                    Loader.Error($"KeyViewer: Failed to load custom font '{fontPath}': {e.Message}");
                 }
             }
         }

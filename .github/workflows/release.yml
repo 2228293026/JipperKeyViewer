@@ -41,7 +41,7 @@ jobs:
         uses: microsoft/setup-msbuild@v3
 
       - name: Restore NuGet packages
-        run: nuget restore JipperKeyViewer.slnx
+        run: dotnet restore JipperKeyViewer.slnx
 
       - name: Set version
         id: ver
@@ -65,11 +65,27 @@ jobs:
             "is_prerelease=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           }
 
-      - name: Build JipperKeyViewer (AssetBundle)
+      # ========== Build All (6 projects) ==========
+
+      - name: Build core (AssetBundle)
         run: msbuild JipperKeyViewer\JipperKeyViewer.csproj /p:Configuration=Release /p:Platform="AnyCPU" /p:Version=${{ steps.ver.outputs.version }}
 
-      - name: Build JipperKeyViewer-FileBased
+      - name: Build Loader.UMM (AssetBundle)
+        run: msbuild JipperKeyViewer.Loader.UMM\JipperKeyViewer.Loader.UMM.csproj /p:Configuration=Release /p:Platform="AnyCPU" /p:Version=${{ steps.ver.outputs.version }}
+
+      - name: Build Loader.Melon (AssetBundle)
+        run: msbuild JipperKeyViewer.Loader.Melon\JipperKeyViewer.Loader.Melon.csproj /p:Configuration=Release /p:Platform="AnyCPU" /p:Version=${{ steps.ver.outputs.version }}
+
+      - name: Build core (FileBased)
         run: msbuild JipperKeyViewer-FileBased\JipperKeyViewer-FileBased.csproj /p:Configuration=Release /p:Platform="AnyCPU" /p:Version=${{ steps.ver.outputs.version }}
+
+      - name: Build Loader.UMM (FileBased)
+        run: msbuild JipperKeyViewer-FileBased.Loader.UMM\JipperKeyViewer-FileBased.Loader.UMM.csproj /p:Configuration=Release /p:Platform="AnyCPU" /p:Version=${{ steps.ver.outputs.version }}
+
+      - name: Build Loader.Melon (FileBased)
+        run: msbuild JipperKeyViewer-FileBased.Loader.Melon\JipperKeyViewer-FileBased.Loader.Melon.csproj /p:Configuration=Release /p:Platform="AnyCPU" /p:Version=${{ steps.ver.outputs.version }}
+
+      # ========== Package AssetBundle (UMM + MelonLoader) ==========
 
       - name: Package JipperKeyViewer (AssetBundle)
         shell: pwsh
@@ -77,6 +93,8 @@ jobs:
           $dist = "dist\JipperKeyViewer"
           New-Item -ItemType Directory -Force -Path $dist\assets, $dist\lang | Out-Null
           Copy-Item JipperKeyViewer\bin\Release\JipperKeyViewer.dll $dist\
+          Copy-Item JipperKeyViewer.Loader.UMM\bin\Release\JipperKeyViewer.Loader.UMM.dll $dist\
+          Copy-Item JipperKeyViewer.Loader.Melon\bin\Release\JipperKeyViewer.Loader.Melon.dll $dist\
           Copy-Item Info.json $dist\
           $info = Get-Content $dist\Info.json -Raw | ConvertFrom-Json
           $info.Version = '${{ steps.ver.outputs.version }}'
@@ -84,12 +102,16 @@ jobs:
           Copy-Item JipperKeyViewer\lang\lang.json $dist\lang\
           Copy-Item JipperKeyViewer\assets\keyviewer_resources $dist\assets\
 
+      # ========== Package FileBased (UMM + MelonLoader) ==========
+
       - name: Package JipperKeyViewer-FileBased
         shell: pwsh
         run: |
           $dist = "dist\JipperKeyViewer-FileBased"
           New-Item -ItemType Directory -Force -Path $dist\assets, $dist\lang | Out-Null
           Copy-Item JipperKeyViewer-FileBased\bin\Release\JipperKeyViewer-FileBased.dll $dist\
+          Copy-Item JipperKeyViewer-FileBased.Loader.UMM\bin\Release\JipperKeyViewer-FileBased.Loader.UMM.dll $dist\
+          Copy-Item JipperKeyViewer-FileBased.Loader.Melon\bin\Release\JipperKeyViewer-FileBased.Loader.Melon.dll $dist\
           Copy-Item JipperKeyViewer-FileBased\Info.json $dist\
           $info = Get-Content $dist\Info.json -Raw | ConvertFrom-Json
           $info.Version = '${{ steps.ver.outputs.version }}'
@@ -155,10 +177,9 @@ jobs:
         shell: pwsh
         run: |
           $v = '${{ steps.ver.outputs.version }}'
-          # Update version in already-copied Info.json files (in dist/ only)
           $info1 = Get-Content dist\JipperKeyViewer\Info.json -Raw | ConvertFrom-Json
           $info1.Version = $v
           $info1 | ConvertTo-Json -Depth 10 | Set-Content dist\JipperKeyViewer\Info.json -Encoding utf8
-          $info2 = Get-Content dist\JipperKeyViewer-FileBased\Info.json -Raw | ConvertFrom-Json
+          $info2 = Get-Content "dist\JipperKeyViewer-FileBased\Info.json" -Raw | ConvertFrom-Json
           $info2.Version = $v
-          $info2 | ConvertTo-Json -Depth 10 | Set-Content dist\JipperKeyViewer-FileBased\Info.json -Encoding utf8
+          $info2 | ConvertTo-Json -Depth 10 | Set-Content "dist\JipperKeyViewer-FileBased\Info.json" -Encoding utf8

@@ -4,15 +4,16 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{CDC7B262-D8A5-4AA8-AD51-4433C471B6DC}</ProjectGuid>
+    <ProjectGuid>{6F9E73C3-E7D6-4F9A-1E8E-35D2E678F901}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>JipperKeyViewer</RootNamespace>
-    <AssemblyName>JipperKeyViewer</AssemblyName>
+    <RootNamespace>JipperKeyViewer.Loader</RootNamespace>
+    <AssemblyName>JipperKeyViewer-FileBased.Loader.Melon</AssemblyName>
     <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <LangVersion>latest</LangVersion>
     <Deterministic>true</Deterministic>
+    <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -32,22 +33,11 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System">
-    </Reference>
-    <Reference Include="System.Core">
-    </Reference>
-    <Reference Include="Microsoft.CSharp">
-    </Reference>
-    <Reference Include="Unity.TextMeshPro">
-      <HintPath>..\libs\Unity.TextMeshPro.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="UnityEngine">
       <HintPath>..\libs\UnityEngine.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="UnityEngine.AssetBundleModule">
-      <HintPath>..\libs\UnityEngine.AssetBundleModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
@@ -62,51 +52,23 @@
       <HintPath>..\libs\UnityEngine.InputLegacyModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="UnityEngine.JSONSerializeModule">
-      <HintPath>..\libs\UnityEngine.JSONSerializeModule.dll</HintPath>
+    <Reference Include="0Harmony">
+      <HintPath>..\libs\0Harmony.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="UnityEngine.TextCoreFontEngineModule">
-      <HintPath>..\libs\UnityEngine.TextCoreFontEngineModule.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="UnityEngine.TextCoreTextEngineModule">
-      <HintPath>..\libs\UnityEngine.TextCoreTextEngineModule.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="UnityEngine.TextRenderingModule">
-      <HintPath>..\libs\UnityEngine.TextRenderingModule.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="UnityEngine.UI">
-      <HintPath>..\libs\UnityEngine.UI.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="UnityEngine.UIModule">
-      <HintPath>..\libs\UnityEngine.UIModule.dll</HintPath>
+    <Reference Include="MelonLoader">
+      <HintPath>..\libs\MelonLoader.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="KeyViewer\ModLoader.cs" />
-    <Compile Include="KeyViewer\FootKeyviewerStyle.cs" />
-    <Compile Include="KeyViewer\I18n.cs" />
-    <Compile Include="KeyViewer\Key.cs" />
-    <Compile Include="KeyViewer\KeyViewer.cs" />
-    <Compile Include="KeyViewer\KeyViewerGUI.cs" />
-    <Compile Include="KeyViewer\KeyViewerInput.cs" />
-    <Compile Include="KeyViewer\KeyViewerLayout.cs" />
-    <Compile Include="KeyViewer\KeyViewerResources.cs" />
-    <Compile Include="KeyViewer\RainSystem.cs" />
-    <Compile Include="KeyViewer\KeyViewerSettings.cs" />
-    <Compile Include="KeyViewer\KeyviewerStyle.cs" />
-    <Compile Include="KeyViewer\Rain.cs" />
-    <Compile Include="KeyViewer\RainGraphic.cs" />
-    <Compile Include="KeyViewer\RawRain.cs" />
-    <Compile Include="Main.cs" />
+    <ProjectReference Include="..\JipperKeyViewer-FileBased\JipperKeyViewer-FileBased.csproj">
+      <Private>False</Private>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\JipperKeyViewer.Loader.Melon\MelonEntry.cs" Link="MelonEntry.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
-
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

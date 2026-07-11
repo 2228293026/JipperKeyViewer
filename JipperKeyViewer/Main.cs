@@ -1,59 +1,63 @@
-// UnityModManager entry point / UnityModManager 入口
-// Handles mod toggle, GUI, and save lifecycle / 处理 Mod 开关、GUI 和保存生命周期
+// Mod core entry point — loader-agnostic / Mod 核心入口 — 加载器无关
+// Called by loader-specific assemblies (UMM, MelonLoader) / 由加载器专属程序集调用
 using JipperKeyViewer.KeyViewer;
-using UnityModManagerNet;
 using UnityEngine;
 
 namespace JipperKeyViewer
 {
     /// <summary>
-    /// UnityModManager mod entry point / Mod 入口类
+    /// Mod core entry point / Mod 核心入口
+    /// Initialises the mod when called by a loader-specific assembly.
+    /// 由加载器专属程序集调用以初始化 Mod。
     /// </summary>
-    public class Main
+    public static class Main
     {
-        /// <summary>Reference to the mod entry for logging and path resolution / Mod 条目引用，用于日志和路径</summary>
-        public static UnityModManager.ModEntry Mod { get; private set; }
-
         /// <summary>The persistent GameObject hosting the KeyViewer component / 持有 KeyViewer 组件的持久化 GameObject</summary>
         static GameObject KeyViewerGO;
 
         /// <summary>
-        /// Called by UnityModManager to initialize the mod / 由 UnityModManager 调用以初始化 Mod
+        /// Initialise the mod with the given loader implementation / 使用指定的加载器实现初始化 Mod
+        /// Called by loader-specific entry points (UMM, MelonLoader).
+        /// 由加载器专属入口（UMM、MelonLoader）调用。
         /// </summary>
-        public static bool Load(UnityModManager.ModEntry modEntry)
+        public static void Init(IModLoader loader)
         {
-            Mod = modEntry;
-            modEntry.OnToggle = OnToggle;
-            modEntry.OnGUI = (entry) => KeyViewer.KeyViewer.instance?.DrawSettingsWindow();
-            modEntry.OnSaveGUI = (entry) => KeyViewer.KeyViewer.instance?.SaveSettings();
-            modEntry.OnHideGUI = (entry) => KeyViewer.KeyViewer.instance?.SaveSettings();
-            return true;
+            Loader.Instance = loader;
+
+            loader.OnToggle += (enabled) =>
+            {
+                if (enabled) EnableKeyViewer();
+                else DisableKeyViewer();
+            };
+
+            loader.OnGUI += () => KeyViewer.KeyViewer.instance?.DrawSettingsWindow();
+            loader.OnSaveGUI += () => KeyViewer.KeyViewer.instance?.SaveSettings();
         }
 
         /// <summary>
-        /// Called when the user toggles the mod on/off in UnityModManager / 用户在 UnityModManager 中开关 Mod 时调用
-        /// Creates or destroys the persistent KeyViewer GameObject / 创建或销毁持久的 KeyViewer GameObject
+        /// Call this after Init() if the loader doesn't fire OnToggle (e.g. MelonLoader).
+        /// Ensures the overlay is created immediately.
+        /// 在 Init() 之后调用，用于不会触发 OnToggle 的加载器（如 MelonLoader）。
+        /// 确保立即创建覆盖层。
         /// </summary>
-        private static bool OnToggle(UnityModManager.ModEntry modEntry, bool value)
+        public static void EnableNow()
         {
-            if (value)
-            {
-                if (KeyViewerGO == null)
-                {
-                    KeyViewerGO = new GameObject("JipperKeyViewer");
-                    GameObject.DontDestroyOnLoad(KeyViewerGO);
-                    KeyViewerGO.AddComponent<KeyViewer.KeyViewer>();
-                }
-            }
-            else
-            {
-                if (KeyViewerGO != null)
-                {
-                    GameObject.Destroy(KeyViewerGO);
-                    KeyViewerGO = null;
-                }
-            }
-            return true;
+            EnableKeyViewer();
+        }
+
+        internal static void EnableKeyViewer()
+        {
+            if (KeyViewerGO != null) return;
+            KeyViewerGO = new GameObject("JipperKeyViewer");
+            GameObject.DontDestroyOnLoad(KeyViewerGO);
+            KeyViewerGO.AddComponent<KeyViewer.KeyViewer>();
+        }
+
+        internal static void DisableKeyViewer()
+        {
+            if (KeyViewerGO == null) return;
+            GameObject.Destroy(KeyViewerGO);
+            KeyViewerGO = null;
         }
     }
 }

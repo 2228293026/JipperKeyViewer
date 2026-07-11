@@ -117,7 +117,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 if (configPath == null)
                 {
-                    string modPath = Path.GetDirectoryName(Main.Mod?.Path);
+                    string modPath = Loader.ModPath;
                     configPath = Path.Combine(modPath ?? Application.persistentDataPath, "config", "settings.json");
                 }
                 return configPath;
@@ -132,7 +132,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 if (profileDir == null)
                 {
-                    string modPath = Path.GetDirectoryName(Main.Mod?.Path);
+                    string modPath = Loader.ModPath;
                     profileDir = Path.Combine(modPath ?? Application.persistentDataPath, "config", "profiles");
                 }
                 return profileDir;
@@ -341,7 +341,7 @@ namespace JipperKeyViewer.KeyViewer
                 Settings = JsonUtility.FromJson<KeyViewerSettings>(json);
                 if (Settings == null)
                 {
-                    Main.Mod.Logger.Error("Failed to parse settings file (empty or corrupt), creating new settings");
+                    Loader.Error("Failed to parse settings file (empty or corrupt), creating new settings");
                     Settings = new KeyViewerSettings();
                     return;
                 }
@@ -364,7 +364,7 @@ namespace JipperKeyViewer.KeyViewer
             }
             catch (Exception e)
             {
-                Main.Mod.Logger.Error($"Failed to load settings: {e.Message}");
+                Loader.Error($"Failed to load settings: {e.Message}");
                 Settings = new KeyViewerSettings();
             }
         }
@@ -384,19 +384,19 @@ namespace JipperKeyViewer.KeyViewer
 
         private void MigrateV2toV3()
         {
-            Main.Mod.Logger.Log("Migrating settings v2 → v3: creating Default profile");
+            Loader.Log("Migrating settings v2 → v3: creating Default profile");
             Settings.Version = 3;
             Settings.CurrentProfile = "Default";
             Settings.ProfileNames = new[] { "Default" };
             EnsureSettingsArrays();
             SaveCurrentProfile();
             SaveMetaOnly();
-            Main.Mod.Logger.Log("Migration v2→v3 complete");
+            Loader.Log("Migration v2→v3 complete");
         }
 
         private void MigrateV3toV4()
         {
-            Main.Mod.Logger.Log("Migrating settings v3 → v4: FootKeyBase fixed to 24");
+            Loader.Log("Migrating settings v3 → v4: FootKeyBase fixed to 24");
             Settings.Version = 4;
             var d = Settings.Data;
             const int oldFootBase = 20;
@@ -452,7 +452,7 @@ namespace JipperKeyViewer.KeyViewer
             SaveCurrentProfile();
             MigrateAllProfileFiles();
             SaveMetaOnly();
-            Main.Mod.Logger.Log("Migration v3→v4 complete");
+            Loader.Log("Migration v3→v4 complete");
         }
 
         private void MigrateAllProfileFiles()
@@ -508,7 +508,7 @@ namespace JipperKeyViewer.KeyViewer
                 }
                 catch (Exception e)
                 {
-                    Main.Mod.Logger.Warning($"Failed to migrate profile '{name}': {e.Message}");
+                    Loader.Warning($"Failed to migrate profile '{name}': {e.Message}");
                 }
             }
         }
@@ -525,7 +525,7 @@ namespace JipperKeyViewer.KeyViewer
             }
             else
             {
-                Main.Mod.Logger.Warning($"Profile '{profileName}' not found, creating new profile");
+                Loader.Warning($"Profile '{profileName}' not found, creating new profile");
                 Settings.CurrentProfile = profileName;
                 if (Settings.ProfileNames == null || Settings.ProfileNames.Length == 0)
                     Settings.ProfileNames = new[] { profileName };
@@ -597,7 +597,7 @@ namespace JipperKeyViewer.KeyViewer
             }
             catch (Exception e)
             {
-                Main.Mod.Logger.Error($"Failed to save settings: {e.Message}");
+                Loader.Error($"Failed to save settings: {e.Message}");
             }
         }
 
@@ -644,7 +644,7 @@ namespace JipperKeyViewer.KeyViewer
             }
             catch (Exception e)
             {
-                Main.Mod.Logger.Error($"Failed to load profile '{name}': {e.Message}");
+                Loader.Error($"Failed to load profile '{name}': {e.Message}");
                 return false;
             }
         }
@@ -656,7 +656,7 @@ namespace JipperKeyViewer.KeyViewer
             SaveCurrentProfile();
             if (!LoadProfile(newName))
             {
-                Main.Mod.Logger.Warning($"Failed to switch to profile '{newName}', staying on '{oldName}'");
+                Loader.Warning($"Failed to switch to profile '{newName}', staying on '{oldName}'");
                 LoadProfile(oldName);
                 return;
             }
@@ -704,7 +704,7 @@ namespace JipperKeyViewer.KeyViewer
             }
             catch (Exception e)
             {
-                Main.Mod.Logger.Error($"Failed to delete profile file '{name}': {e.Message}");
+                Loader.Error($"Failed to delete profile file '{name}': {e.Message}");
             }
             var list = new List<string>(Settings.ProfileNames);
             list.Remove(name);
@@ -736,7 +736,7 @@ namespace JipperKeyViewer.KeyViewer
                 }
                 catch (Exception e)
                 {
-                    Main.Mod.Logger.Error($"Failed to rename profile file '{oldName}' → '{newName}': {e.Message}");
+                    Loader.Error($"Failed to rename profile file '{oldName}' → '{newName}': {e.Message}");
                 }
             }
             var list = new List<string>(Settings.ProfileNames);

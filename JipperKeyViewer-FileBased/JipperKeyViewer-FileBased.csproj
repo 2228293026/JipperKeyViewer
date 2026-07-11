@@ -32,12 +32,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System">
-    </Reference>
-    <Reference Include="System.Core">
-    </Reference>
-    <Reference Include="Microsoft.CSharp">
-    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="Unity.TextMeshPro">
       <HintPath>..\libs\Unity.TextMeshPro.dll</HintPath>
       <Private>False</Private>
@@ -82,13 +79,9 @@
       <HintPath>..\libs\UnityEngine.UIModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="UnityModManager">
-      <HintPath>..\libs\UnityModManager.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
-    <!-- Linked shared source files / 共享源文件链接 -->
+    <Compile Include="..\JipperKeyViewer\KeyViewer\ModLoader.cs" Link="KeyViewer\ModLoader.cs" />
     <Compile Include="..\JipperKeyViewer\KeyViewer\FootKeyviewerStyle.cs" Link="KeyViewer\FootKeyviewerStyle.cs" />
     <Compile Include="..\JipperKeyViewer\KeyViewer\I18n.cs" Link="KeyViewer\I18n.cs" />
     <Compile Include="..\JipperKeyViewer\KeyViewer\Key.cs" Link="KeyViewer\Key.cs" />
@@ -103,12 +96,9 @@
     <Compile Include="..\JipperKeyViewer\KeyViewer\RainGraphic.cs" Link="KeyViewer\RainGraphic.cs" />
     <Compile Include="..\JipperKeyViewer\KeyViewer\RawRain.cs" Link="KeyViewer\RawRain.cs" />
     <Compile Include="..\JipperKeyViewer\Main.cs" Link="Main.cs" />
-    <!-- File-based resource loading (replaces AssetBundle version) / 基于文件的资源加载（替代 AssetBundle 版本） -->
     <Compile Include="KeyViewer\KeyViewerResources.cs" />
-    <!-- Project-specific AssemblyInfo / 项目专属 AssemblyInfo -->
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
-
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -4,11 +4,14 @@
 [![Downloads](https://img.shields.io/github/downloads/2228293026/JipperKeyViewer/total)](https://github.com/2228293026/JipperKeyViewer/releases/latest)
 [![Build](https://github.com/2228293026/JipperKeyViewer/actions/workflows/build.yml/badge.svg)](https://github.com/2228293026/JipperKeyViewer/actions/workflows/build.yml)
 
-Keyboard overlay for **A Dance of Fire and Ice** — real-time key presses, KPS counter, and rain effects. Built with UnityModManager.
+Keyboard overlay for **A Dance of Fire and Ice** — real-time key presses, KPS counter, and rain effects.
+Supports **UnityModManager** and **MelonLoader**.
 
 一款适用于 **冰与火之舞** 的按键显示 Mod，实时显示按键按下、KPS 统计和雨滴特效。
+支持 **UnityModManager** 和 **MelonLoader**。
 
 ADOFAI 키보드 오버레이 — 실시간 키 입력, KPS 카운터, 빗줄 효과를 표시합니다.
+**UnityModManager** 및 **MelonLoader** 지원.
 
 ## Variants / 版本
 
@@ -17,10 +20,10 @@ ADOFAI 키보드 오버레이 — 실시간 키 입력, KPS 카운터, 빗줄 �
 | **JipperKeyViewer** (AssetBundle) | Standard version, loads bundled resources from `keyviewer_resources` AssetBundle |
 | **JipperKeyViewer-FileBased** | Loads sprites/fonts directly from PNG/OTF files, no AssetBundle needed |
 
-Both build from the same solution (`JipperKeyViewer.slnx`) and share the same feature set.
+Both build from the same solution (`JipperKeyViewer.slnx`) and share the same feature set. Each variant works under both UnityModManager and MelonLoader.
 
-两个版本从同一个 Solution 构建，功能完全一致。
-두 버전 모두 동일한 솔루션에서 빌드되며 동일한 기능을 제공합니다.
+两个版本从同一个 Solution 构建，功能完全一致。每个版本均支持 UMM 和 MelonLoader。
+두 버전 모두 동일한 솔루션에서 빌드되며 동일한 기능을 제공합니다. 각 버전은 UMM과 MelonLoader를 모두 지원합니다.
 
 ## Features / 功能
 
@@ -47,29 +50,28 @@ Both build from the same solution (`JipperKeyViewer.slnx`) and share the same fe
 
 ## Installation / 安装
 
-### JipperKeyViewer (AssetBundle)
+### UnityModManager
 
-1. Copy `JipperKeyViewer.dll` to `A Dance of Fire and Ice/Mods/JipperKeyViewer/`
-2. Copy `assets/` and `lang/` folders to the same directory
-3. Enable in UnityModManager / 在 UMM 中启用
+#### JipperKeyViewer (AssetBundle)
 
 ```
-Mods/JipperKeyViewer/
-├── JipperKeyViewer.dll
+UMMMods/JipperKeyViewer/
+├── JipperKeyViewer.dll                  # Core DLL
+├── JipperKeyViewer.Loader.UMM.dll       # UMM entry (referenced by Info.json)
 ├── Info.json
 ├── lang/lang.json
 └── assets/keyviewer_resources
 ```
 
-### JipperKeyViewer-FileBased
+1. Copy the folder to `UMMMods/JipperKeyViewer/`
+2. Enable in UnityModManager / 在 UMM 中启用
 
-1. Copy `JipperKeyViewer-FileBased.dll` to `A Dance of Fire and Ice/Mods/JipperKeyViewer-FileBased/`
-2. Copy `assets/` and `lang/` folders to the same directory
-3. Enable in UnityModManager / 在 UMM 中启用
+#### JipperKeyViewer-FileBased
 
 ```
-Mods/JipperKeyViewer-FileBased/
+UMMMods/JipperKeyViewer-FileBased/
 ├── JipperKeyViewer-FileBased.dll
+├── JipperKeyViewer-FileBased.Loader.UMM.dll
 ├── Info.json
 ├── lang/lang.json
 └── assets/
@@ -80,18 +82,67 @@ Mods/JipperKeyViewer-FileBased/
     └── cjkFonts-regular-normalized.otf
 ```
 
+1. Copy the folder to `UMMMods/JipperKeyViewer-FileBased/`
+2. Enable in UnityModManager / 在 UMM 中启用
+
+### MelonLoader
+
+**Default hotkey**: `F1` to open settings / 默认热键 `F1` 打开设置
+**Custom hotkey**: edit `UserData/MelonPreferences.cfg`, section `[JipperKeyViewer]` / 编辑配置文件修改热键
+
+#### JipperKeyViewer (AssetBundle)
+
+```
+Mods/JipperKeyViewer/
+├── JipperKeyViewer.dll                  # Core DLL
+├── JipperKeyViewer.Loader.Melon.dll     # MelonLoader entry (auto-detected)
+├── lang/lang.json
+└── assets/keyviewer_resources
+```
+
+1. Copy the folder to `Mods/JipperKeyViewer/`
+2. MelonLoader auto-detects on launch / MelonLoader 启动时自动加载
+
+#### JipperKeyViewer-FileBased
+
+```
+Mods/JipperKeyViewer-FileBased/
+├── JipperKeyViewer-FileBased.dll
+├── JipperKeyViewer-FileBased.Loader.Melon.dll
+├── lang/lang.json
+└── assets/
+    ├── KeyBackground.png
+    ├── KeyOutline.png
+    ├── GhostRain.png
+    ├── MAPLESTORY_OTF_BOLD.OTF
+    └── cjkFonts-regular-normalized.otf
+```
+
+1. Copy the folder to `Mods/JipperKeyViewer-FileBased/`
+2. MelonLoader auto-detects on launch / MelonLoader 启动时自动加载
+
 ## Build / 构建
 
 ### Mod DLL
 
-Open `JipperKeyViewer.slnx` in Visual Studio 2022+. Two projects in the solution:
+Open `JipperKeyViewer.slnx` in Visual Studio 2022+. Six projects in the solution:
 
 | Project | Output | Description |
 |---------|--------|------------|
-| `JipperKeyViewer` | `JipperKeyViewer.dll` | AssetBundle version |
-| `JipperKeyViewer-FileBased` | `JipperKeyViewer-FileBased.dll` | File-based version |
+| `JipperKeyViewer` | `JipperKeyViewer.dll` | Core (AssetBundle version) |
+| `JipperKeyViewer.Loader.UMM` | `JipperKeyViewer.Loader.UMM.dll` | UMM entry for AssetBundle |
+| `JipperKeyViewer.Loader.Melon` | `JipperKeyViewer.Loader.Melon.dll` | MelonLoader entry for AssetBundle |
+| `JipperKeyViewer-FileBased` | `JipperKeyViewer-FileBased.dll` | Core (File-based version) |
+| `JipperKeyViewer-FileBased.Loader.UMM` | `JipperKeyViewer-FileBased.Loader.UMM.dll` | UMM entry for FileBased |
+| `JipperKeyViewer-FileBased.Loader.Melon` | `JipperKeyViewer-FileBased.Loader.Melon.dll` | MelonLoader entry for FileBased |
 
 Reference DLLs are in `libs/`. Builds are automated via [GitHub Actions](https://github.com/2228293026/JipperKeyViewer/actions).
+
+**Architecture**: The core DLL contains all mod logic and is loader-agnostic.
+Loader DLLs are thin wrappers that bridge to UnityModManager or MelonLoader.
+
+**架构**：核心 DLL 包含所有 Mod 逻辑，与加载器无关。
+加载器 DLL 是薄桥接层，负责对接 UnityModManager 或 MelonLoader。
 
 ### AssetBundle
 
@@ -107,18 +158,19 @@ To rebuild: open in Unity → `Tools → Build KeyViewer AssetBundle` → copy `
 ## Files / 文件
 
 ```
-├── JipperKeyViewer.slnx            # Solution (2 projects)
-├── Info.json                       # Mod metadata
+├── JipperKeyViewer.slnx            # Solution (6 projects)
+├── Info.json                       # Mod metadata (UMM: AssetBundle)
 ├── Repository.json                 # UMM release info
 ├── libs/                           # Reference DLLs
 ├── .github/workflows/
 │   ├── build.yml                   # CI: build on push/PR
 │   └── release.yml                 # CD: manual/tag release
 │
-├── JipperKeyViewer/                # AssetBundle project
+├── JipperKeyViewer/                # AssetBundle core project
 │   ├── JipperKeyViewer.csproj
-│   ├── Main.cs                     # UMM entry point
+│   ├── Main.cs                     # Loader-agnostic entry point
 │   ├── KeyViewer/
+│   │   ├── ModLoader.cs            # IModLoader interface + Loader
 │   │   ├── KeyViewer.cs            # Core lifecycle & config
 │   │   ├── KeyViewerGUI.cs         # Settings window (IMGUI)
 │   │   ├── KeyViewerInput.cs       # Key detection & rebinding
@@ -136,18 +188,28 @@ To rebuild: open in Unity → `Tools → Build KeyViewer AssetBundle` → copy `
 │   ├── lang/lang.json              # Translations
 │   └── assets/keyviewer_resources  # AssetBundle (runtime)
 │
-└── JipperKeyViewer-FileBased/      # File-based project
-    ├── JipperKeyViewer-FileBased.csproj
-    ├── Info.json
-    ├── KeyViewer/
-    │   └── KeyViewerResources.cs   # File-based resource loading
-    ├── Properties/AssemblyInfo.cs
-    └── assets/                     # Loose PNG/OTF files (runtime)
+├── JipperKeyViewer.Loader.UMM/     # UMM loader (AssetBundle)
+│
+├── JipperKeyViewer.Loader.Melon/   # MelonLoader loader (AssetBundle)
+│
+├── JipperKeyViewer-FileBased/      # File-based core project
+│   ├── JipperKeyViewer-FileBased.csproj
+│   ├── Info.json
+│   ├── KeyViewer/
+│   │   └── KeyViewerResources.cs   # File-based resource loading
+│   ├── Properties/AssemblyInfo.cs
+│   └── assets/                     # Loose PNG/OTF files (runtime)
+│
+├── JipperKeyViewer-FileBased.Loader.UMM/   # UMM loader (FileBased)
+│
+└── JipperKeyViewer-FileBased.Loader.Melon/ # MelonLoader loader (FileBased)
 ```
 
 ## Settings / 设置
 
-All settings are saved to `config/settings.json` and can be edited in the UMM settings panel.
+Settings are saved to `config/settings.json` and can be edited via:
+- **UMM**: In the UnityModManager settings panel / 在 UMM 设置面板中
+- **MelonLoader**: Press default hotkey `F1` to open settings window / 按默认热键 `F1` 打开设置窗口
 
 | Category | Options |
 |----------|---------|
@@ -165,6 +227,7 @@ All settings are saved to `config/settings.json` and can be edited in the UMM se
 ## Notes / 说明
 
 - Zero Harmony patches — fully compatible with game updates / 零 Harmony 补丁，完全兼容游戏更新
+- Dual-loader support: UnityModManager **and** MelonLoader / 双加载器支持
 - Pure Canvas overlay, independent of game UI system / 纯 Canvas 覆盖层，独立于游戏 UI 系统
 - Normalized custom positioning: X/Y 0–1 adapts to any resolution and aspect ratio / 归一化坐标，自动适配任意分辨率和宽高比
 - Dynamic font scanning: supports any TMP font, deduplicated by original font name / 动态字体扫描，按原始 Font 名去重
@@ -172,6 +235,7 @@ All settings are saved to `config/settings.json` and can be edited in the UMM se
 - Delta-accumulated rain timer: smooth animation even during GPU spikes / Delta 累加雨滴计时
 - Rain fade-out on key release: configurable duration, EaseOutQuad tween / 雨滴松开淡出：可配置时长
 - CJK fallback font chain: CJK characters display correctly with any font / CJK 后备字体链：任何字体下中文字符正确显示
+- **MelonLoader**: Settings hotkey configurable in `UserData/MelonPreferences.cfg` (`[JipperKeyViewer]` section) / 设置热键可在配置文件中修改
 
 ## Acknowledgements / 鸣谢
 - Key layout and visual style references [JipperResourcePack](https://github.com/Jongye0l/JipperResourcePack).

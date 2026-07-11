@@ -4,8 +4,8 @@
   "Author": "HitMargin",
   "Version": "1.6.4",
   "Requirements": [],
-  "AssemblyName": "JipperKeyViewer.dll",
-  "EntryMethod": "JipperKeyViewer.Main.Load",
+  "AssemblyName": "JipperKeyViewer.Loader.UMM.dll",
+  "EntryMethod": "JipperKeyViewer.Loader.UmmEntry.Load",
   "HomePage": "https://github.com/2228293026/JipperKeyViewer",
   "Repository": "https://raw.githubusercontent.com/2228293026/JipperKeyViewer/refs/heads/master/Repository.json"
 }

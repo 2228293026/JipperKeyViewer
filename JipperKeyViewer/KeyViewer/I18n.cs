@@ -316,7 +316,7 @@ namespace JipperKeyViewer.KeyViewer
         {
             get
             {
-                string modPath = Path.GetDirectoryName(Main.Mod?.Path);
+                string modPath = Loader.ModPath;
                 return Path.Combine(modPath ?? ".", "lang", "lang.json");
             }
         }
@@ -329,7 +329,7 @@ namespace JipperKeyViewer.KeyViewer
             string path = FilePath;
             if (!File.Exists(path))
             {
-                Main.Mod.Logger.Log($"I18n: no lang.json at {path}, using defaults");
+                Loader.Log($"I18n: no lang.json at {path}, using defaults");
                 return;
             }
 
@@ -339,14 +339,14 @@ namespace JipperKeyViewer.KeyViewer
                 int count = ParseEntries(json);
                 if (count < 0)
                 {
-                    Main.Mod.Logger.Error($"I18n: 'entries' array not found in lang.json");
+                    Loader.Error($"I18n: 'entries' array not found in lang.json");
                     return;
                 }
-                Main.Mod.Logger.Log($"I18n: loaded {count} entries from lang.json");
+                Loader.Log($"I18n: loaded {count} entries from lang.json");
             }
             catch (Exception e)
             {
-                Main.Mod.Logger.Error($"I18n: failed to parse lang.json: {e.Message}");
+                Loader.Error($"I18n: failed to parse lang.json: {e.Message}");
             }
         }
 

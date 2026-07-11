@@ -1,0 +1,109 @@
+// MelonLoader loader entry / MelonLoader 加载器入口
+using System;
+using System.IO;
+using JipperKeyViewer;
+using MelonLoader;
+using UnityEngine;
+
+[assembly: MelonInfo(typeof(JipperKeyViewer.LoaderMelon.JipperMelonMod), "Jipper Key Viewer", "1.6.4", "HitMargin", null)]
+
+namespace JipperKeyViewer.LoaderMelon
+{
+    public class JipperMelonMod : MelonMod
+    {
+        private MelonHandler _handler;
+        private bool _initialized;
+        private bool _settingsWindowVisible;
+        private Rect _settingsRect;
+        private Vector2 _settingsScroll;
+
+        private static MelonPreferences_Category _prefs;
+        private static MelonPreferences_Entry<string> _hotkeyEntry;
+
+        public override void OnInitializeMelon()
+        {
+            _prefs = MelonPreferences.CreateCategory("JipperKeyViewer", "Jipper Key Viewer");
+            _hotkeyEntry = _prefs.CreateEntry("Hotkey", "F1",
+                "Settings Hotkey", "Key to open/close settings window");
+
+            _handler = new MelonHandler(this);
+            Main.Init(_handler);
+        }
+
+        public override void OnSceneWasInitialized(int buildIndex, string sceneName)
+        {
+            if (!_initialized)
+            {
+                _initialized = true;
+                Main.EnableNow();
+            }
+        }
+
+        public override void OnUpdate()
+        {
+            string keyName = _hotkeyEntry.Value;
+            if (string.IsNullOrEmpty(keyName)) return;
+            if (Enum.TryParse(keyName, true, out KeyCode key) && Input.GetKeyDown(key))
+                ToggleSettings();
+        }
+
+        public override void OnGUI()
+        {
+            if (!_settingsWindowVisible) return;
+
+            // Clamp window to current screen resolution / 根据当前分辨率更新窗口
+            _settingsRect.width = Mathf.Min(_settingsRect.width, Screen.width);
+            _settingsRect.height = Mathf.Min(_settingsRect.height, Screen.height);
+            _settingsRect.x = Mathf.Clamp(_settingsRect.x, 0, Screen.width - _settingsRect.width);
+            _settingsRect.y = Mathf.Clamp(_settingsRect.y, 0, Screen.height - _settingsRect.height);
+
+            _settingsRect = GUILayout.Window(999, _settingsRect, DrawSettingsWindow,
+                "Jipper Key Viewer - Settings");
+        }
+
+        private void DrawSettingsWindow(int id)
+        {
+            _settingsScroll = GUILayout.BeginScrollView(_settingsScroll);
+            var kv = KeyViewer.KeyViewer.instance;
+            if (kv != null) kv.DrawSettingsWindow();
+            GUILayout.EndScrollView();
+            GUI.DragWindow(new Rect(0, 0, 10000, 20));
+        }
+
+        public override void OnApplicationQuit()
+        {
+            KeyViewer.KeyViewer.instance?.SaveSettings();
+        }
+
+        private void ToggleSettings()
+        {
+            _settingsWindowVisible = !_settingsWindowVisible;
+            if (_settingsWindowVisible)
+                _settingsRect = new Rect(
+                    Screen.width * 0.05f, Screen.height * 0.05f,
+                    Screen.width * 0.9f,  Screen.height * 0.85f);
+        }
+    }
+
+    class MelonHandler : IModLoader
+    {
+        readonly string _modPath;
+
+        public string ModPath => _modPath;
+
+        public event Action<float> OnUpdate { add { } remove { } }
+        public event Action<bool> OnToggle { add { } remove { } }
+        public event Action OnGUI { add { } remove { } }
+        public event Action OnSaveGUI { add { } remove { } }
+
+        public MelonHandler(JipperMelonMod mod)
+        {
+            string loc = System.Reflection.Assembly.GetExecutingAssembly().Location;
+            _modPath = Path.GetDirectoryName(loc) ?? ".";
+        }
+
+        public void Log(string msg)     => MelonLogger.Msg(msg);
+        public void Warning(string msg) => MelonLogger.Warning(msg);
+        public void Error(string msg)   => MelonLogger.Error(msg);
+    }
+}

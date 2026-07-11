@@ -21,7 +21,7 @@ namespace JipperKeyViewer.KeyViewer
             if (KeyViewerObject != null || !Settings.Data.Enabled) return;
             if (!TryLoadResources())
             {
-                Main.Mod.Logger.Error("KeyViewer: Cannot load AssetBundle, please check assets/ directory");
+                Loader.Error("KeyViewer: Cannot load AssetBundle, please check assets/ directory");
                 return;
             }
             // Create ScreenSpaceOverlay canvas (independent of game UI) / 创建 ScreenSpaceOverlay 画布（独立于游戏 UI）

@@ -861,7 +861,7 @@ namespace JipperKeyViewer.KeyViewer
                 GUILayout.Space(5);
                 GUILayout.BeginVertical("box");
                 GUILayout.Label(I18n.Tr("custom_font_tip"));
-                GUILayout.Label($"CustomFont : {Path.Combine(Path.GetDirectoryName(Main.Mod?.Path) ?? ".", "CustomFont")}");
+                GUILayout.Label($"CustomFont : {Path.Combine(Loader.ModPath, "CustomFont")}");
                 GUILayout.EndVertical();
             }
 
@@ -910,7 +910,7 @@ namespace JipperKeyViewer.KeyViewer
             }
             if (GUILayout.Button(I18n.Tr("open_font_folder"), GUILayout.MinWidth(120)))
             {
-                string modPath = Path.GetDirectoryName(Main.Mod?.Path) ?? ".";
+                string modPath = Loader.ModPath;
                 string customFontDir = Path.Combine(modPath, "CustomFont");
                 if (!Directory.Exists(customFontDir)) Directory.CreateDirectory(customFontDir);
                 System.Diagnostics.Process.Start("explorer.exe", customFontDir);

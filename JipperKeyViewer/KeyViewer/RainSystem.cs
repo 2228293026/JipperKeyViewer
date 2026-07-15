@@ -12,9 +12,10 @@ namespace JipperKeyViewer.KeyViewer
         private readonly Stack<RawRain> rawRainPool = new Stack<RawRain>();
         private readonly List<int> rainActiveKeys = new List<int>();
         private readonly HashSet<int> rainActiveSet = new HashSet<int>();
+        private Transform _poolParent;
 
         private const int MAX_RAWRAIN_POOL_SIZE = 60;
-        private const int MAX_POOL_SIZE = 30;
+        private const int MAX_POOL_SIZE = 64;
 
         public Sprite GhostRainSprite { get; set; }
 
@@ -237,7 +238,16 @@ namespace JipperKeyViewer.KeyViewer
         public void ClearPool()
         {
             while (rainPool.Count > 0)
-                Object.Destroy(rainPool.Pop().gameObject);
+            {
+                var r = rainPool.Pop();
+                if (r != null)
+                    Object.Destroy(r.gameObject);
+            }
+            if (_poolParent != null)
+            {
+                Object.Destroy(_poolParent.gameObject);
+                _poolParent = null;
+            }
         }
 
         public Color GetRainColor(byte color) => RainColor(color, false);
@@ -261,12 +271,13 @@ namespace JipperKeyViewer.KeyViewer
 
         public Rain GetRainFromPool(Transform parent, Sprite sprite, bool isTiled)
         {
-            Rain r;
-            if (rainPool.Count > 0)
+            Rain r = null;
+            while (rainPool.Count > 0)
             {
                 r = rainPool.Pop();
+                if (r != null) break;
             }
-            else
+            if (r == null)
             {
                 GameObject go = new GameObject("Rain");
                 go.AddComponent<RectTransform>();
@@ -281,9 +292,14 @@ namespace JipperKeyViewer.KeyViewer
 
         public void ReturnRain(Rain r)
         {
+            if (_poolParent == null)
+            {
+                _poolParent = new GameObject("RainPool").transform;
+                _poolParent.gameObject.SetActive(false);
+            }
             r.gameObject.SetActive(false);
+            r.transform.SetParent(_poolParent, false);
             r.rawRain = null;
-            r.transform.SetParent(null);
             if (rainPool.Count < MAX_POOL_SIZE)
                 rainPool.Push(r);
             else

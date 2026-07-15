@@ -197,11 +197,12 @@ namespace JipperKeyViewer.KeyViewer
         /// </summary>
         private void ProcessMainAndFootKeysInUpdate(long elapsedMilliseconds)
         {
-            if (cachedKeyStyle != Settings.Data.KeyViewerStyle)
+            ProfileData d = Settings.Data;
+            if (cachedKeyStyle != d.KeyViewerStyle)
             {
                 cachedMainKeys = GetKeyCode();
                 cachedGhostKeys = GetGhostKeyCode();
-                cachedKeyStyle = Settings.Data.KeyViewerStyle;
+                cachedKeyStyle = d.KeyViewerStyle;
                 ghostKeyStates = new bool[cachedGhostKeys.Length];
             }
             else if (cachedGhostKeys == null)
@@ -209,18 +210,18 @@ namespace JipperKeyViewer.KeyViewer
                 cachedGhostKeys = GetGhostKeyCode();
                 ghostKeyStates = new bool[cachedGhostKeys.Length];
             }
-            if (cachedFootStyle != Settings.Data.FootKeyViewerStyle)
+            if (cachedFootStyle != d.FootKeyViewerStyle)
             {
                 cachedFootKeys = GetFootKeyCode();
-                cachedFootStyle = Settings.Data.FootKeyViewerStyle;
+                cachedFootStyle = d.FootKeyViewerStyle;
             }
             ProcessKeyGroup(cachedMainKeys, 0, elapsedMilliseconds);
             if (cachedFootKeys != null)
                 ProcessKeyGroup(cachedFootKeys, FootKeyBase, elapsedMilliseconds);
-            if (Total != null && Total.value != null && lastTotal != Settings.Data.TotalCount)
+            if (Total != null && Total.value != null && lastTotal != d.TotalCount)
             {
-                lastTotal = Settings.Data.TotalCount;
-                NumBuffer.Format(lastTotal, Settings.Data.EnableCountFormatting, out var buf, out int off, out int len);
+                lastTotal = d.TotalCount;
+                NumBuffer.Format(lastTotal, d.EnableCountFormatting, out var buf, out int off, out int len);
                 Total.value.SetText(buf, off, len);
             }
         }
@@ -231,8 +232,13 @@ namespace JipperKeyViewer.KeyViewer
         /// </summary>
         private void ProcessKeyGroup(KeyCode[] keyCodes, int baseIndex, long elapsedMs)
         {
-            int[] countArr = Settings.Data.Count;
-            bool rainEnabled = Settings.Data.EnableRainEffect;
+            ProfileData d = Settings.Data;
+            int[] countArr = d.Count;
+            bool rainEnabled = d.EnableRainEffect;
+            bool enablePressAnim = d.EnablePressAnimation;
+            float pressAnimScale = d.PressAnimationScale;
+            bool enablePerKeyKps = d.EnablePerKeyKps;
+            bool enableCountFmt = d.EnableCountFormatting;
             for (int i = 0; i < keyCodes.Length; i++)
             {
                 int idx = baseIndex + i;
@@ -242,11 +248,11 @@ namespace JipperKeyViewer.KeyViewer
                 bool current = Input.GetKey(keyCodes[i]);
                 if (current != key.isPressed)
                 {
-                    UpdateKeyColors(idx, current);
+                    UpdateKeyColors(idx, current, d);
                     key.isPressed = current;
-                    if (Settings.Data.EnablePressAnimation)
+                    if (enablePressAnim)
                     {
-                        float target = current ? Settings.Data.PressAnimationScale : 1f;
+                        float target = current ? pressAnimScale : 1f;
                         if (key.currentAnim != null)
                             StopCoroutine(key.currentAnim);
                         key.currentAnim = StartCoroutine(AnimateKeyScale(key, target, 0.08f));
@@ -254,10 +260,10 @@ namespace JipperKeyViewer.KeyViewer
                     if (current)
                     {
                         countArr[idx]++;
-                        Settings.Data.TotalCount++;
-                        if (key.value != null && !Settings.Data.EnablePerKeyKps)
+                        d.TotalCount++;
+                        if (key.value != null && !enablePerKeyKps)
                         {
-                            NumBuffer.Format(countArr[idx], Settings.Data.EnableCountFormatting, out var buf, out int off, out int len);
+                            NumBuffer.Format(countArr[idx], enableCountFmt, out var buf, out int off, out int len);
                             key.value.SetText(buf, off, len);
                         }
                         PressTimes.Enqueue(elapsedMs);
@@ -332,8 +338,9 @@ namespace JipperKeyViewer.KeyViewer
         private void ProcessGhostKeysInUpdate()
         {
             if (cachedGhostKeys == null) return;
-            bool rainEnabled = Settings.Data.EnableRainEffect;
-            bool ghostRainEnabled = Settings.Data.EnableGhostRain;
+            ProfileData d = Settings.Data;
+            bool rainEnabled = d.EnableRainEffect;
+            bool ghostRainEnabled = d.EnableGhostRain;
             if (!rainEnabled || !ghostRainEnabled) return;
 
             KeyCode[] ghosts = cachedGhostKeys;
@@ -356,22 +363,23 @@ namespace JipperKeyViewer.KeyViewer
         /// <summary>
         /// Update key visual colors based on press state / 根据按下状态更新按键视觉颜色
         /// </summary>
-        private void UpdateKeyColors(int i, bool pressed)
+        private void UpdateKeyColors(int i, bool pressed, ProfileData d = null)
         {
             if (Keys == null || i >= Keys.Length) return;
             Key key = Keys[i];
             if (key == null) return;
-            if (Settings.Data.EnablePerKeyColors && i < MaxKeySlots)
+            if (d == null) d = Settings.Data;
+            if (d.EnablePerKeyColors && i < MaxKeySlots)
             {
-                key.background.color = pressed ? Settings.Data.PerKeyBackgroundClicked[i] : Settings.Data.PerKeyBackground[i];
-                key.outline.color = pressed ? Settings.Data.PerKeyOutlineClicked[i] : Settings.Data.PerKeyOutline[i];
-                key.text.color = pressed ? Settings.Data.PerKeyTextClicked[i] : Settings.Data.PerKeyText[i];
+                key.background.color = pressed ? d.PerKeyBackgroundClicked[i] : d.PerKeyBackground[i];
+                key.outline.color = pressed ? d.PerKeyOutlineClicked[i] : d.PerKeyOutline[i];
+                key.text.color = pressed ? d.PerKeyTextClicked[i] : d.PerKeyText[i];
             }
             else
             {
-                key.background.color = pressed ? Settings.Data.BackgroundClicked : Settings.Data.Background;
-                key.outline.color = pressed ? Settings.Data.OutlineClicked : Settings.Data.Outline;
-                key.text.color = pressed ? Settings.Data.TextClicked : Settings.Data.Text;
+                key.background.color = pressed ? d.BackgroundClicked : d.Background;
+                key.outline.color = pressed ? d.OutlineClicked : d.Outline;
+                key.text.color = pressed ? d.TextClicked : d.Text;
             }
             if (key.value != null) key.value.color = key.text.color;
         }

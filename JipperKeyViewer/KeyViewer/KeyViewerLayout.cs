@@ -59,7 +59,7 @@ namespace JipperKeyViewer.KeyViewer
             PressTimes = new Queue<long>(256);
             keyPressTimes = new Queue<long>[MaxKeySlots];
             for (int i = 0; i < MaxKeySlots; i++)
-                keyPressTimes[i] = new Queue<long>(32);
+                keyPressTimes[i] = new Queue<long>(128);
             lastPerKeyKps = new int[MaxKeySlots];
             Stopwatch = System.Diagnostics.Stopwatch.StartNew();
             RefreshAllCountDisplay();

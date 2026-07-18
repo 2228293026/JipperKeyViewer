@@ -46,7 +46,7 @@ namespace JipperKeyViewer.KeyViewer
         public static readonly byte[] BackSequence24 = new byte[] { 12, 13, 9, 8, 10, 11, 14, 15, 17, 16, 18, 19, 21, 20, 23, 22 };
 
         /// <summary>Display names for main key layout selection grid / 主按键布局选择网格的显示名称</summary>
-        static readonly string[] KeyLayoutNames = { "12K", "16K", "20K", "10K", "8K", "14K", "24K" };
+        static readonly string[] KeyLayoutNames = { "12K", "16K", "20K", "10K", "8K", "14K", "24K", "108K" };
         /// <summary>Display names for foot key layout selection grid / 脚键布局选择网格的显示名称</summary>
         static readonly string[] FootKeyLayoutNames = { "Off", "2K", "4K", "6K", "8K", "10K", "12K", "14K", "16K" };
 
@@ -56,6 +56,124 @@ namespace JipperKeyViewer.KeyViewer
         internal static bool HasThirdRow => Settings.Data.KeyViewerStyle is KeyviewerStyle.Key20 or KeyviewerStyle.Key24;
         /// <summary>Maximum key slots (keys can be at indices 0..MaxKeySlots-1) / 最大键位槽数</summary>
         internal const int MaxKeySlots = 40;
+        /// <summary>Whether the current layout is the full 108-key keyboard / 当前布局是否为全键盘</summary>
+        internal static bool IsFullKeyboard => Settings.Data.KeyViewerStyle == KeyviewerStyle.Full108;
+        /// <summary>Number of main keys for the current layout (40 normal, 108 full) / 当前布局的主键数</summary>
+        private static int GetKeyCount() => IsFullKeyboard ? Settings.Data.key108.Length : MaxKeySlots;
+
+        /// <summary>Default 108-key physical keyboard bindings, indexed by Full108 array slot / 全键盘默认键位绑定，下标对应 Full108 数组槽位</summary>
+        internal static KeyCode[] BuildDefaultKey108()
+        {
+            // 105 keys, index-aligned with the slot list in InitializeFullKeyboard (function / number / QWERTY / ASDF / ZXCV / bottom / edit / arrows / numpad).
+            return new KeyCode[]
+            {
+                KeyCode.Escape,
+                KeyCode.F1,
+                KeyCode.F2,
+                KeyCode.F3,
+                KeyCode.F4,
+                KeyCode.F5,
+                KeyCode.F6,
+                KeyCode.F7,
+                KeyCode.F8,
+                KeyCode.F9,
+                KeyCode.F10,
+                KeyCode.F11,
+                KeyCode.F12,
+                KeyCode.Print,
+                KeyCode.ScrollLock,
+                KeyCode.Pause,
+                KeyCode.SysReq,
+                KeyCode.BackQuote,
+                KeyCode.Alpha1,
+                KeyCode.Alpha2,
+                KeyCode.Alpha3,
+                KeyCode.Alpha4,
+                KeyCode.Alpha5,
+                KeyCode.Alpha6,
+                KeyCode.Alpha7,
+                KeyCode.Alpha8,
+                KeyCode.Alpha9,
+                KeyCode.Alpha0,
+                KeyCode.Minus,
+                KeyCode.Equals,
+                KeyCode.Backspace,
+                KeyCode.Tab,
+                KeyCode.Q,
+                KeyCode.W,
+                KeyCode.E,
+                KeyCode.R,
+                KeyCode.T,
+                KeyCode.Y,
+                KeyCode.U,
+                KeyCode.I,
+                KeyCode.O,
+                KeyCode.P,
+                KeyCode.LeftBracket,
+                KeyCode.RightBracket,
+                KeyCode.Backslash,
+                KeyCode.CapsLock,
+                KeyCode.A,
+                KeyCode.S,
+                KeyCode.D,
+                KeyCode.F,
+                KeyCode.G,
+                KeyCode.H,
+                KeyCode.J,
+                KeyCode.K,
+                KeyCode.L,
+                KeyCode.Semicolon,
+                KeyCode.Quote,
+                KeyCode.Return,
+                KeyCode.LeftShift,
+                KeyCode.Z,
+                KeyCode.X,
+                KeyCode.C,
+                KeyCode.V,
+                KeyCode.B,
+                KeyCode.N,
+                KeyCode.M,
+                KeyCode.Comma,
+                KeyCode.Period,
+                KeyCode.Slash,
+                KeyCode.RightShift,
+                KeyCode.LeftControl,
+                KeyCode.LeftWindows,
+                KeyCode.LeftAlt,
+                KeyCode.Space,
+                KeyCode.RightAlt,
+                KeyCode.RightWindows,
+                KeyCode.Menu,
+                KeyCode.RightControl,
+                KeyCode.Insert,
+                KeyCode.Delete,
+                KeyCode.Home,
+                KeyCode.End,
+                KeyCode.PageUp,
+                KeyCode.PageDown,
+                KeyCode.UpArrow,
+                KeyCode.LeftArrow,
+                KeyCode.DownArrow,
+                KeyCode.RightArrow,
+                KeyCode.Numlock,
+                KeyCode.KeypadDivide,
+                KeyCode.KeypadMultiply,
+                KeyCode.KeypadMinus,
+                KeyCode.Keypad7,
+                KeyCode.Keypad8,
+                KeyCode.Keypad9,
+                KeyCode.KeypadPlus,
+                KeyCode.Keypad4,
+                KeyCode.Keypad5,
+                KeyCode.Keypad6,
+                KeyCode.Keypad1,
+                KeyCode.Keypad2,
+                KeyCode.Keypad3,
+                KeyCode.Keypad0,
+                KeyCode.KeypadPeriod,
+                KeyCode.KeypadEnter
+            };
+        }
 
         /// <summary>
         /// Static constructor: pre-compute AllKeyCodes (all non-Joystick keys) for input detection / 静态构造函数：预计算 AllKeyCodes（所有非摇杆按键），用于按键检测
@@ -352,12 +470,9 @@ namespace JipperKeyViewer.KeyViewer
 
                 if (Settings.Version < 2) MigrateV1toV2();
                 if (Settings.Version < 3) MigrateV2toV3();
-                if (Settings.Version < 4)
-                {
-                    LoadProfileFromMeta();
-                    MigrateV3toV4();
-                }
-                else LoadProfileFromMeta();
+                LoadProfileFromMeta();
+                if (Settings.Version < 4) MigrateV3toV4();
+                if (Settings.Version < 5) MigrateV4toV5();
 
                 EnsureSettingsArrays();
                 SyncProfilesWithDisk();
@@ -453,6 +568,17 @@ namespace JipperKeyViewer.KeyViewer
             MigrateAllProfileFiles();
             SaveMetaOnly();
             Loader.Log("Migration v3→v4 complete");
+        }
+
+        private void MigrateV4toV5()
+        {
+            // No array reshaping: a dedicated key108 array is filled lazily by EnsureSettingsArrays.
+            // Existing 8K-24K + foot-key profiles load unchanged.
+            Settings.Version = 5;
+            EnsureSettingsArrays();
+            SaveCurrentProfile();
+            SaveMetaOnly();
+            Loader.Log("Migration v4→v5 complete");
         }
 
         private void MigrateAllProfileFiles()
@@ -553,6 +679,7 @@ namespace JipperKeyViewer.KeyViewer
             Settings.Data.key16Text = Settings.Data.key16Text ?? new string[16];
             Settings.Data.key20Text = Settings.Data.key20Text ?? new string[20];
             Settings.Data.key24Text = Settings.Data.key24Text ?? new string[24];
+            Settings.Data.key108 = Settings.Data.key108 ?? BuildDefaultKey108();
             Settings.Data.footkey2Text = Settings.Data.footkey2Text ?? new string[2];
             Settings.Data.footkey4Text = Settings.Data.footkey4Text ?? new string[4];
             Settings.Data.footkey6Text = Settings.Data.footkey6Text ?? new string[6];

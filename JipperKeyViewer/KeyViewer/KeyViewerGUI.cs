@@ -1001,31 +1001,34 @@ namespace JipperKeyViewer.KeyViewer
                 SaveSettings();
             }
 
-            // Standard key width toggle: only show for layouts with mixed-width back rows
-            // 标准按键宽度开关：仅在有宽窄键混排的布局显示
-            bool hasNonStandardWidth = Settings.Data.KeyViewerStyle switch
+            if (!KeyViewer.IsFullKeyboard)
             {
-                KeyviewerStyle.Key10 or KeyviewerStyle.Key12 or KeyviewerStyle.Key20 => true,
-                _ => false
-            };
-            if (hasNonStandardWidth)
-            {
-                bool newStdWidth = GUILayout.Toggle(Settings.Data.StandardKeyWidth, I18n.Tr("standard_key_width"));
-                if (newStdWidth != Settings.Data.StandardKeyWidth)
+                // Standard key width toggle: only show for layouts with mixed-width back rows
+                // 标准按键宽度开关：仅在有宽窄键混排的布局显示
+                bool hasNonStandardWidth = Settings.Data.KeyViewerStyle switch
                 {
-                    Settings.Data.StandardKeyWidth = newStdWidth;
-                    ChangeKeyViewer();
+                    KeyviewerStyle.Key10 or KeyviewerStyle.Key12 or KeyviewerStyle.Key20 => true,
+                    _ => false
+                };
+                if (hasNonStandardWidth)
+                {
+                    bool newStdWidth = GUILayout.Toggle(Settings.Data.StandardKeyWidth, I18n.Tr("standard_key_width"));
+                    if (newStdWidth != Settings.Data.StandardKeyWidth)
+                    {
+                        Settings.Data.StandardKeyWidth = newStdWidth;
+                        ChangeKeyViewer();
+                        SaveSettings();
+                    }
+                }
+
+                GUILayout.Label(I18n.Tr("foot_keys") + ":");
+                FootKeyviewerStyle newFootStyle = (FootKeyviewerStyle)GUILayout.SelectionGrid((int)Settings.Data.FootKeyViewerStyle, FootKeyLayoutNames, 5);
+                if (newFootStyle != Settings.Data.FootKeyViewerStyle)
+                {
+                    Settings.Data.FootKeyViewerStyle = newFootStyle;
+                    ResetFootKeyViewer();
                     SaveSettings();
                 }
-            }
-
-            GUILayout.Label(I18n.Tr("foot_keys") + ":");
-            FootKeyviewerStyle newFootStyle = (FootKeyviewerStyle)GUILayout.SelectionGrid((int)Settings.Data.FootKeyViewerStyle, FootKeyLayoutNames, 5);
-            if (newFootStyle != Settings.Data.FootKeyViewerStyle)
-            {
-                Settings.Data.FootKeyViewerStyle = newFootStyle;
-                ResetFootKeyViewer();
-                SaveSettings();
             }
 
             float newSettingsSize = FloatSliderField(I18n.Tr("size"), Settings.Data.Size, 0.1f, 2f);
@@ -1440,6 +1443,7 @@ namespace JipperKeyViewer.KeyViewer
 
         private void DrawBindingSection()
         {
+            if (KeyViewer.IsFullKeyboard) return;
             KeyChangeExpanded = DrawFoldoutButton(I18n.Tr("key_change"), KeyChangeExpanded);
             if (KeyChangeExpanded)
                 DrawKeyChangeSection();
@@ -1463,6 +1467,11 @@ namespace JipperKeyViewer.KeyViewer
             if (!colorsExpanded) ColorExpanded = null;
             if (ColorExpanded == null) return;
 
+            if (KeyViewer.IsFullKeyboard)
+            {
+                DrawFullKeyboardColorSection();
+                return;
+            }
             bool pk = GUILayout.Toggle(Settings.Data.EnablePerKeyColors, I18n.Tr("per_key_colors"));
             if (pk != Settings.Data.EnablePerKeyColors)
             {
@@ -1475,6 +1484,110 @@ namespace JipperKeyViewer.KeyViewer
                 DrawPerKeyColorSettings();
             else
                 DrawColorSettings();
+        }
+
+        // ======================== Full Keyboard (108K) color section ========================
+        private void DrawFullKeyboardColorSection()
+        {
+            GUILayout.BeginVertical("box");
+
+            bool unified = GUILayout.Toggle(Settings.Data.EnableFullKeyboardUnifiedColor, I18n.Tr("fk_unified_color"));
+            if (unified != Settings.Data.EnableFullKeyboardUnifiedColor)
+            {
+                Settings.Data.EnableFullKeyboardUnifiedColor = unified;
+                UpdateAllKeyColors();
+                SaveSettings();
+            }
+
+            string[] names = {
+                I18n.Tr("color_bg"), I18n.Tr("color_bg_clicked"), I18n.Tr("color_outline"),
+                I18n.Tr("color_outline_clicked"), I18n.Tr("color_text"), I18n.Tr("color_text_clicked")
+            };
+            Color[] defaults = {
+                Background, BackgroundClicked, Outline, OutlineClicked, Text, TextClicked
+            };
+            for (int i = 0; i < 6; i++)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(15);
+                Color cur = GetFullKeyboardColor(i);
+                Color newColor = DrawColorPicker(names[i], cur, defaults[i]);
+                if (newColor != cur)
+                {
+                    SetFullKeyboardColor(i, newColor);
+                    UpdateAllKeyColors();
+                    SaveSettings();
+                }
+                GUILayout.EndHorizontal();
+            }
+
+            GUILayout.Space(5);
+            bool showKt = GUILayout.Toggle(Settings.Data.FullKeyboardShowKpsTotal, I18n.Tr("fk_show_kps_total"));
+            if (showKt != Settings.Data.FullKeyboardShowKpsTotal)
+            {
+                Settings.Data.FullKeyboardShowKpsTotal = showKt;
+                ChangeKeyViewer();
+                SaveSettings();
+            }
+            if (Settings.Data.FullKeyboardShowKpsTotal)
+            {
+                // KPS/Total colors only apply when unified color is OFF; with unified ON they follow
+                // the FullKeyboard color set above, so hide these controls to avoid dead settings.
+                // 仅当统一色关闭时 KPS/Total 单独配色才生效；开启时它们跟随上面的 FullKeyboard 配色，故隐藏入口避免无效设置。
+                if (!Settings.Data.EnableFullKeyboardUnifiedColor)
+                {
+                    DrawKpsTotalColors(MaxKeySlots, I18n.Tr("kps_colors"), ref kpsColorType);
+                    GUILayout.Space(3);
+                    DrawKpsTotalColors(MaxKeySlots + 1, I18n.Tr("total_colors"), ref totalColorType);
+                }
+                // KPS / Total custom position (normalized 0-1) / KPS/Total 自定义位置（归一化 0-1）
+                GUILayout.Space(5);
+                GUILayout.Label(I18n.Tr("fk_kps_pos") + ":");
+                Vector2 kpsPos = Settings.Data.FullKpsPosition;
+                float kpsX = FloatSliderField("X", kpsPos.x, 0f, 1f);
+                float kpsY = FloatSliderField("Y", kpsPos.y, 0f, 1f);
+                if (kpsX != kpsPos.x || kpsY != kpsPos.y)
+                {
+                    Settings.Data.FullKpsPosition = new Vector2(kpsX, kpsY);
+                    ApplyFullKeyboardKpsTotalPosition();
+                    SaveSettings();
+                }
+                GUILayout.Label(I18n.Tr("fk_total_pos") + ":");
+                Vector2 totalPos = Settings.Data.FullTotalPosition;
+                float totalX = FloatSliderField("X", totalPos.x, 0f, 1f);
+                float totalY = FloatSliderField("Y", totalPos.y, 0f, 1f);
+                if (totalX != totalPos.x || totalY != totalPos.y)
+                {
+                    Settings.Data.FullTotalPosition = new Vector2(totalX, totalY);
+                    ApplyFullKeyboardKpsTotalPosition();
+                    SaveSettings();
+                }
+            }
+
+            GUILayout.EndVertical();
+        }
+
+        private static Color GetFullKeyboardColor(int dim) => dim switch
+        {
+            0 => Settings.Data.FullKeyboardBackground,
+            1 => Settings.Data.FullKeyboardBackgroundClicked,
+            2 => Settings.Data.FullKeyboardOutline,
+            3 => Settings.Data.FullKeyboardOutlineClicked,
+            4 => Settings.Data.FullKeyboardText,
+            _ => Settings.Data.FullKeyboardTextClicked
+        };
+
+        private static void SetFullKeyboardColor(int dim, Color c)
+        {
+            switch (dim)
+            {
+                case 0: Settings.Data.FullKeyboardBackground = c; break;
+                case 1: Settings.Data.FullKeyboardBackgroundClicked = c; break;
+                case 2: Settings.Data.FullKeyboardOutline = c; break;
+                case 3: Settings.Data.FullKeyboardOutlineClicked = c; break;
+                case 4: Settings.Data.FullKeyboardText = c; break;
+                default: Settings.Data.FullKeyboardTextClicked = c; break;
+            }
         }
     }
 }

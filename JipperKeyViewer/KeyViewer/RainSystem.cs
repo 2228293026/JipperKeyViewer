@@ -344,7 +344,7 @@ namespace JipperKeyViewer.KeyViewer
 
         private void CreateRainDropForKey(int keyIndex, Key key, bool isGhost = false)
         {
-            if (key == null || key.rain == null) return;
+            if (KeyViewer.IsFullKeyboard) return;
 
             int row = keyIndex < 8 ? 1 : (keyIndex < 16 ? 2 : 3);
 
@@ -442,7 +442,7 @@ namespace JipperKeyViewer.KeyViewer
 
         private bool IsRainEnabledForKey(int keyIndex)
         {
-            if (keyIndex < 8) return settings.Data.EnableRainForRow1;
+            if (KeyViewer.IsFullKeyboard) return false;
             if (keyIndex < 16) return settings.Data.EnableRainForRow2;
             if (keyIndex < KeyViewer.FootKeyBase) return settings.Data.EnableRainForRow3;
             return false;

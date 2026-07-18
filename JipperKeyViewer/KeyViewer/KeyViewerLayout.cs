@@ -28,6 +28,7 @@ namespace JipperKeyViewer.KeyViewer
             KeyViewerObject = new GameObject("Jipper KeyViewer");
             Canvas = KeyViewerObject.AddComponent<Canvas>();
             Canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            Canvas.sortingOrder = 2;
             CanvasScaler scaler = Canvas.gameObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920, 1080);
@@ -43,11 +44,14 @@ namespace JipperKeyViewer.KeyViewer
             rectTransform.pivot = Vector2.zero;
             rectTransform.offsetMin = rectTransform.offsetMax = Vector2.zero;
             // Initialize main keys based on selected layout / 根据选中的布局初始化主按键
-            Keys = new Key[MaxKeySlots];
+            Keys = new Key[GetKeyCount()];
             InitializeMainKeys(GetLayout(Settings.Data.KeyViewerStyle));
-            // Initialize foot keys based on selected layout / 根据选中的布局初始化脚键
-            int footSize = FootKeySize(Settings.Data.FootKeyViewerStyle);
-            if (footSize > 0) InitializeFootKeyViewer(footSize);
+            // Initialize foot keys based on selected layout (full keyboard has none) / 根据选中的布局初始化脚键（全键盘无脚键）
+            if (!IsFullKeyboard)
+            {
+                int footSize = FootKeySize(Settings.Data.FootKeyViewerStyle);
+                if (footSize > 0) InitializeFootKeyViewer(footSize);
+            }
             // Apply streamer mode (hide KPS/Total)
             if (Settings.Data.StreamerMode)
             {
@@ -95,6 +99,8 @@ namespace JipperKeyViewer.KeyViewer
         {
             // Standardized layout: all back-row keys 50px, KPS/Total fill ends
             // 标准模式：后排统一50px宽，KPS/Total填满两端
+            if (style == KeyviewerStyle.Full108)
+                return default; // full keyboard ignores LayoutDesc (built from key108) / 全键盘不依赖 LayoutDesc（用 key108 构建）
             if (Settings?.Data?.StandardKeyWidth == true)
             {
                 switch (style)
@@ -269,6 +275,7 @@ namespace JipperKeyViewer.KeyViewer
 
         private void InitializeMainKeys(LayoutDesc layout)
         {
+            if (IsFullKeyboard) { InitializeFullKeyboard(); return; }
             int remove = Settings.Data.DownLocation ? 200 : 0;
             for (int i = 0; i < 8; i++)
                 Keys[i] = CreateKey(i, 54 * i, layout.frontY - remove, 50, 0);
@@ -285,7 +292,194 @@ namespace JipperKeyViewer.KeyViewer
         }
 
         /// <summary>
-        /// Redirect back-row rain containers to front-row ones for layouts with non-standard key widths.
+        /// Build the 108-key physical keyboard layout with realistic QWERTY stagger / 构建 108 键物理键盘，真实 QWERTY 错位排布
+        /// Keys are created from Settings.Data.key108 (index-aligned with BuildDefaultKey108). / 按键来自 key108 数组（下标与 BuildDefaultKey108 对齐）
+        /// No foot keys, no per-key colors, no ghost keys. / 无脚键、无每键配色、无鬼键。
+        /// </summary>
+        private void InitializeFullKeyboard()
+        {
+            const float U = 50f; // base key unit / 基准键宽
+            // y values are absolute px in the standard-layout visual band (top row ~350, bottom ~42).
+            // DownLocation shifts the whole block down. / y 为标准布局可见视觉带内的绝对像素，DownLocation 整体下移。
+            float yShift = Settings.Data.DownLocation ? 200f : 0f;
+            System.Collections.Generic.List<(int idx, double x, double y, double w)> slots = new()
+            {
+                (0, 0*U, 580, 1*U),
+                (1, 2*U, 580, 1*U),
+                (2, 3*U, 580, 1*U),
+                (3, 4*U, 580, 1*U),
+                (4, 5*U, 580, 1*U),
+                (5, 6.5*U, 580, 1*U),
+                (6, 7.5*U, 580, 1*U),
+                (7, 8.5*U, 580, 1*U),
+                (8, 9.5*U, 580, 1*U),
+                (9, 11*U, 580, 1*U),
+                (10, 12*U, 580, 1*U),
+                (11, 13*U, 580, 1*U),
+                (12, 14*U, 580, 1*U),
+                (13, 15*U, 580, 1*U),
+                (14, 16*U, 580, 1*U),
+                (15, 17*U, 580, 1*U),
+                (16, 18*U, 580, 1*U),
+                (17, 0*U, 524, 1*U),
+                (18, 1*U, 524, 1*U),
+                (19, 2*U, 524, 1*U),
+                (20, 3*U, 524, 1*U),
+                (21, 4*U, 524, 1*U),
+                (22, 5*U, 524, 1*U),
+                (23, 6*U, 524, 1*U),
+                (24, 7*U, 524, 1*U),
+                (25, 8*U, 524, 1*U),
+                (26, 9*U, 524, 1*U),
+                (27, 10*U, 524, 1*U),
+                (28, 11*U, 524, 1*U),
+                (29, 12*U, 524, 1*U),
+                (30, 13*U, 524, 2*U),
+                (31, 0*U, 468, 1.5*U),
+                (32, 1.5*U, 468, 1*U),
+                (33, 2.5*U, 468, 1*U),
+                (34, 3.5*U, 468, 1*U),
+                (35, 4.5*U, 468, 1*U),
+                (36, 5.5*U, 468, 1*U),
+                (37, 6.5*U, 468, 1*U),
+                (38, 7.5*U, 468, 1*U),
+                (39, 8.5*U, 468, 1*U),
+                (40, 9.5*U, 468, 1*U),
+                (41, 10.5*U, 468, 1*U),
+                (42, 11.5*U, 468, 1*U),
+                (43, 12.5*U, 468, 1*U),
+                (44, 13.5*U, 468, 1.5*U),
+                (45, 0*U, 412, 1.75*U),
+                (46, 1.75*U, 412, 1*U),
+                (47, 2.75*U, 412, 1*U),
+                (48, 3.75*U, 412, 1*U),
+                (49, 4.75*U, 412, 1*U),
+                (50, 5.75*U, 412, 1*U),
+                (51, 6.75*U, 412, 1*U),
+                (52, 7.75*U, 412, 1*U),
+                (53, 8.75*U, 412, 1*U),
+                (54, 9.75*U, 412, 1*U),
+                (55, 10.75*U, 412, 1*U),
+                (56, 11.75*U, 412, 1*U),
+                (57, 12.75*U, 412, 2.25*U),
+                (58, 0*U, 356, 2.25*U),
+                (59, 2.25*U, 356, 1*U),
+                (60, 3.25*U, 356, 1*U),
+                (61, 4.25*U, 356, 1*U),
+                (62, 5.25*U, 356, 1*U),
+                (63, 6.25*U, 356, 1*U),
+                (64, 7.25*U, 356, 1*U),
+                (65, 8.25*U, 356, 1*U),
+                (66, 9.25*U, 356, 1*U),
+                (67, 10.25*U, 356, 1*U),
+                (68, 11.25*U, 356, 1*U),
+                (69, 12.25*U, 356, 2.75*U),
+                (70, 0*U, 300, 1.25*U),
+                (71, 1.25*U, 300, 1.25*U),
+                (72, 2.5*U, 300, 1.25*U),
+                (73, 3.75*U, 300, 6.25*U),
+                (74, 10*U, 300, 1.25*U),
+                (75, 11.25*U, 300, 1.25*U),
+                (76, 12.5*U, 300, 1.25*U),
+                (77, 13.75*U, 300, 1.25*U),
+                (78, 19*U, 524, 1*U),
+                (79, 19*U, 468, 1*U),
+                (80, 20*U, 524, 1*U),
+                (81, 20*U, 468, 1*U),
+                (82, 21*U, 524, 1*U),
+                (83, 21*U, 468, 1*U),
+                (84, 20*U, 356, 1*U),
+                (85, 19*U, 300, 1*U),
+                (86, 20*U, 300, 1*U),
+                (87, 21*U, 300, 1*U),
+                (88, 22*U, 524, 1*U),
+                (89, 23*U, 524, 1*U),
+                (90, 24*U, 524, 1*U),
+                (91, 25*U, 524, 1*U),
+                (92, 22*U, 468, 1*U),
+                (93, 23*U, 468, 1*U),
+                (94, 24*U, 468, 1*U),
+                (95, 25*U, 468, 1*U),
+                (96, 22*U, 412, 1*U),
+                (97, 23*U, 412, 1*U),
+                (98, 24*U, 412, 1*U),
+                (99, 22*U, 356, 1*U),
+                (100, 23*U, 356, 1*U),
+                (101, 24*U, 356, 1*U),
+                (102, 22*U, 300, 2*U),
+                (103, 24*U, 300, 1*U),
+                (104, 25*U, 300, 1*U)
+            };
+
+            const float rightClusterShift = 4f * U;
+            const float rowStep = 56f; // vertical distance between key rows / 按键行间距
+            foreach (var s in slots)
+            {
+                float x = (float)s.x - (s.idx >= 78 ? rightClusterShift : 0f);
+                if (s.idx == 95 || s.idx == 104)
+                {
+                    // Numpad "+" (95) and Enter (104) are tall vertical keys, each spanning two rows so the
+                    // right column is fully filled (no gaps). / 小键盘「+」(95)与「回车」(104)为竖排高键，各跨两行，右列恰好占满无空隙。
+                    float w = 1f * U;
+                    // height = two key rows (rowStep=56) so the tall key's top/bottom exactly meet the
+                    // neighbouring keys' edges (no stray 3px gap, looks the same height as two stacked
+                    // normal keys). / 高键取两行距 56px，使其顶/底正好贴合相邻两键边缘，视觉高度与两枚普通键叠放一致。
+                    float h = rowStep + 50f;
+                    // "+" (95) sits on the 6-key (y=412) and 3-key (y=356) rows; Enter (104) sits on the
+                    // 0-key (y=300) and 3-key (y=356) rows. Center each at the midpoint of its two rows. /
+                    // 「+」以 6键/3键 中点(384) 为中心；回车以 0键/3键 中点(328) 为中心。
+                    float y = (s.idx == 95 ? (468f + 412f) : (300f + 356f)) * 0.5f;
+                    Keys[s.idx] = CreateKey(s.idx, x, y - yShift, w, -1, false, false, h);
+                }
+                else
+                {
+                    Keys[s.idx] = CreateKey(s.idx, x, (float)s.y - yShift, (float)s.w, -1, false, false);
+                }
+            }
+            // Optional KPS / Total boxes, placed at user-set normalized positions / 可选 KPS/Total，位置由用户归一化坐标决定
+            if (Settings.Data.FullKeyboardShowKpsTotal)
+            {
+                Kps = CreateKey(-1, Settings.Data.FullKpsPosition.x * CanvasWidth, Settings.Data.FullKpsPosition.y * 1080f, 150, -1, true, true);
+                Total = CreateKey(-2, Settings.Data.FullTotalPosition.x * CanvasWidth, Settings.Data.FullTotalPosition.y * 1080f, 150, -1, true, true);
+            }
+            ApplyFullKeyboardKpsTotalPosition();
+            ApplyFullKeyboardColors();
+        }
+
+        /// <summary>Apply unified colors to all 108-key layout keys / 将统一配色应用到全部 108 键</summary>
+        private void ApplyFullKeyboardColors()
+        {
+            if (Keys == null) return;
+            var d = Settings.Data;
+            bool unified = d.EnableFullKeyboardUnifiedColor;
+            Color bg = unified ? d.FullKeyboardBackground : d.Background;
+            Color bgC = unified ? d.FullKeyboardBackgroundClicked : d.BackgroundClicked;
+            Color ol = unified ? d.FullKeyboardOutline : d.Outline;
+            Color olC = unified ? d.FullKeyboardOutlineClicked : d.OutlineClicked;
+            Color tx = unified ? d.FullKeyboardText : d.Text;
+            Color txC = unified ? d.FullKeyboardTextClicked : d.TextClicked;
+            for (int i = 0; i < Keys.Length; i++)
+            {
+                if (Keys[i] == null) continue;
+                bool pressed = Keys[i].isPressed;
+                Keys[i].background.color = pressed ? bgC : bg;
+                Keys[i].outline.color = pressed ? olC : ol;
+                Keys[i].text.color = pressed ? txC : tx;
+                if (Keys[i].value != null) Keys[i].value.color = pressed ? txC : tx;
+            }
+            ApplyKpsTotalColors();
+        }
+
+        /// <summary>Apply user-set normalized positions to the KPS / Total boxes (full keyboard only) / 将用户设置的归一化位置套用到 KPS/Total 框（仅全键盘）</summary>
+        private void ApplyFullKeyboardKpsTotalPosition()
+        {
+            if (Kps != null)
+                SetKeyPosition(-1, Settings.Data.FullKpsPosition.x * CanvasWidth, Settings.Data.FullKpsPosition.y * 1080f);
+            if (Total != null)
+                SetKeyPosition(-2, Settings.Data.FullTotalPosition.x * CanvasWidth, Settings.Data.FullTotalPosition.y * 1080f);
+        }
+
+        /// <summary>Redirect back-row rain containers to front-row ones for layouts with non-standard key widths.
         /// Matches JipperResourcePack's RainPool sharing — rain drops inherit front row's X position and width,
         /// while per-row settings (color, speed, height) remain from the pressed key's row.
         /// 将非标准宽度的后排雨滴容器重指向前排按键，雨滴位置与前列对齐
@@ -397,15 +591,16 @@ namespace JipperKeyViewer.KeyViewer
         /// <param name="raining">Rain row index (-1=no rain, 0=row1, 1=row2, 3=row3) / 雨滴行索引（-1=无雨滴，0=第1排，1=第2排，3=第3排）</param>
         /// <param name="slim">Use slim style (for KPS/Total display) / 使用窄样式（用于 KPS/Total 显示）</param>
         /// <param name="count">Show press count text / 显示按下计数文本</param>
-        private Key CreateKey(int i, float x, float y, float sizeX, int raining, bool slim = false, bool count = true)
+        private Key CreateKey(int i, float x, float y, float sizeX, int raining, bool slim = false, bool count = true, float sizeY = 0f)
         {
             if (i >= 0 && i < FootKeyBase && Settings.Data.HideMainKeyCount)
                 count = false;
             GameObject obj = new("Key " + i);
             KeyViewerSettings settings = Settings;
+            float h = sizeY > 0f ? sizeY : (slim ? 30f : 50f);
             RectTransform transform = obj.AddComponent<RectTransform>();
             transform.SetParent(KeyViewerSizeObject.transform);
-            transform.sizeDelta = new Vector2(sizeX, slim ? 30 : 50);
+            transform.sizeDelta = new Vector2(sizeX, h);
             transform.anchorMin = transform.anchorMax = Vector2.zero;
             transform.pivot = new Vector2(0, 0.5f);
             transform.anchoredPosition = new Vector2(x, y);
@@ -417,14 +612,14 @@ namespace JipperKeyViewer.KeyViewer
             GameObject visuals = new("Visuals");
             RectTransform vrt = visuals.AddComponent<RectTransform>();
             vrt.SetParent(obj.transform);
-            vrt.sizeDelta = new Vector2(sizeX, slim ? 30 : 50);
+            vrt.sizeDelta = new Vector2(sizeX, h);
             vrt.anchorMin = vrt.anchorMax = new Vector2(0, 0.5f);
             vrt.pivot = new Vector2(0.5f, 0.5f);
             vrt.anchoredPosition = new Vector2(sizeX * 0.5f, 0);
             vrt.localScale = Vector3.one;
             key.visuals = visuals.transform;
-            key.background = CreateImage(visuals, "Background", sizeX, slim, keyBackgroundSprite, settings.Data.Background);
-            key.outline = CreateImage(visuals, "Outline", sizeX, slim, keyOutlineSprite, settings.Data.Outline);
+            key.background = CreateImage(visuals, "Background", sizeX, h, keyBackgroundSprite, settings.Data.Background);
+            key.outline = CreateImage(visuals, "Outline", sizeX, h, keyOutlineSprite, settings.Data.Outline);
             key.text = CreateKeyText(visuals, sizeX, slim, count, settings);
             if (count)
                 key.value = CreateCountText(visuals, sizeX, slim, settings);
@@ -434,14 +629,14 @@ namespace JipperKeyViewer.KeyViewer
             return key;
         }
 
-        private static Image CreateImage(GameObject parent, string name, float sizeX, bool slim, Sprite sprite, Color color)
+        private static Image CreateImage(GameObject parent, string name, float sizeX, float sizeY, Sprite sprite, Color color)
         {
             GameObject go = new(name);
             RectTransform rt = go.AddComponent<RectTransform>();
             rt.SetParent(parent.transform);
             rt.anchorMin = rt.anchorMax = rt.pivot = Vector2.zero;
             rt.anchoredPosition = Vector2.zero;
-            rt.sizeDelta = new Vector2(sizeX * 2, (slim ? 30 : 50) * 2);
+            rt.sizeDelta = new Vector2(sizeX * 2, sizeY * 2);
             rt.localScale = new Vector3(0.5f, 0.5f);
             Image image = go.AddComponent<Image>();
             image.color = color;
@@ -600,6 +795,7 @@ namespace JipperKeyViewer.KeyViewer
         private void ApplyKeyColors(Key key, int i, int raining)
         {
             int pi = KeyIndex(i);
+            if (IsFullKeyboard) return; // colors set by ApplyFullKeyboardColors after creation
             if (Settings.Data.EnablePerKeyColors)
             {
                 if (pi < 0) return;
@@ -641,7 +837,17 @@ namespace JipperKeyViewer.KeyViewer
                 if (key.value != null) key.value.text = FormatCount(Settings.Data.TotalCount);
                 return;
             }
-            if (i < FootKeyBase)
+            if (IsFullKeyboard)
+            {
+                // Full keyboard: text comes straight from the key code (no per-key custom text).
+                // 全键盘：文本直接来自按键代码（无每键自定义文本）。
+                KeyCode[] keyCodes = GetKeyCode();
+                if (keyCodes != null && i >= 0 && i < keyCodes.Length)
+                {
+                    key.text.text = KeyToString(keyCodes[i]);
+                }
+            }
+            else if (i < FootKeyBase)
             {
                 KeyCode[] keyCodes = GetKeyCode();
                 string[] keyTexts = GetKeyText();
@@ -834,7 +1040,7 @@ namespace JipperKeyViewer.KeyViewer
 
         private void UpdateAllKeyColors()
         {
-            if (Keys == null) return;
+            if (IsFullKeyboard) { ApplyFullKeyboardColors(); return; }
             if (Settings.Data.EnablePerKeyColors)
                 ApplyPerKeyColorsToAll();
             else
@@ -860,17 +1066,37 @@ namespace JipperKeyViewer.KeyViewer
             }
             else if (pi == Keys.Length)
             {
-                k.background.color = Settings.Data.KpsBackground;
-                k.outline.color = Settings.Data.KpsOutline;
-                k.text.color = Settings.Data.KpsText;
-                if (k.value != null) k.value.color = Settings.Data.KpsText;
+                if (IsFullKeyboard && Settings.Data.EnableFullKeyboardUnifiedColor)
+                {
+                    k.background.color = Settings.Data.FullKeyboardBackground;
+                    k.outline.color = Settings.Data.FullKeyboardOutline;
+                    k.text.color = Settings.Data.FullKeyboardText;
+                    if (k.value != null) k.value.color = Settings.Data.FullKeyboardText;
+                }
+                else
+                {
+                    k.background.color = Settings.Data.KpsBackground;
+                    k.outline.color = Settings.Data.KpsOutline;
+                    k.text.color = Settings.Data.KpsText;
+                    if (k.value != null) k.value.color = Settings.Data.KpsText;
+                }
             }
             else if (pi == Keys.Length + 1)
             {
-                k.background.color = Settings.Data.TotalBackground;
-                k.outline.color = Settings.Data.TotalOutline;
-                k.text.color = Settings.Data.TotalText;
-                if (k.value != null) k.value.color = Settings.Data.TotalText;
+                if (IsFullKeyboard && Settings.Data.EnableFullKeyboardUnifiedColor)
+                {
+                    k.background.color = Settings.Data.FullKeyboardBackground;
+                    k.outline.color = Settings.Data.FullKeyboardOutline;
+                    k.text.color = Settings.Data.FullKeyboardText;
+                    if (k.value != null) k.value.color = Settings.Data.FullKeyboardText;
+                }
+                else
+                {
+                    k.background.color = Settings.Data.TotalBackground;
+                    k.outline.color = Settings.Data.TotalOutline;
+                    k.text.color = Settings.Data.TotalText;
+                    if (k.value != null) k.value.color = Settings.Data.TotalText;
+                }
             }
         }
 
@@ -929,19 +1155,32 @@ namespace JipperKeyViewer.KeyViewer
             SelectedKey = -1;
             if (Keys != null)
             {
+                // Destroy EVERY child under the size object (main keys, foot keys, KPS/Total boxes,
+                // any leaks) so no stale key survives a layout switch. Relying on the Keys array length
+                // alone misses foot keys when switching to the full keyboard (different array size).
+                // 销毁 SizeObject 下全部子物体（主键/脚键/KPS/Total/任何残留），
+                // 不依赖数组长度——切到全键盘时数组长度变化会漏掉脚键。
                 rainSystem.ClearActiveDrops(Keys);
-                for (int i = 0; i < FootKeyBase; i++)
+                if (KeyViewerSizeObject != null)
                 {
-                    if (Keys[i] != null && Keys[i].gameObject != null)
-                        Object.Destroy(Keys[i].gameObject);
+                    var children = KeyViewerSizeObject.transform;
+                    for (int c = children.childCount - 1; c >= 0; c--)
+                        Object.Destroy(children.GetChild(c).gameObject);
                 }
-                if (Total != null && Total.gameObject != null)
-                    Object.Destroy(Total.gameObject);
-                if (Kps != null && Kps.gameObject != null)
-                    Object.Destroy(Kps.gameObject);
+                Total = null;
+                Kps = null;
             }
+            // Array length must match the target layout (40 standard / 105 full keyboard).
+            // 数组长度必须匹配目标布局（标准40/全键盘105）。
+            Keys = new Key[GetKeyCount()];
+            Total = null;
+            Kps = null;
             rainSystem.ClearPool();
             InitializeMainKeys(GetLayout(Settings.Data.KeyViewerStyle));
+            // Rebuild foot keys too: ResetKeyViewer now destroys every child (including foot keys)
+            // to avoid leaking them when switching to the full keyboard, so they must be recreated here.
+            // 同时重建脚键：ResetKeyViewer 现在销毁全部子物体（含脚键）以避免切到全键盘时残留，故需在此重建。
+            ResetFootKeyViewer();
             if (Settings.Data.StreamerMode)
             {
                 if (Kps != null) Kps.gameObject.SetActive(false);
@@ -957,6 +1196,7 @@ namespace JipperKeyViewer.KeyViewer
         /// </summary>
         private void ResetFootKeyViewer()
         {
+            if (IsFullKeyboard) return; // full keyboard has no foot keys / 全键盘无脚键
             SelectedKey = -1;
             if (Keys != null)
             {
@@ -1003,6 +1243,7 @@ namespace JipperKeyViewer.KeyViewer
                 KeyviewerStyle.Key20 => Settings.Data.key20,
                 KeyviewerStyle.Key24 => Settings.Data.key24,
                 KeyviewerStyle.Key10 => Settings.Data.key10,
+                KeyviewerStyle.Full108 => Settings.Data.key108,
                 _ => Settings.Data.key16
             };
         }
@@ -1040,6 +1281,7 @@ namespace JipperKeyViewer.KeyViewer
                 KeyviewerStyle.Key16 => Settings.Data.GhostKey16,
                 KeyviewerStyle.Key20 => Settings.Data.GhostKey20,
                 KeyviewerStyle.Key24 => Settings.Data.GhostKey24,
+                KeyviewerStyle.Full108 => new KeyCode[0],
                 _ => Settings.Data.GhostKey16
             };
         }
@@ -1180,3 +1422,8 @@ namespace JipperKeyViewer.KeyViewer
         }
     }
 }
+
+
+
+
+

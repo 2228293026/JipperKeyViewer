@@ -20,6 +20,8 @@ namespace JipperKeyViewer.KeyViewer
         /// <summary>14-key layout (8+6) / 14键布局（8+6）</summary>
         Key14,
         /// <summary>24-key layout (8+8+8) / 24键布局（8+8+8）</summary>
-        Key24
+        Key24,
+        /// <summary>Full 108-key physical keyboard (QWERTY staggered) / 完整 108 键物理键盘（QWERTY 错位列布）</summary>
+        Full108
     }
 }

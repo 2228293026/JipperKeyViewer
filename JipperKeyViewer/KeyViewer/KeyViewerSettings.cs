@@ -49,6 +49,8 @@ namespace JipperKeyViewer.KeyViewer
         };
         public string[] key24Text = new string[24];
 
+        public KeyCode[] key108 = KeyViewer.BuildDefaultKey108();
+
         public KeyCode[] footkey2 = { KeyCode.F8, KeyCode.F3 };
         public KeyCode[] footkey4 = { KeyCode.F8, KeyCode.F3, KeyCode.F7, KeyCode.F2 };
         public KeyCode[] footkey6 = { KeyCode.F8, KeyCode.F3, KeyCode.F7, KeyCode.F2, KeyCode.F6, KeyCode.F1 };
@@ -204,6 +206,21 @@ namespace JipperKeyViewer.KeyViewer
         public float GhostRainOutlineWidthRow3 = 2f;
 
         public bool EnablePerKeyColors = false;
+
+        // ===== Full 108-key keyboard unified color control / 全键盘统一配色控制 =====
+        // Only background / outline / text (+ pressed variants); rain / ghost / KPS colors untouched / 仅背景/描边/文字，雨滴/鬼键/KPS 色不动
+        public bool EnableFullKeyboardUnifiedColor = true;
+        public Color FullKeyboardBackground = KeyViewer.Background;
+        public Color FullKeyboardBackgroundClicked = KeyViewer.BackgroundClicked;
+        public Color FullKeyboardOutline = KeyViewer.Outline;
+        public Color FullKeyboardOutlineClicked = KeyViewer.OutlineClicked;
+        public Color FullKeyboardText = KeyViewer.Text;
+        public Color FullKeyboardTextClicked = KeyViewer.TextClicked;
+        // Optional KPS / Total boxes in full-keyboard mode / 全键盘模式下可选的 KPS/Total 框
+        public bool FullKeyboardShowKpsTotal = false;
+        // Custom KPS / Total position (normalized 0-1, applied in full-keyboard mode) / KPS/Total 自定义位置（归一化 0-1，仅全键盘生效）
+        public Vector2 FullKpsPosition = new Vector2(0.62f, 0.12f);
+        public Vector2 FullTotalPosition = new Vector2(0.71f, 0.12f);
         public Color[] PerKeyBackground;
         public Color[] PerKeyBackgroundClicked;
         public Color[] PerKeyOutline;
@@ -222,6 +239,7 @@ namespace JipperKeyViewer.KeyViewer
             key16Text = key16Text ?? new string[16];
             key20Text = key20Text ?? new string[20];
             key24Text = key24Text ?? new string[24];
+            key108 = key108 ?? KeyViewer.BuildDefaultKey108();
             footkey2Text = footkey2Text ?? new string[2];
             footkey4Text = footkey4Text ?? new string[4];
             footkey6Text = footkey6Text ?? new string[6];
@@ -321,7 +339,7 @@ namespace JipperKeyViewer.KeyViewer
     [System.Serializable]
     public class KeyViewerSettings
     {
-        public int Version = 4;
+        public int Version = 5;
         public string CurrentProfile = "Default";
         public string[] ProfileNames = new[] { "Default" };
         public string Language = "en";

@@ -61,6 +61,8 @@ namespace JipperKeyViewer.KeyViewer
         /// </summary>
         private void SetupKey(KeyCode keyCode)
         {
+            if (IsFullKeyboard) return;
+            if (SelectedKey < 0) return; // -1 means no key is being rebound; never index arrays with it / -1 表示没有正在重绑定的键，禁止用作索引
             if (changeState == 2)
             {
                 KeyCode[] ghostKeyCodes = GetGhostKeyCode();
@@ -79,7 +81,8 @@ namespace JipperKeyViewer.KeyViewer
             string[] keyTexts = GetKeyText();
             if (SelectedKey < FootKeyBase)
             {
-                keyCodes[SelectedKey] = keyCode;
+                if (SelectedKey < keyCodes.Length)
+                    keyCodes[SelectedKey] = keyCode;
             }
             else if (footKeyCodes != null && SelectedKey - FootKeyBase < footKeyCodes.Length)
             {
@@ -93,7 +96,7 @@ namespace JipperKeyViewer.KeyViewer
             if (Keys != null && SelectedKey < Keys.Length && Keys[SelectedKey] != null)
             {
                 string displayText;
-                if (SelectedKey < FootKeyBase && !string.IsNullOrEmpty(keyTexts[SelectedKey]))
+                if (SelectedKey < FootKeyBase && SelectedKey < keyTexts.Length && !string.IsNullOrEmpty(keyTexts[SelectedKey]))
                     displayText = keyTexts[SelectedKey];
                 else if (SelectedKey >= FootKeyBase)
                 {
@@ -216,7 +219,10 @@ namespace JipperKeyViewer.KeyViewer
                 cachedFootStyle = d.FootKeyViewerStyle;
             }
             ProcessKeyGroup(cachedMainKeys, 0, elapsedMilliseconds);
-            if (cachedFootKeys != null)
+            // Full keyboard uses indices 0-104 for main keys; foot-key indices (24+) overlap real keys,
+            // so never process the foot group here or it corrupts main-key press states.
+            // 全键盘主键占用 0-104，脚键索引(24+)与真实键重叠，绝不能再处理脚键组，否则污染主键状态。
+            if (!IsFullKeyboard && cachedFootKeys != null)
                 ProcessKeyGroup(cachedFootKeys, FootKeyBase, elapsedMilliseconds);
             if (Total != null && Total.value != null && lastTotal != d.TotalCount)
             {
@@ -259,13 +265,18 @@ namespace JipperKeyViewer.KeyViewer
                     }
                     if (current)
                     {
-                        countArr[idx]++;
-                        d.TotalCount++;
-                        if (key.value != null && !enablePerKeyKps)
+                        // d.Count and keyPressTimes are sized for MaxKeySlots (40). Full-keyboard keys (idx 0-104)
+                        // have no per-key count text, so only the shared TotalCount accumulates for them. / 全键盘主键无每键计数，仅累加 TotalCount
+                        if (idx < countArr.Length)
                         {
-                            NumBuffer.Format(countArr[idx], enableCountFmt, out var buf, out int off, out int len);
-                            key.value.SetText(buf, off, len);
+                            countArr[idx]++;
+                            if (key.value != null && !enablePerKeyKps)
+                            {
+                                NumBuffer.Format(countArr[idx], enableCountFmt, out var buf, out int off, out int len);
+                                key.value.SetText(buf, off, len);
+                            }
                         }
+                        d.TotalCount++;
                         PressTimes.Enqueue(elapsedMs);
                         if (keyPressTimes != null && idx < keyPressTimes.Length)
                         {
@@ -365,6 +376,16 @@ namespace JipperKeyViewer.KeyViewer
         /// </summary>
         private void UpdateKeyColors(int i, bool pressed, ProfileData d = null)
         {
+            if (IsFullKeyboard) {
+                var d2 = Settings.Data;
+                bool u = d2.EnableFullKeyboardUnifiedColor;
+                Key k = Keys[i];
+                k.background.color = pressed ? (u ? d2.FullKeyboardBackgroundClicked : d2.BackgroundClicked) : (u ? d2.FullKeyboardBackground : d2.Background);
+                k.outline.color = pressed ? (u ? d2.FullKeyboardOutlineClicked : d2.OutlineClicked) : (u ? d2.FullKeyboardOutline : d2.Outline);
+                k.text.color = pressed ? (u ? d2.FullKeyboardTextClicked : d2.TextClicked) : (u ? d2.FullKeyboardText : d2.Text);
+                if (k.value != null) k.value.color = k.text.color;
+                return;
+            }
             if (Keys == null || i >= Keys.Length) return;
             Key key = Keys[i];
             if (key == null) return;

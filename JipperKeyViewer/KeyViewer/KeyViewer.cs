@@ -800,7 +800,7 @@ namespace JipperKeyViewer.KeyViewer
             ResetFootKeyViewer();
             UpdateAllFonts();
             UpdateAllKeyColors();
-            if (Settings.Data.StreamerMode)
+            if (Settings.Data.StreamerMode && !IsFullKeyboard)
             {
                 if (Kps != null) Kps.gameObject.SetActive(false);
                 if (Total != null) Total.gameObject.SetActive(false);

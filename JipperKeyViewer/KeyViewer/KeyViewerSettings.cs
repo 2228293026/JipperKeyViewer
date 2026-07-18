@@ -221,6 +221,8 @@ namespace JipperKeyViewer.KeyViewer
         // Custom KPS / Total position (normalized 0-1, applied in full-keyboard mode) / KPS/Total 自定义位置（归一化 0-1，仅全键盘生效）
         public Vector2 FullKpsPosition = new Vector2(0.62f, 0.12f);
         public Vector2 FullTotalPosition = new Vector2(0.71f, 0.12f);
+        // KPS / Total box size in full-keyboard mode (width & height in px) / 全键盘下 KPS/Total 框的尺寸（宽高，像素）
+        public float FullKeyboardKpsTotalSize = 150f;
         public Color[] PerKeyBackground;
         public Color[] PerKeyBackgroundClicked;
         public Color[] PerKeyOutline;

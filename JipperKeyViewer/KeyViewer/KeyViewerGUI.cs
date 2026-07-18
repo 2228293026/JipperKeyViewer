@@ -77,6 +77,8 @@ namespace JipperKeyViewer.KeyViewer
             GUILayout.Space(10);
             DrawBindingSection();
             GUILayout.Space(5);
+            if (KeyViewer.IsFullKeyboard)
+                DrawFullKeyboardKpsTotalSection();
             DrawColorSection();
             GUILayout.EndVertical();
         }
@@ -476,6 +478,9 @@ namespace JipperKeyViewer.KeyViewer
         // ===== KPS & Total independent color state =====
         int kpsColorType = -1;
         int totalColorType = -1;
+
+        // ===== Full-keyboard KPS / Total section foldout state =====
+        bool KpsTotalExpanded = false;
 
         // ===== Per-row rain shadow/outline foldout state =====
         bool[] rainShadowColorExpanded = new bool[3];
@@ -1043,32 +1048,43 @@ namespace JipperKeyViewer.KeyViewer
 
         private void DrawDisplaySection()
         {
-            bool newHideCount = GUILayout.Toggle(Settings.Data.HideMainKeyCount, I18n.Tr("hide_main_count"));
-            if (newHideCount != Settings.Data.HideMainKeyCount)
+            // The main-count / per-key-KPS toggles only apply to the normal (non-full-keyboard) layouts;
+            // the full 108-key view shows key labels and has its own KPS/Total controls. / 主区域计数与每键KPS 开关仅对普通布局生效；全键盘显示键位字母、并有独立的 KPS/Total 控制，故全键盘下隐藏。
+            if (!KeyViewer.IsFullKeyboard)
             {
-                Settings.Data.HideMainKeyCount = newHideCount;
-                ResetKeyViewer();
-                SaveSettings();
-            }
-
-            if (!Settings.Data.HideMainKeyCount)
-            {
-                bool newPerKeyKps = GUILayout.Toggle(Settings.Data.EnablePerKeyKps, I18n.Tr("per_key_kps"));
-                if (newPerKeyKps != Settings.Data.EnablePerKeyKps)
+                bool newHideCount = GUILayout.Toggle(Settings.Data.HideMainKeyCount, I18n.Tr("hide_main_count"));
+                if (newHideCount != Settings.Data.HideMainKeyCount)
                 {
-                    Settings.Data.EnablePerKeyKps = newPerKeyKps;
-                    RefreshAllCountDisplay();
+                    Settings.Data.HideMainKeyCount = newHideCount;
+                    ResetKeyViewer();
                     SaveSettings();
+                }
+
+                if (!Settings.Data.HideMainKeyCount)
+                {
+                    bool newPerKeyKps = GUILayout.Toggle(Settings.Data.EnablePerKeyKps, I18n.Tr("per_key_kps"));
+                    if (newPerKeyKps != Settings.Data.EnablePerKeyKps)
+                    {
+                        Settings.Data.EnablePerKeyKps = newPerKeyKps;
+                        RefreshAllCountDisplay();
+                        SaveSettings();
+                    }
                 }
             }
 
-            bool newStreamer = GUILayout.Toggle(Settings.Data.StreamerMode, I18n.Tr("streamer_mode"));
-            if (newStreamer != Settings.Data.StreamerMode)
+            // Streamer mode (hides KPS/Total) only applies to the normal layouts; the full keyboard has
+            // its own dedicated "Show KPS / Total" toggle, so don't show this redundant one there.
+            // 主播模式（隐藏 KPS/Total）仅对普通布局生效；全键盘已有专属的「显示 KPS/Total」开关，故不再显示这个重复的。
+            if (!KeyViewer.IsFullKeyboard)
             {
-                Settings.Data.StreamerMode = newStreamer;
-                if (Kps != null) Kps.gameObject.SetActive(!newStreamer);
-                if (Total != null) Total.gameObject.SetActive(!newStreamer);
-                SaveSettings();
+                bool newStreamer = GUILayout.Toggle(Settings.Data.StreamerMode, I18n.Tr("streamer_mode"));
+                if (newStreamer != Settings.Data.StreamerMode)
+                {
+                    Settings.Data.StreamerMode = newStreamer;
+                    if (Kps != null) Kps.gameObject.SetActive(!newStreamer);
+                    if (Total != null) Total.gameObject.SetActive(!newStreamer);
+                    SaveSettings();
+                }
             }
 
             float newFontSize = FloatSliderField(I18n.Tr("key_font_size"), Settings.Data.KeyFontSize, 8f, 72f, "F0");
@@ -1522,13 +1538,6 @@ namespace JipperKeyViewer.KeyViewer
             }
 
             GUILayout.Space(5);
-            bool showKt = GUILayout.Toggle(Settings.Data.FullKeyboardShowKpsTotal, I18n.Tr("fk_show_kps_total"));
-            if (showKt != Settings.Data.FullKeyboardShowKpsTotal)
-            {
-                Settings.Data.FullKeyboardShowKpsTotal = showKt;
-                ChangeKeyViewer();
-                SaveSettings();
-            }
             if (Settings.Data.FullKeyboardShowKpsTotal)
             {
                 // KPS/Total colors only apply when unified color is OFF; with unified ON they follow
@@ -1540,6 +1549,35 @@ namespace JipperKeyViewer.KeyViewer
                     GUILayout.Space(3);
                     DrawKpsTotalColors(MaxKeySlots + 1, I18n.Tr("total_colors"), ref totalColorType);
                 }
+            }
+
+            GUILayout.EndVertical();
+        }
+
+        // ======================== Full Keyboard (108K) KPS / Total layout section ========================
+        private void DrawFullKeyboardKpsTotalSection()
+        {
+            KpsTotalExpanded = DrawFoldoutButton(I18n.Tr("fk_kps_total"), KpsTotalExpanded);
+            if (!KpsTotalExpanded) return;
+            GUILayout.BeginVertical("box");
+            // Show / hide toggle (single source of truth for visibility). / 显示开关（可见性的唯一控制入口）。
+            bool showKt = GUILayout.Toggle(Settings.Data.FullKeyboardShowKpsTotal, I18n.Tr("fk_show_kps_total"));
+            if (showKt != Settings.Data.FullKeyboardShowKpsTotal)
+            {
+                Settings.Data.FullKeyboardShowKpsTotal = showKt;
+                ChangeKeyViewer();
+                SaveSettings();
+            }
+            // KPS / Total box size (px) — layout property, kept here not in the color section. / KPS/Total 框尺寸（像素），属布局属性，置于此而非颜色栏目。
+            float newKtSize = FloatSliderField(I18n.Tr("fk_kps_total_size"), Settings.Data.FullKeyboardKpsTotalSize, 40f, 400f, "F0");
+            if (newKtSize != Settings.Data.FullKeyboardKpsTotalSize)
+            {
+                Settings.Data.FullKeyboardKpsTotalSize = newKtSize;
+                ChangeKeyViewer();
+                SaveSettings();
+            }
+            if (Settings.Data.FullKeyboardShowKpsTotal)
+            {
                 // KPS / Total custom position (normalized 0-1) / KPS/Total 自定义位置（归一化 0-1）
                 GUILayout.Space(5);
                 GUILayout.Label(I18n.Tr("fk_kps_pos") + ":");
@@ -1563,7 +1601,6 @@ namespace JipperKeyViewer.KeyViewer
                     SaveSettings();
                 }
             }
-
             GUILayout.EndVertical();
         }
 

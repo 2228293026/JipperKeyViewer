@@ -52,8 +52,10 @@ namespace JipperKeyViewer.KeyViewer
                 int footSize = FootKeySize(Settings.Data.FootKeyViewerStyle);
                 if (footSize > 0) InitializeFootKeyViewer(footSize);
             }
-            // Apply streamer mode (hide KPS/Total)
-            if (Settings.Data.StreamerMode)
+            // Apply streamer mode (hide KPS/Total) — only for normal layouts; the full keyboard has its
+            // own dedicated "Show KPS / Total" toggle, so don't let streamer mode fight it.
+            // 应用主播模式（隐藏 KPS/Total）——仅普通布局生效；全键盘有专属开关，不与之冲突。
+            if (Settings.Data.StreamerMode && !IsFullKeyboard)
             {
                 if (Kps != null) Kps.gameObject.SetActive(false);
                 if (Total != null) Total.gameObject.SetActive(false);
@@ -411,16 +413,26 @@ namespace JipperKeyViewer.KeyViewer
                 (104, 25*U, 300, 1*U)
             };
 
-            const float rightClusterShift = 4f * U;
+            // Uniform 6px horizontal gap (matching the 6px vertical row gap): scale every key's x and
+            // width from the 50px unit to a 56px column step, then trim 6px off each width. Because the
+            // original layout had 0px gaps between flush keys, this yields exactly 6px gaps everywhere
+            // while preserving the exact relative positions (no rearrangement, no overlap).
+            // 统一 6px 横向间隙（与纵向 6px 行隙一致）：把每个键的 x 与宽从 50px 基准缩放到 56px 列步进，再各减 6px。
+            // 原布局紧贴键之间为 0 间隙，故缩放后处处得到恰好 6px 间隙，且相对位置完全不变（不重排、不重叠）。
+            const float colStep = 56f;   // 50px key + 6px gap / 键宽50 + 间隙6
+            const float gap = 6f;
+            // Pull the right cluster left so its left edge hugs the main block's right edge (same role
+            // as the old 4U shift, now expressed in the 56px column step). / 把右簇左拉，使其左缘贴住主键区右缘（等价于原 4U 左移，现按 56px 列步进换算）。
+            const float rightClusterShift = 4f * colStep;
             const float rowStep = 56f; // vertical distance between key rows / 按键行间距
             foreach (var s in slots)
             {
-                float x = (float)s.x - (s.idx >= 78 ? rightClusterShift : 0f);
+                float x = (float)s.x * colStep / U - (s.idx >= 78 ? rightClusterShift : 0f);
                 if (s.idx == 95 || s.idx == 104)
                 {
                     // Numpad "+" (95) and Enter (104) are tall vertical keys, each spanning two rows so the
                     // right column is fully filled (no gaps). / 小键盘「+」(95)与「回车」(104)为竖排高键，各跨两行，右列恰好占满无空隙。
-                    float w = 1f * U;
+                    float w = colStep - gap; // matches a normal key's 50px width / 与普通键 50px 同宽
                     // height = two key rows (rowStep=56) so the tall key's top/bottom exactly meet the
                     // neighbouring keys' edges (no stray 3px gap, looks the same height as two stacked
                     // normal keys). / 高键取两行距 56px，使其顶/底正好贴合相邻两键边缘，视觉高度与两枚普通键叠放一致。
@@ -433,14 +445,16 @@ namespace JipperKeyViewer.KeyViewer
                 }
                 else
                 {
-                    Keys[s.idx] = CreateKey(s.idx, x, (float)s.y - yShift, (float)s.w, -1, false, false);
+                    float w = (float)s.w * colStep / U - gap;
+                    Keys[s.idx] = CreateKey(s.idx, x, (float)s.y - yShift, w, -1, false, false);
                 }
             }
             // Optional KPS / Total boxes, placed at user-set normalized positions / 可选 KPS/Total，位置由用户归一化坐标决定
             if (Settings.Data.FullKeyboardShowKpsTotal)
             {
-                Kps = CreateKey(-1, Settings.Data.FullKpsPosition.x * CanvasWidth, Settings.Data.FullKpsPosition.y * 1080f, 150, -1, true, true);
-                Total = CreateKey(-2, Settings.Data.FullTotalPosition.x * CanvasWidth, Settings.Data.FullTotalPosition.y * 1080f, 150, -1, true, true);
+                float ktSize = Settings.Data.FullKeyboardKpsTotalSize;
+                Kps = CreateKey(-1, Settings.Data.FullKpsPosition.x * CanvasWidth, Settings.Data.FullKpsPosition.y * 1080f, ktSize, -1, true, true);
+                Total = CreateKey(-2, Settings.Data.FullTotalPosition.x * CanvasWidth, Settings.Data.FullTotalPosition.y * 1080f, ktSize, -1, true, true);
             }
             ApplyFullKeyboardKpsTotalPosition();
             ApplyFullKeyboardColors();
@@ -1181,7 +1195,7 @@ namespace JipperKeyViewer.KeyViewer
             // to avoid leaking them when switching to the full keyboard, so they must be recreated here.
             // 同时重建脚键：ResetKeyViewer 现在销毁全部子物体（含脚键）以避免切到全键盘时残留，故需在此重建。
             ResetFootKeyViewer();
-            if (Settings.Data.StreamerMode)
+            if (Settings.Data.StreamerMode && !IsFullKeyboard)
             {
                 if (Kps != null) Kps.gameObject.SetActive(false);
                 if (Total != null) Total.gameObject.SetActive(false);

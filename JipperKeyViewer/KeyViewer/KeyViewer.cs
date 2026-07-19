@@ -766,6 +766,13 @@ namespace JipperKeyViewer.KeyViewer
             try
             {
                 string json = File.ReadAllText(profilePath);
+                // Replace the instance first: FromJsonOverwrite only writes fields present in the JSON
+                // and leaves any other field/array entry from the previously loaded profile intact,
+                // which would then leak into (and be saved over) the new profile. A fresh default
+                // instance guarantees no stale data survives a profile switch.
+                // 先替换实例：FromJsonOverwrite 只写入 JSON 中存在的字段，会保留上一套配置残留的
+                // 字段/数组项，这些残留随后会被保存并覆盖新配置。用全新默认实例可杜绝跨配置污染。
+                Settings.Data = new ProfileData();
                 JsonUtility.FromJsonOverwrite(json, Settings.Data);
                 return true;
             }

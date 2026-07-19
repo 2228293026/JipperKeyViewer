@@ -1311,6 +1311,13 @@ namespace JipperKeyViewer.KeyViewer
             }
             if (Settings.Data.CustomPositionEnabled)
                 ResetKeyViewerPosition();
+            // Re-apply the per-profile size scale: a profile switch loads a new Settings.Data.Size
+            // but KeyViewerSizeObject's localScale is only set at init / from the GUI slider, so it
+            // would otherwise keep the previous profile's size.
+            // 重新应用每套配置的尺寸缩放：切换配置会载入新的 Settings.Data.Size，
+            // 但 SizeObject 的缩放只在初始化/GUI 滑块处赋值，否则会沿用上一套配置的尺寸。
+            if (KeyViewerSizeObject != null)
+                KeyViewerSizeObject.transform.localScale = new Vector3(Settings.Data.Size, Settings.Data.Size, 1);
             RefreshAllCountDisplay();
         }
 

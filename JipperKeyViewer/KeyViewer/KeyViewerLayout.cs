@@ -458,6 +458,17 @@ namespace JipperKeyViewer.KeyViewer
             }
             ApplyFullKeyboardKpsTotalPosition();
             ApplyFullKeyboardColors();
+            CaptureFullKeyboardHome();
+        }
+
+        /// <summary>Snapshot the natural anchored positions of every full-keyboard key + KPS/Total / 记录全键盘各键及 KPS/Total 的自然锚点位置</summary>
+        private void CaptureFullKeyboardHome()
+        {
+            if (Keys == null) { _fkHomeValid = false; return; }
+            _fkHome = new Vector2[Keys.Length];
+            for (int i = 0; i < Keys.Length; i++)
+                _fkHome[i] = Keys[i] != null ? ((RectTransform)Keys[i].transform).anchoredPosition : Vector2.zero;
+            _fkHomeValid = true;
         }
 
         /// <summary>Apply unified colors to all 108-key layout keys / 将统一配色应用到全部 108 键</summary>
@@ -554,6 +565,41 @@ namespace JipperKeyViewer.KeyViewer
                 SetKeyPosition(i, baseX + 54 * i, baseY + layout.frontY - remove);
             foreach (var e in layout.extras)
                 SetKeyPosition(e.index, baseX + e.x, baseY + e.y - remove);
+        }
+
+        /// <summary>Translate the whole 108-key block by the normalized custom-position offset / 按归一化自定义位置整体平移 108 键</summary>
+        private void RepositionFullKeyboard()
+        {
+            if (!_fkHomeValid || _fkHome == null || Keys == null) return;
+            Vector2 norm = Settings.Data.MainKeyViewerPosition;
+            float minX = float.MaxValue, maxX = float.MinValue, minY = float.MaxValue, maxY = float.MinValue;
+            for (int i = 0; i < _fkHome.Length; i++)
+            {
+                Vector2 p = _fkHome[i];
+                if (p.x < minX) minX = p.x;
+                if (p.x > maxX) maxX = p.x;
+                if (p.y < minY) minY = p.y;
+                if (p.y > maxY) maxY = p.y;
+            }
+            // Edge-pinned normalized placement (Y grows upward; 1080 = top, 0 = bottom).
+            // norm.x=0 -> left edge at screen left;  norm.x=1 -> right edge at screen right.
+            // norm.y=0 -> bottom edge at screen bottom; norm.y=1 -> top edge at screen top.
+            // DownLocation is already baked into the captured home positions, so no extra shift here.
+            // 归一化贴边定位（Y 向上，1080=顶，0=底）。norm.x=0 左缘贴左，=1 右缘贴右；
+            // norm.y=0 底缘贴底，=1 顶缘贴顶。DownLocation 已含在 home 中，不再额外偏移。
+            float dxLeft = -minX;
+            float dxRight = CanvasWidth - maxX;
+            float dx = Mathf.Lerp(dxLeft, dxRight, norm.x);
+            float dyBottom = 25f - minY;        // bottom edge (minY - 25) -> y = 0
+            float dyTop = (1080f - 25f) - maxY; // top edge (maxY + 25) -> y = 1080
+            float dy = Mathf.Lerp(dyTop, dyBottom, norm.y); // Y inverted to match the standard layout (norm.y=1 -> bottom) / Y 反向，与标准布局一致（norm.y=1 贴底）
+            for (int i = 0; i < Keys.Length; i++)
+            {
+                if (Keys[i] == null) continue;
+                ((RectTransform)Keys[i].transform).anchoredPosition = _fkHome[i] + new Vector2(dx, dy);
+            }
+            // KPS / Total keep their own independent normalized positions (not shifted by the main block).
+            // KPS/Total 保持各自独立的归一化位置，不随主键盘自定义位置移动。
         }
 
         /// <summary>
@@ -919,6 +965,7 @@ namespace JipperKeyViewer.KeyViewer
         private void ResetKeyViewerPosition()
         {
             if (Keys == null || !Settings.Data.CustomPositionEnabled) return;
+            if (IsFullKeyboard) { RepositionFullKeyboard(); return; }
             Vector2 norm = Settings.Data.MainKeyViewerPosition;
             // Convert normalized (X: 0=left 1=right, Y: 0=top 1=bottom) to reference pixel offsets from bottom-left.
             // X: interpolate so X=0 = left edge at screen left, X=1 = right edge at screen right.
@@ -949,6 +996,7 @@ namespace JipperKeyViewer.KeyViewer
         private void ResetFootKeyViewerPosition()
         {
             if (Keys == null || !Settings.Data.CustomPositionEnabled) return;
+            if (IsFullKeyboard) return; // full keyboard has no foot keys / 全键盘无脚键
             Vector2 norm = Settings.Data.FootKeyViewerPosition;
             int size = FootKeySize(Settings.Data.FootKeyViewerStyle);
             if (size == 0) return;
@@ -980,6 +1028,11 @@ namespace JipperKeyViewer.KeyViewer
 
         private int lastScreenWidth, lastScreenHeight;
         private float canvasWidth;
+
+        // Full-keyboard custom-position support: captured home (natural) anchored positions so the
+        // whole 108K block can be translated by the normalized offset. / 全键盘自定义位置：记录每个键的自然位置，整体平移。
+        private Vector2[] _fkHome;
+        private bool _fkHomeValid;
 
         private float CanvasWidth
         {

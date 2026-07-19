@@ -958,38 +958,63 @@ namespace JipperKeyViewer.KeyViewer
 
             if (Settings.Data.CustomPositionEnabled)
             {
-                GUILayout.Label(I18n.Tr("main_key_pos") + ":");
-                Vector2 tempMainPos = Settings.Data.MainKeyViewerPosition;
-                Vector2 tempFootPos = Settings.Data.FootKeyViewerPosition;
-                bool positionChanged = false;
-
-                float newMainX = FloatSliderField("X", tempMainPos.x, 0f, 1f);
-                if (newMainX != tempMainPos.x) { tempMainPos.x = newMainX; positionChanged = true; }
-                float newMainY = FloatSliderField("Y", tempMainPos.y, 0f, 1f);
-                if (newMainY != tempMainPos.y) { tempMainPos.y = newMainY; positionChanged = true; }
-
-                GUILayout.Label(I18n.Tr("foot_key_pos") + ":");
-                float newFootX = FloatSliderField("X", tempFootPos.x, 0f, 1f);
-                if (newFootX != tempFootPos.x) { tempFootPos.x = newFootX; positionChanged = true; }
-                float newFootY = FloatSliderField("Y", tempFootPos.y, 0f, 1f);
-                if (newFootY != tempFootPos.y) { tempFootPos.y = newFootY; positionChanged = true; }
-
-                if (positionChanged)
+                if (KeyViewer.IsFullKeyboard)
                 {
-                    Settings.Data.MainKeyViewerPosition = tempMainPos;
-                    Settings.Data.FootKeyViewerPosition = tempFootPos;
-                    ResetKeyViewerPosition();
-                    ResetFootKeyViewerPosition();
-                    SaveSettings();
+                    GUILayout.Label(I18n.Tr("main_key_pos") + ":");
+                    Vector2 tempMainPos = Settings.Data.MainKeyViewerPosition;
+                    bool positionChanged = false;
+                    float newMainX = FloatSliderField("X", tempMainPos.x, 0f, 1f);
+                    if (newMainX != tempMainPos.x) { tempMainPos.x = newMainX; positionChanged = true; }
+                    float newMainY = FloatSliderField("Y", tempMainPos.y, 0f, 1f);
+                    if (newMainY != tempMainPos.y) { tempMainPos.y = newMainY; positionChanged = true; }
+                    if (positionChanged)
+                    {
+                        Settings.Data.MainKeyViewerPosition = tempMainPos;
+                        ResetKeyViewerPosition();
+                        SaveSettings();
+                    }
+                    if (GUILayout.Button(I18n.Tr("reset_pos")))
+                    {
+                        Settings.Data.MainKeyViewerPosition = new Vector2(0, 1);
+                        ResetKeyViewerPosition();
+                        SaveSettings();
+                    }
                 }
-
-                if (GUILayout.Button(I18n.Tr("reset_pos")))
+                else
                 {
-                    Settings.Data.MainKeyViewerPosition = new Vector2(0, 1);
-                    Settings.Data.FootKeyViewerPosition = new Vector2(0.24f, 1f);
-                    ResetKeyViewerPosition();
-                    ResetFootKeyViewerPosition();
-                    SaveSettings();
+                    GUILayout.Label(I18n.Tr("main_key_pos") + ":");
+                    Vector2 tempMainPos = Settings.Data.MainKeyViewerPosition;
+                    Vector2 tempFootPos = Settings.Data.FootKeyViewerPosition;
+                    bool positionChanged = false;
+
+                    float newMainX = FloatSliderField("X", tempMainPos.x, 0f, 1f);
+                    if (newMainX != tempMainPos.x) { tempMainPos.x = newMainX; positionChanged = true; }
+                    float newMainY = FloatSliderField("Y", tempMainPos.y, 0f, 1f);
+                    if (newMainY != tempMainPos.y) { tempMainPos.y = newMainY; positionChanged = true; }
+
+                    GUILayout.Label(I18n.Tr("foot_key_pos") + ":");
+                    float newFootX = FloatSliderField("X", tempFootPos.x, 0f, 1f);
+                    if (newFootX != tempFootPos.x) { tempFootPos.x = newFootX; positionChanged = true; }
+                    float newFootY = FloatSliderField("Y", tempFootPos.y, 0f, 1f);
+                    if (newFootY != tempFootPos.y) { tempFootPos.y = newFootY; positionChanged = true; }
+
+                    if (positionChanged)
+                    {
+                        Settings.Data.MainKeyViewerPosition = tempMainPos;
+                        Settings.Data.FootKeyViewerPosition = tempFootPos;
+                        ResetKeyViewerPosition();
+                        ResetFootKeyViewerPosition();
+                        SaveSettings();
+                    }
+
+                    if (GUILayout.Button(I18n.Tr("reset_pos")))
+                    {
+                        Settings.Data.MainKeyViewerPosition = new Vector2(0, 1);
+                        Settings.Data.FootKeyViewerPosition = new Vector2(0.24f, 1f);
+                        ResetKeyViewerPosition();
+                        ResetFootKeyViewerPosition();
+                        SaveSettings();
+                    }
                 }
             }
             GUILayout.EndVertical();

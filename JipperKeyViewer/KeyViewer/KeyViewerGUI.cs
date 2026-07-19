@@ -80,6 +80,8 @@ namespace JipperKeyViewer.KeyViewer
             if (KeyViewer.IsFullKeyboard)
                 DrawFullKeyboardKpsTotalSection();
             DrawColorSection();
+            GUILayout.Space(10);
+            Loader.DrawExtraSettingsUI();
             GUILayout.EndVertical();
         }
 

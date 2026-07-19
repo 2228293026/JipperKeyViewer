@@ -2,13 +2,13 @@
   "Releases": [
     {
       "Id": "JipperKeyViewer",
-      "Version": "1.6.4",
-      "DownloadUrl": "https://github.com/2228293026/JipperKeyViewer/releases/download/1.6.4/JipperKeyViewer-AssetBundle.zip"
+      "Version": "1.6.5",
+      "DownloadUrl": "https://github.com/2228293026/JipperKeyViewer/releases/download/1.6.5/JipperKeyViewer-AssetBundle.zip"
     },
     {
       "Id": "JipperKeyViewer-FileBased",
-      "Version": "1.6.4",
-      "DownloadUrl": "https://github.com/2228293026/JipperKeyViewer/releases/download/1.6.4/JipperKeyViewer-FileBased.zip"
+      "Version": "1.6.5",
+      "DownloadUrl": "https://github.com/2228293026/JipperKeyViewer/releases/download/1.6.5/JipperKeyViewer-FileBased.zip"
     }
   ]
 }

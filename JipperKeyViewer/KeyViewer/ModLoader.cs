@@ -31,6 +31,14 @@ namespace JipperKeyViewer
         event Action OnGUI;
         /// <summary>Called when settings should be saved / 需要保存设置时调用</summary>
         event Action OnSaveGUI;
+
+        /// <summary>
+        /// Optional hook for the loader to draw extra settings rows inside the shared
+        /// settings window (e.g. MelonLoader hotkey binding). UMM leaves this empty.
+        /// 加载器在共享设置窗口内绘制额外设置行的可选钩子（如 MelonLoader 热键绑定）。
+        /// UMM 留空。
+        /// </summary>
+        void DrawExtraSettings();
     }
 
     /// <summary>
@@ -48,5 +56,11 @@ namespace JipperKeyViewer
         public static void Log(string msg)   { Instance?.Log(msg); }
         public static void Warning(string msg) { Instance?.Warning(msg); }
         public static void Error(string msg) { Instance?.Error(msg); }
+
+        /// <summary>
+        /// Invoke the loader's optional extra settings drawing hook, if any.
+        /// 调用加载器可选的额外设置绘制钩子（若有）。
+        /// </summary>
+        public static void DrawExtraSettingsUI() => Instance?.DrawExtraSettings();
     }
 }

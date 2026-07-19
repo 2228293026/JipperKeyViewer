@@ -5,7 +5,7 @@ using JipperKeyViewer;
 using MelonLoader;
 using UnityEngine;
 
-[assembly: MelonInfo(typeof(JipperKeyViewer.LoaderMelon.JipperMelonMod), "Jipper Key Viewer", "1.6.4.1", "HitMargin", null)]
+[assembly: MelonInfo(typeof(JipperKeyViewer.LoaderMelon.JipperMelonMod), "Jipper Key Viewer", "1.6.5", "HitMargin", null)]
 
 namespace JipperKeyViewer.LoaderMelon
 {
@@ -19,6 +19,7 @@ namespace JipperKeyViewer.LoaderMelon
 
         private static MelonPreferences_Category _prefs;
         private static MelonPreferences_Entry<string> _hotkeyEntry;
+        private bool _capturingHotkey;
 
         public override void OnInitializeMelon()
         {
@@ -41,10 +42,55 @@ namespace JipperKeyViewer.LoaderMelon
 
         public override void OnUpdate()
         {
+            if (_capturingHotkey)
+            {
+                if (Input.anyKeyDown)
+                {
+                    KeyCode captured = ReadPressedKey();
+                    if (captured != KeyCode.None)
+                    {
+                        _hotkeyEntry.Value = captured.ToString();
+                        MelonPreferences.Save();
+                    }
+                    _capturingHotkey = false;
+                }
+                return;
+            }
+
             string keyName = _hotkeyEntry.Value;
             if (string.IsNullOrEmpty(keyName)) return;
             if (Enum.TryParse(keyName, true, out KeyCode key) && Input.GetKeyDown(key))
                 ToggleSettings();
+        }
+
+        private static KeyCode ReadPressedKey()
+        {
+            foreach (KeyCode k in System.Enum.GetValues(typeof(KeyCode)))
+            {
+                if (k >= KeyCode.Mouse0 && k <= KeyCode.Mouse6) continue;
+                if (Input.GetKeyDown(k)) return k;
+            }
+            return KeyCode.None;
+        }
+
+        internal void DrawHotkeySettings()
+        {
+            GUILayout.BeginVertical("box");
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Settings Hotkey / 设置界面热键", GUILayout.MinWidth(200));
+            if (_capturingHotkey)
+            {
+                if (GUILayout.Button("Press any key... / 按任意键...", GUILayout.MinWidth(160)))
+                    _capturingHotkey = false;
+            }
+            else
+            {
+                string cur = string.IsNullOrEmpty(_hotkeyEntry.Value) ? "None" : _hotkeyEntry.Value;
+                if (GUILayout.Button(cur, GUILayout.MinWidth(160)))
+                    _capturingHotkey = true;
+            }
+            GUILayout.EndHorizontal();
+            GUILayout.EndVertical();
         }
 
         public override void OnGUI()
@@ -88,6 +134,7 @@ namespace JipperKeyViewer.LoaderMelon
     class MelonHandler : IModLoader
     {
         readonly string _modPath;
+        readonly JipperMelonMod _mod;
 
         public string ModPath => _modPath;
 
@@ -96,8 +143,11 @@ namespace JipperKeyViewer.LoaderMelon
         public event Action OnGUI { add { } remove { } }
         public event Action OnSaveGUI { add { } remove { } }
 
+        public void DrawExtraSettings() => _mod.DrawHotkeySettings();
+
         public MelonHandler(JipperMelonMod mod)
         {
+            _mod = mod;
             string loc = System.Reflection.Assembly.GetExecutingAssembly().Location;
             _modPath = Path.GetDirectoryName(loc) ?? ".";
         }

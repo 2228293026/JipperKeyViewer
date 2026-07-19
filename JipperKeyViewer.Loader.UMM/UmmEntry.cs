@@ -33,6 +33,8 @@ namespace JipperKeyViewer.Loader
         public event Action OnGUI;
         public event Action OnSaveGUI;
 
+        public void DrawExtraSettings() { }
+
         public UmmHandler(UnityModManager.ModEntry entry)
         {
             _entry = entry;

@@ -223,7 +223,7 @@ namespace JipperKeyViewer.KeyViewer
         public Vector2 FullTotalPosition = new Vector2(0.71f, 0.12f);
         // KPS / Total box size in full-keyboard mode (width & height in px) / 全键盘下 KPS/Total 框的尺寸（宽高，像素）
         public float FullKeyboardKpsTotalSize = 150f;
-        // Center the KPS / Total text+value (stacked, centered) instead of left-label / right-number / 居中显示 KPS/Total（上下堆叠居中）而非左文本右数值（全局，所有布局生效）
+        // Center the KPS / Total text+value (stacked, centered) instead of left-label / right-number / 居中显示 KPS/Total（上下堆叠居中）而非左文本右数值（仅 slim 布局生效，含全键盘）
         public bool KpsTotalCentered = false;
         public Color[] PerKeyBackground;
         public Color[] PerKeyBackgroundClicked;

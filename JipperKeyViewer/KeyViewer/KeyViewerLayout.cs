@@ -455,9 +455,9 @@ namespace JipperKeyViewer.KeyViewer
                     // neighbouring keys' edges (no stray 3px gap, looks the same height as two stacked
                     // normal keys). / 高键取两行距 56px，使其顶/底正好贴合相邻两键边缘，视觉高度与两枚普通键叠放一致。
                     float h = rowStep + 50f;
-                    // "+" (95) sits on the 6-key (y=412) and 3-key (y=356) rows; Enter (104) sits on the
+                    // "+" (95) sits on the 9-key (y=468) and 6-key (y=412) rows; Enter (104) sits on the
                     // 0-key (y=300) and 3-key (y=356) rows. Center each at the midpoint of its two rows. /
-                    // 「+」以 6键/3键 中点(384) 为中心；回车以 0键/3键 中点(328) 为中心。
+                    // 「+」以 9键/6键 中点(440) 为中心；回车以 0键/3键 中点(328) 为中心。
                     float y = (s.idx == 95 ? (468f + 412f) : (300f + 356f)) * 0.5f;
                     Keys[s.idx] = CreateKey(s.idx, x, y - yShift, w, -1, false, false, h);
                 }

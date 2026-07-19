@@ -6,6 +6,7 @@
 - **Move the whole keyboard freely**: The custom-position sliders now move the entire 108-key block. Drag the X/Y sliders to pin it to any screen edge (left/right/top/bottom); KPS/Total keep their own independent position and are not dragged along.
 - **Center the KPS / Total text**: New "Center KPS / Total Text" option. On flat (side-by-side) KPS/Total boxes it merges the label and number into one centered line that re-centers as the number grows (e.g. `KPS 123`). Stacked (top/bottom) layouts keep the label above the number and hide this toggle.
 - **Cleaner full-keyboard settings**: Unrelated toggles (hide main count, per-key KPS, streamer mode) are hidden in full-keyboard mode, and the KPS/Total controls get their own collapsible section above the color settings.
+- **Rebind the settings hotkey in-game (MelonLoader)**: A new "Settings Hotkey" row in the settings window lets you click the button and press any key to rebind the hotkey that opens/closes the UI. No more editing `MelonPreferences.cfg` by hand.
 
 ### 🐛 Bug Fixes
 - **Crash when enabling custom position on the full keyboard**: Enabling custom position no longer throws an error on the 108-key layout.

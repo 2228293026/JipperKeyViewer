@@ -275,6 +275,24 @@ namespace JipperKeyViewer.KeyViewer
             };
         }
 
+        /// <summary>Whether the current layout's KPS / Total boxes use the flat (slim) left-label / right-number design / 当前布局的 KPS/Total 是否采用扁平（slim）左右设计</summary>
+        private static bool KpsTotalIsSlim()
+        {
+            if (IsFullKeyboard) return true; // full keyboard KPS/Total are always slim / 全键盘 KPS/Total 始终为 slim
+            var layout = GetLayout(Settings.Data.KeyViewerStyle);
+            if (layout.extras != null)
+            {
+                foreach (var e in layout.extras)
+                    if (e.index == -1) return e.slim;
+            }
+            return false;
+        }
+
+        /// <summary>Single source of truth: centered KPS/Total applies only to flat (slim) designs with the toggle on.
+        /// 唯一判定：仅扁平（slim）设计且开关开启时，KPS/Total 才居中。显示开关与功能生效共用此判定，保证一致。</summary>
+        private static bool KpsTotalCenteredApplies()
+            => KpsTotalIsSlim() && Settings.Data.KpsTotalCentered;
+
         private void InitializeMainKeys(LayoutDesc layout)
         {
             if (IsFullKeyboard) { InitializeFullKeyboard(); return; }
@@ -655,6 +673,12 @@ namespace JipperKeyViewer.KeyViewer
         {
             if (i >= 0 && i < FootKeyBase && Settings.Data.HideMainKeyCount)
                 count = false;
+            // KPS / Total boxes: in centered mode (flat / slim designs only) the label and value merge into
+            // one centered text box (value box not created, so "KPS 123" grows and recenters as number widens).
+            // Stacked (non-slim) KPS/Total keep the separate top-label / bottom-number layout.
+            // 居中模式仅对扁平（slim）设计的 KPS/Total 生效：标签与数值合并为单个居中文本框，数值变长时整行加宽并重新居中。
+            // 堆叠（非 slim）的 KPS/Total 保持上文本下数值的分离布局。
+            bool centeredText = (i == -1 || i == -2) && KpsTotalCenteredApplies();
             GameObject obj = new("Key " + i);
             KeyViewerSettings settings = Settings;
             float h = sizeY > 0f ? sizeY : (slim ? 30f : 50f);
@@ -680,8 +704,8 @@ namespace JipperKeyViewer.KeyViewer
             key.visuals = visuals.transform;
             key.background = CreateImage(visuals, "Background", sizeX, h, keyBackgroundSprite, settings.Data.Background);
             key.outline = CreateImage(visuals, "Outline", sizeX, h, keyOutlineSprite, settings.Data.Outline);
-            key.text = CreateKeyText(visuals, sizeX, slim, count, settings);
-            if (count)
+            key.text = CreateKeyText(visuals, sizeX, slim, count, settings, centeredText);
+            if (count && !centeredText)
                 key.value = CreateCountText(visuals, sizeX, slim, settings);
             UpdateKeyText(key, i);
             SetupRainContainer(key, obj, sizeX, raining);
@@ -709,12 +733,20 @@ namespace JipperKeyViewer.KeyViewer
             return image;
         }
 
-        private TextMeshProUGUI CreateKeyText(GameObject parent, float sizeX, bool slim, bool count, KeyViewerSettings settings)
+        private TextMeshProUGUI CreateKeyText(GameObject parent, float sizeX, bool slim, bool count, KeyViewerSettings settings, bool centered = false)
         {
             GameObject go = new("KeyText");
             RectTransform rt = go.AddComponent<RectTransform>();
             rt.SetParent(parent.transform);
-            if (slim)
+            if (centered)
+            {
+                // Single merged, full-width, centered box for the combined "label value" string.
+                // 合并用的整宽居中框，承载 "标签 数值" 整体。
+                rt.sizeDelta = new Vector2(sizeX - 4, 32);
+                rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
+                rt.anchoredPosition = Vector2.zero;
+            }
+            else if (slim)
             {
                 rt.sizeDelta = new Vector2(sizeX / 2, 30);
                 rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0, 0.5f);
@@ -735,7 +767,8 @@ namespace JipperKeyViewer.KeyViewer
                 }
             }
             rt.localScale = Vector3.one;
-            return ConfigureText(go, settings, slim ? TextAlignmentOptions.Left : TextAlignmentOptions.Center);
+            TextAlignmentOptions align = centered ? TextAlignmentOptions.Center : (slim ? TextAlignmentOptions.Left : TextAlignmentOptions.Center);
+            return ConfigureText(go, settings, align);
         }
 
         private TextMeshProUGUI CreateCountText(GameObject parent, float sizeX, bool slim, KeyViewerSettings settings)
@@ -756,7 +789,8 @@ namespace JipperKeyViewer.KeyViewer
                 rt.anchoredPosition = new Vector2(0, 2);
             }
             rt.localScale = Vector3.one;
-            return ConfigureText(go, settings, slim ? TextAlignmentOptions.Right : TextAlignmentOptions.Top);
+            TextAlignmentOptions align = slim ? TextAlignmentOptions.Right : TextAlignmentOptions.Top;
+            return ConfigureText(go, settings, align);
         }
 
         private TextMeshProUGUI ConfigureText(GameObject go, KeyViewerSettings settings, TextAlignmentOptions alignment)
@@ -879,6 +913,30 @@ namespace JipperKeyViewer.KeyViewer
         }
 
         /// <summary>
+        /// Set the KPS / Total display. In centered mode the label and value merge into one centered
+        /// string ("KPS 123") that recenters as the number widens; otherwise they stay separate.
+        /// 设置 KPS/Total 显示。居中模式下标签与数值合并为单个居中字符串（"KPS 123"），数值变宽时整体重新居中；否则保持分开。
+        /// </summary>
+        private static void SetKpsTotalDisplay(Key key, string label, string valueStr)
+        {
+            if (key == null) return;
+            if (KpsTotalCenteredApplies())
+            {
+                if (key.value != null) key.value.gameObject.SetActive(false);
+                key.text.text = label + " " + valueStr;
+            }
+            else
+            {
+                if (key.value != null)
+                {
+                    key.value.gameObject.SetActive(true);
+                    key.value.text = valueStr;
+                }
+                key.text.text = label;
+            }
+        }
+
+        /// <summary>
         /// Set the display text for a key based on its index and current bindings / 根据按键索引和当前绑定设置显示文本
         /// Special indices: -1=KPS, -2=Total / 特殊索引：-1=KPS，-2=Total
         /// </summary>
@@ -887,14 +945,12 @@ namespace JipperKeyViewer.KeyViewer
             if (key == null) return;
             if (i == -1)
             {
-                key.text.text = "KPS";
-                if (key.value != null) key.value.text = "0";
+                SetKpsTotalDisplay(key, "KPS", "0");
                 return;
             }
             if (i == -2)
             {
-                key.text.text = "Total";
-                if (key.value != null) key.value.text = FormatCount(Settings.Data.TotalCount);
+                SetKpsTotalDisplay(key, "Total", FormatCount(Settings.Data.TotalCount));
                 return;
             }
             if (IsFullKeyboard)
@@ -1428,8 +1484,8 @@ namespace JipperKeyViewer.KeyViewer
                         Keys[i].value.text = FormatCount(Settings.Data.Count[i]);
                 }
             }
-            if (Total != null && Total.value != null)
-                Total.value.text = FormatCount(Settings.Data.TotalCount);
+            if (Total != null)
+                SetKpsTotalDisplay(Total, "Total", FormatCount(Settings.Data.TotalCount));
         }
 
         public void AutoAssignRainbowColors()

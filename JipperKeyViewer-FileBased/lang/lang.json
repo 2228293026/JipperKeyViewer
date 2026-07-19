@@ -25,6 +25,7 @@
     { "key": "fk_show_kps_total", "en": "Show KPS / Total", "zh": "显示 KPS / 总计数", "ko": "KPS / 총계 표시" },
     { "key": "fk_kps_total", "en": "KPS / Total", "zh": "KPS / Total", "ko": "KPS / 총계" },
     { "key": "fk_kps_total_size", "en": "KPS / Total Size", "zh": "KPS / Total 尺寸", "ko": "KPS / 총계 크기" },
+    { "key": "fk_kps_total_centered", "en": "Center KPS / Total Text", "zh": "KPS / Total 文本居中", "ko": "KPS / 총계 텍스트 가운데 정렬" },
     { "key": "fk_kps_pos", "en": "KPS Position", "zh": "KPS 位置", "ko": "KPS 위치" },
     { "key": "fk_total_pos", "en": "Total Position", "zh": "Total 位置", "ko": "총계 위치" },
     { "key": "save", "en": "Save Settings", "zh": "保存设置", "ko": "설정 저장" },

@@ -829,8 +829,8 @@ namespace JipperKeyViewer.KeyViewer
                 for (int i = 0; i < Keys.Length; i++)
                     if (Keys[i]?.value != null)
                         Keys[i].value.text = "0";
-            if (Kps?.value != null) Kps.value.text = "0";
-            if (Total?.value != null) Total.value.text = "0";
+            if (Kps != null) SetKpsTotalDisplay(Kps, "KPS", "0");
+            if (Total != null) SetKpsTotalDisplay(Total, "Total", "0");
             SaveSettings();
         }
 
@@ -1118,6 +1118,19 @@ namespace JipperKeyViewer.KeyViewer
                 Settings.Data.KeyFontSize = newFontSize;
                 UpdateAllFonts();
                 SaveSettings();
+            }
+
+            // Center KPS / Total text — only for flat (slim) KPS/Total designs (e.g. full keyboard, 8K/14K/16K/24K).
+            // Hidden for stacked (non-slim) layouts like 12K/10K/20K standard. / 仅对扁平（slim）KPS/Total 生效（全键盘及 8K/14K/16K/24K 等），堆叠布局（12K/10K/20K 标准）隐藏。
+            if (KeyViewer.KpsTotalIsSlim())
+            {
+                bool newCenterKt = GUILayout.Toggle(Settings.Data.KpsTotalCentered, I18n.Tr("fk_kps_total_centered"));
+                if (newCenterKt != Settings.Data.KpsTotalCentered)
+                {
+                    Settings.Data.KpsTotalCentered = newCenterKt;
+                    ChangeKeyViewer();
+                    SaveSettings();
+                }
             }
 
             bool newPressAnim = GUILayout.Toggle(Settings.Data.EnablePressAnimation, I18n.Tr("press_animation"));

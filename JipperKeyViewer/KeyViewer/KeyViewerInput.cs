@@ -224,11 +224,14 @@ namespace JipperKeyViewer.KeyViewer
             // 全键盘主键占用 0-104，脚键索引(24+)与真实键重叠，绝不能再处理脚键组，否则污染主键状态。
             if (!IsFullKeyboard && cachedFootKeys != null)
                 ProcessKeyGroup(cachedFootKeys, FootKeyBase, elapsedMilliseconds);
-            if (Total != null && Total.value != null && lastTotal != d.TotalCount)
+            if (Total != null && lastTotal != d.TotalCount)
             {
                 lastTotal = d.TotalCount;
                 NumBuffer.Format(lastTotal, d.EnableCountFormatting, out var buf, out int off, out int len);
-                Total.value.SetText(buf, off, len);
+                if (KpsTotalCenteredApplies())
+                    SetKpsTotalDisplay(Total, "Total", new string(buf, off, len));
+                else if (Total.value != null)
+                    Total.value.SetText(buf, off, len);
             }
         }
 
@@ -305,10 +308,13 @@ namespace JipperKeyViewer.KeyViewer
             if (lastKps != currentKps)
             {
                 lastKps = currentKps;
-                if (Kps != null && Kps.value != null)
+                if (Kps != null)
                 {
                     NumBuffer.Format(currentKps, Settings.Data.EnableCountFormatting, out var buf, out int off, out int len);
-                    Kps.value.SetText(buf, off, len);
+                    if (KpsTotalCenteredApplies())
+                        SetKpsTotalDisplay(Kps, "KPS", new string(buf, off, len));
+                    else if (Kps.value != null)
+                        Kps.value.SetText(buf, off, len);
                 }
             }
         }

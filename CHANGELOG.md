@@ -1,3 +1,36 @@
+## v1.6.5
+
+### 🚀 Features
+- **108-key full keyboard layout**: New layout option that shows a complete physical QWERTY keyboard (with numpad). Keys are evenly spaced with a consistent 6px gap, the number pad hugs the main block, and the tall Numpad `+` / `Enter` keys span two rows. No foot keys, per-key colors, or ghost keys in this mode.
+- **Dedicated KPS / Total for the full keyboard**: The full keyboard has its own "Show KPS / Total" toggle, plus separate position controls and a size slider (40–400px). A "Full Keyboard Unified Color" option lets KPS/Total share the keyboard's background, outline, and text colors.
+- **Move the whole keyboard freely**: The custom-position sliders now move the entire 108-key block. Drag the X/Y sliders to pin it to any screen edge (left/right/top/bottom); KPS/Total keep their own independent position and are not dragged along.
+- **Center the KPS / Total text**: New "Center KPS / Total Text" option. On flat (side-by-side) KPS/Total boxes it merges the label and number into one centered line that re-centers as the number grows (e.g. `KPS 123`). Stacked (top/bottom) layouts keep the label above the number and hide this toggle.
+- **Cleaner full-keyboard settings**: Unrelated toggles (hide main count, per-key KPS, streamer mode) are hidden in full-keyboard mode, and the KPS/Total controls get their own collapsible section above the color settings.
+
+### 🐛 Bug Fixes
+- **Crash when enabling custom position on the full keyboard**: Enabling custom position no longer throws an error on the 108-key layout.
+- **Stray foot keys on the full keyboard**: Toggling custom position no longer makes foot-key controls or phantom keys appear in full-keyboard mode.
+- **Centered text stuck after switching layouts**: Turning centering on for one layout and switching to another now correctly restores the normal label/number layout.
+
+### 🔧 Performance
+- Smoother settings access and a reworked rain-drop object pool (larger, no leftover drops); slightly larger internal queues for key-press timing.
+
+## v1.6.4.1
+
+### 🚀 Features
+- **Dual loader support**: Works with both UnityModManager and MelonLoader. Core DLL is loader-agnostic, bridged via the `IModLoader` interface. Four thin loader projects added.
+- **MelonLoader settings UI**: Press F1 (default, rebindable) to open the settings window; window scales with resolution.
+- **MelonLoader hotkey configurable**: Edit the `Hotkey` field under `[JipperKeyViewer]` in `UserData/MelonPreferences.cfg`.
+- **`[MelonGame]` removed**: Loads under any MelonLoader game (TMP support required).
+- **Key Font Size**: New `KeyFontSize` slider (8–72) replaces hardcoded `fontSizeMax=20`.
+
+### 🧹 Refactor
+- **Main.cs** loader-agnostic: `Init(IModLoader)` + `EnableNow()` replace the UMM binding.
+- **ModLoader.cs**: New `IModLoader` interface + static `Loader` accessor.
+- **KeyViewerResources.cs / I18n.cs** etc.: All `Main.Mod.*` references replaced with `Loader.*`.
+- **Info.json**: Entry points to `JipperKeyViewer.Loader.UMM.dll`.
+- **Build**: 6-project build packaging both loaders and both variants.
+
 ## v1.6.4
 
 ### 🚀 Features

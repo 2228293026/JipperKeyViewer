@@ -28,7 +28,7 @@ Both build from the same solution (`JipperKeyViewer.slnx`) and share the same fe
 ## Features / 功能
 
 - Real-time on-screen key display with press feedback / 实时按键显示，按下时颜色变化
-- Multiple layouts: 8K, 10K, 12K, 14K, 16K, 20K, **24K** + foot keys 2K-16K / 多布局 + 脚键
+- Multiple layouts: 8K, 10K, 12K, 14K, 16K, 20K, **24K**, and a full **108-key** physical keyboard + foot keys 2K-16K / 多布局 + 脚键 + 完整 108 键全键盘
 - KPS counter & total key count / KPS 统计和总按键计数
 - Per-key KPS display / 每键独立 KPS 显示
 - Rain effect with smooth fade-out on key release / 雨滴特效，松开按键时平滑淡出
@@ -41,6 +41,9 @@ Both build from the same solution (`JipperKeyViewer.slnx`) and share the same fe
 - Count formatting (1,234) / 大数字千分位格式化
 - Fully customizable: colors, fonts, position, size / 完全自定义：颜色、字体、位置、大小
 - **Standard Key Width**: normalize mixed-width back rows to uniform 50px (10K/12K/20K third row) / **标准按键宽度**：统一宽窄混排后排为 50px
+- **108-key full keyboard**: complete QWERTY + numpad layout, even 6px key spacing, own KPS/Total controls and unified color / **108 键全键盘**：完整 QWERTY + 小键盘，统一 6px 间距，独立 KPS/Total 与统一色
+- **Move the whole keyboard**: custom-position sliders drag the entire 108-key block to any screen edge; KPS/Total keep their own position / **整块移动**：自定义位置滑块整体平移 108 键到任意屏幕边缘，KPS/Total 独立定位
+- **Center KPS / Total text**: merge label + number into one centered line that re-centers as the number grows (flat boxes only) / **KPS/Total 文本居中**：标签与数值合并居中，数值变长整行重排（仅扁平框）
 - Font style options: Bold, Italic, Underline, etc. / 字体样式：粗体、斜体、下划线等
 - Normalized custom positioning (0–1 range), auto-adapts to any resolution / 归一化自定义位置，自动适配任意分辨率
 - i18n: English / Chinese / Korean / 中英韩三语
@@ -213,14 +216,15 @@ Settings are saved to `config/settings.json` and can be edited via:
 
 | Category | Options |
 |----------|---------|
-| **Layout** | Main: 8K/10K/12K/14K/16K/20K/**24K**, Standard Key Width toggle, Foot: Off/2K-16K |
-| **Position** | Custom position (X/Y 0-1), place below toggle |
+| **Layout** | Main: 8K/10K/12K/14K/16K/20K/**24K**/**108-key full**, Standard Key Width toggle, Foot: Off/2K-16K |
+| **Position** | Custom position (X/Y 0-1); for the 108-key layout this moves the whole keyboard block |
 | **Size** | Scale slider (0.1x – 2.0x) |
 | **Colors** | Background, Outline, Text (normal + pressed), Rain (per-row), KPS, Total |
 | **Per-Key Colors** | Independent colors per key + Auto Rainbow KV |
 | **Font** | Built-in + custom fonts, style flags (Bold/Italic/Underline/etc.) |
 | **Rain** | Enable, per-row toggle/speed/height, fade-out on release, ghost rain |
 | **Display** | Hide main count, per-key KPS, streamer mode, count formatting |
+| **Full Keyboard (108-key)** | Show KPS/Total, KPS/Total size (40–400px), KPS/Total position, unified color, center KPS/Total text |
 | **Keys** | Rebind any key, custom text labels, ghost key bindings |
 | **Language** | English / 中文 / 한국어 |
 

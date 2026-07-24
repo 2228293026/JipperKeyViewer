@@ -1133,6 +1133,18 @@ namespace JipperKeyViewer.KeyViewer
                     ChangeKeyViewer();
                     SaveSettings();
                 }
+                // Stack KPS/Total text vertically — only available when centered is enabled
+                // KPS/Total 上下堆叠 — 仅在居中开启时可用
+                if (Settings.Data.KpsTotalCentered)
+                {
+                    bool newStacked = GUILayout.Toggle(Settings.Data.KpsTotalStackedWhenCentered, I18n.Tr("kps_total_stacked"));
+                    if (newStacked != Settings.Data.KpsTotalStackedWhenCentered)
+                    {
+                        Settings.Data.KpsTotalStackedWhenCentered = newStacked;
+                        ChangeKeyViewer();
+                        SaveSettings();
+                    }
+                }
             }
 
             bool newPressAnim = GUILayout.Toggle(Settings.Data.EnablePressAnimation, I18n.Tr("press_animation"));

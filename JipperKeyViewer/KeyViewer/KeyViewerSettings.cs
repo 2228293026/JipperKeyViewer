@@ -225,6 +225,8 @@ namespace JipperKeyViewer.KeyViewer
         public float FullKeyboardKpsTotalSize = 150f;
         // Center the KPS / Total text+value (stacked, centered) instead of left-label / right-number / 居中显示 KPS/Total（上下堆叠居中）而非左文本右数值（仅 slim 布局生效，含全键盘）
         public bool KpsTotalCentered = false;
+        // Stack KPS/Total label and value vertically when centered is enabled / 居中模式下将标签和数值上下堆叠
+        public bool KpsTotalStackedWhenCentered = false;
         public Color[] PerKeyBackground;
         public Color[] PerKeyBackgroundClicked;
         public Color[] PerKeyOutline;

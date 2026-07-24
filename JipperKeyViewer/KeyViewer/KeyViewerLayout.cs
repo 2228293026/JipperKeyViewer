@@ -293,6 +293,11 @@ namespace JipperKeyViewer.KeyViewer
         private static bool KpsTotalCenteredApplies()
             => KpsTotalIsSlim() && Settings.Data.KpsTotalCentered;
 
+        /// <summary>Stacked mode: label and value on separate lines (applies when both centered and stacked are true)
+        /// 堆叠模式：标签和数值分两行显示（需同时开启居中和堆叠）</summary>
+        private static bool KpsTotalStackedApplies()
+            => KpsTotalCenteredApplies() && Settings.Data.KpsTotalStackedWhenCentered;
+
         private void InitializeMainKeys(LayoutDesc layout)
         {
             if (IsFullKeyboard) { InitializeFullKeyboard(); return; }
@@ -673,15 +678,21 @@ namespace JipperKeyViewer.KeyViewer
         {
             if (i >= 0 && i < FootKeyBase && Settings.Data.HideMainKeyCount)
                 count = false;
-            // KPS / Total boxes: in centered mode (flat / slim designs only) the label and value merge into
-            // one centered text box (value box not created, so "KPS 123" grows and recenters as number widens).
-            // Stacked (non-slim) KPS/Total keep the separate top-label / bottom-number layout.
-            // 居中模式仅对扁平（slim）设计的 KPS/Total 生效：标签与数值合并为单个居中文本框，数值变长时整行加宽并重新居中。
-            // 堆叠（非 slim）的 KPS/Total 保持上文本下数值的分离布局。
+            // KPS / Total boxes: three modes
+            // 1. Default slim: left label / right number
+            // 2. Centered single-line: "KPS 123" in one centered box
+            // 3. Centered stacked: label on top, number below (smaller font to fit)
+            // KPS/Total 框三种模式：
+            // 1. 默认 slim：左标签右数值
+            // 2. 居中单行："KPS 123" 合并为一个居中框
+            // 3. 居中堆叠：标签在上方，数值在下方（字号缩小以适应）
             bool centeredText = (i == -1 || i == -2) && KpsTotalCenteredApplies();
+            bool stackedText = centeredText && KpsTotalStackedApplies();
             GameObject obj = new("Key " + i);
             KeyViewerSettings settings = Settings;
-            float h = sizeY > 0f ? sizeY : (slim ? 30f : 50f);
+            // For stacked mode, use taller container to fit two rows of text without overlap
+            // 堆叠模式使用更高的容器，让两行文字不重叠
+            float h = sizeY > 0f ? sizeY : (stackedText ? 30f : (slim ? 30f : 50f));
             RectTransform transform = obj.AddComponent<RectTransform>();
             transform.SetParent(KeyViewerSizeObject.transform);
             transform.sizeDelta = new Vector2(sizeX, h);
@@ -704,9 +715,26 @@ namespace JipperKeyViewer.KeyViewer
             key.visuals = visuals.transform;
             key.background = CreateImage(visuals, "Background", sizeX, h, keyBackgroundSprite, settings.Data.Background);
             key.outline = CreateImage(visuals, "Outline", sizeX, h, keyOutlineSprite, settings.Data.Outline);
-            key.text = CreateKeyText(visuals, sizeX, slim, count, settings, centeredText);
-            if (count && !centeredText)
+            // For stacked mode, create separate text/value objects; otherwise use single centered text
+            // 堆叠模式创建分离的标签/数值对象，否则使用单个居中文本
+            if (stackedText)
+            {
+                key.text = CreateKeyText(visuals, sizeX, slim, false, settings, false, true); // label top
+                key.value = CreateCountText(visuals, sizeX, slim, settings, true); // value bottom
+            }
+            else if (centeredText)
+            {
+                key.text = CreateKeyText(visuals, sizeX, slim, false, settings, true); // single merged
+            }
+            else if (count)
+            {
+                key.text = CreateKeyText(visuals, sizeX, slim, true, settings, false);
                 key.value = CreateCountText(visuals, sizeX, slim, settings);
+            }
+            else
+            {
+                key.text = CreateKeyText(visuals, sizeX, slim, false, settings, false);
+            }
             UpdateKeyText(key, i);
             SetupRainContainer(key, obj, sizeX, raining);
             ApplyKeyColors(key, i, raining);
@@ -733,18 +761,25 @@ namespace JipperKeyViewer.KeyViewer
             return image;
         }
 
-        private TextMeshProUGUI CreateKeyText(GameObject parent, float sizeX, bool slim, bool count, KeyViewerSettings settings, bool centered = false)
+        private TextMeshProUGUI CreateKeyText(GameObject parent, float sizeX, bool slim, bool count, KeyViewerSettings settings, bool centered = false, bool stackedLabel = false)
         {
             GameObject go = new("KeyText");
             RectTransform rt = go.AddComponent<RectTransform>();
             rt.SetParent(parent.transform);
-            if (centered)
+            if (centered && !stackedLabel)
             {
                 // Single merged, full-width, centered box for the combined "label value" string.
                 // 合并用的整宽居中框，承载 "标签 数值" 整体。
                 rt.sizeDelta = new Vector2(sizeX - 4, 32);
                 rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
                 rt.anchoredPosition = Vector2.zero;
+            }
+            else if (stackedLabel)
+            {
+                // Label at top for stacked mode (compact font, inset to stay inside the key box) / 堆叠模式标签在上方（紧凑字体，内嵌在按键框内）
+                rt.sizeDelta = new Vector2(sizeX - 4, 14);
+                rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 1);
+                rt.anchoredPosition = new Vector2(0, -1);
             }
             else if (slim)
             {
@@ -767,16 +802,23 @@ namespace JipperKeyViewer.KeyViewer
                 }
             }
             rt.localScale = Vector3.one;
-            TextAlignmentOptions align = centered ? TextAlignmentOptions.Center : (slim ? TextAlignmentOptions.Left : TextAlignmentOptions.Center);
+            TextAlignmentOptions align = stackedLabel ? TextAlignmentOptions.Center : (centered ? TextAlignmentOptions.Center : (slim ? TextAlignmentOptions.Left : TextAlignmentOptions.Center));
             return ConfigureText(go, settings, align);
         }
 
-        private TextMeshProUGUI CreateCountText(GameObject parent, float sizeX, bool slim, KeyViewerSettings settings)
+        private TextMeshProUGUI CreateCountText(GameObject parent, float sizeX, bool slim, KeyViewerSettings settings, bool stackedValue = false)
         {
             GameObject go = new("CountText");
             RectTransform rt = go.AddComponent<RectTransform>();
             rt.SetParent(parent.transform);
-            if (slim)
+            if (stackedValue)
+            {
+                // Value at bottom for stacked mode (inset to stay inside the key box) / 堆叠模式数值在下方（内嵌在按键框内）
+                rt.sizeDelta = new Vector2(sizeX - 4, 14);
+                rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0);
+                rt.anchoredPosition = new Vector2(0, 1);
+            }
+            else if (slim)
             {
                 rt.sizeDelta = new Vector2(sizeX / 2, 30);
                 rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(1, 0.5f);
@@ -789,7 +831,7 @@ namespace JipperKeyViewer.KeyViewer
                 rt.anchoredPosition = new Vector2(0, 2);
             }
             rt.localScale = Vector3.one;
-            TextAlignmentOptions align = slim ? TextAlignmentOptions.Right : TextAlignmentOptions.Top;
+            TextAlignmentOptions align = stackedValue ? TextAlignmentOptions.Center : (slim ? TextAlignmentOptions.Right : TextAlignmentOptions.Top);
             return ConfigureText(go, settings, align);
         }
 
@@ -913,20 +955,38 @@ namespace JipperKeyViewer.KeyViewer
         }
 
         /// <summary>
-        /// Set the KPS / Total display. In centered mode the label and value merge into one centered
-        /// string ("KPS 123") that recenters as the number widens; otherwise they stay separate.
-        /// 设置 KPS/Total 显示。居中模式下标签与数值合并为单个居中字符串（"KPS 123"），数值变宽时整体重新居中；否则保持分开。
+        /// Set the KPS / Total display. Three modes:
+        /// 1. Default slim: separate label (left) and value (right)
+        /// 2. Centered single-line: merged "KPS 123" in one centered box
+        /// 3. Centered stacked: label (top) and value (bottom) with smaller fonts
+        /// 设置 KPS/Total 显示。三种模式：
+        /// 1. 默认 slim：标签（左）和数值（右）分开
+        /// 2. 居中单行："KPS 123" 合并为一个居中框
+        /// 3. 居中堆叠：标签（上）和数值（下）用较小字号
         /// </summary>
         private static void SetKpsTotalDisplay(Key key, string label, string valueStr)
         {
             if (key == null) return;
-            if (KpsTotalCenteredApplies())
+            if (KpsTotalStackedApplies())
             {
+                // Stacked mode: separate label (top) and value (bottom) objects
+                // 堆叠模式：分离的标签（上）和数值（下）对象
+                if (key.value != null)
+                {
+                    key.value.gameObject.SetActive(true);
+                    key.value.text = valueStr;
+                }
+                key.text.text = label;
+            }
+            else if (KpsTotalCenteredApplies())
+            {
+                // Single-line centered: merge into one text box / 单行居中：合并为一个文本框
                 if (key.value != null) key.value.gameObject.SetActive(false);
                 key.text.text = label + " " + valueStr;
             }
             else
             {
+                // Default slim: separate objects / 默认 slim：分离对象
                 if (key.value != null)
                 {
                     key.value.gameObject.SetActive(true);

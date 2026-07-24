@@ -98,6 +98,7 @@
     { "key": "key_font_size", "en": "Key Font Size", "zh": "按键字号", "ko": "키 글꼴 크기" },
     { "key": "press_animation", "en": "Press Animation", "zh": "按键动画", "ko": "키 애니메이션" },
     { "key": "press_anim_scale", "en": "Anim Scale", "zh": "动画缩放", "ko": "애니메이션 크기" },
-    { "key": "press_anim_rain", "en": "Animate Rain", "zh": "雨滴动画", "ko": "빗줄 애니메이션" }
+    { "key": "press_anim_rain", "en": "Animate Rain", "zh": "雨滴动画", "ko": "빗줄 애니메이션" },
+    { "key": "kps_total_stacked", "en": "Stack KPS/Total Text", "zh": "KPS/Total 上下堆叠", "ko": "KPS/총계 상하 배치" }
   ]
 }

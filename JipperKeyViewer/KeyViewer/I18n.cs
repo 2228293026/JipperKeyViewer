@@ -121,6 +121,7 @@ namespace JipperKeyViewer.KeyViewer
             ["press_animation"] = "Press Animation",
             ["press_anim_scale"] = "Anim Scale",
             ["press_anim_rain"] = "Animate Rain",
+            ["kps_total_stacked"] = "Stack KPS/Total Text",
         };
 
         /// <summary>Chinese translations dictionary / 中文字典</summary>
@@ -227,6 +228,7 @@ namespace JipperKeyViewer.KeyViewer
             ["press_animation"] = "按键动画",
             ["press_anim_scale"] = "动画缩放",
             ["press_anim_rain"] = "雨滴动画",
+            ["kps_total_stacked"] = "KPS/Total 上下堆叠",
         };
 
         /// <summary>Korean translations dictionary / 韩文字典</summary>
@@ -333,6 +335,7 @@ namespace JipperKeyViewer.KeyViewer
             ["press_animation"] = "키 애니메이션",
             ["press_anim_scale"] = "애니메이션 크기",
             ["press_anim_rain"] = "빗줄 애니메이션",
+            ["kps_total_stacked"] = "KPS/총계 상하 배치",
         };
 
         /// <summary>Path to the lang.json override file / lang.json 覆盖文件路径</summary>

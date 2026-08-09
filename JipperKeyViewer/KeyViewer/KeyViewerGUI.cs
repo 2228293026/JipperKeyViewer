@@ -62,6 +62,7 @@ namespace JipperKeyViewer.KeyViewer
         /// </summary>
         public void DrawSettingsWindow()
         {
+            colorPickerFieldSeq = 0;
             GUILayout.BeginVertical();
             DrawProfileSection();
             DrawLanguageSection();
@@ -541,24 +542,93 @@ namespace JipperKeyViewer.KeyViewer
                 GUILayout.EndVertical();
             }
         }
+        // Per-frame counter naming the color picker's text fields (reset in DrawSettingsWindow) so focus
+        // can be tracked per-field via control names on every IMGUI version. / 每帧自增的字段命名计数器
+        // （在 DrawSettingsWindow 开头重置），用于跨版本稳定跟踪颜色输入框的焦点。
+        private static int colorPickerFieldSeq;
+
+        // In-progress text for the color picker text fields, keyed by control name. Persists across
+        // frames so a focused field isn't reset to the model value while its value is being typed.
+        // / 颜色输入框的进行中输入（按控件名缓存），跨帧保留，避免输入过程中被模型值重置。
+        private readonly Dictionary<string, string> colorInputBuffer = new Dictionary<string, string>();
+
+        private string TextInputField(string ctrlName, string modelText, params GUILayoutOption[] options)
+        {
+            GUI.SetNextControlName(ctrlName);
+            bool focused = GUI.GetNameOfFocusedControl() == ctrlName;
+            string display = focused && colorInputBuffer.TryGetValue(ctrlName, out string pending)
+                ? pending : modelText;
+            string txt = GUILayout.TextField(display, options);
+            if (focused) colorInputBuffer[ctrlName] = txt;
+            else colorInputBuffer.Remove(ctrlName);
+            return txt;
+        }
+
+        /// <summary>Color to #RRGGBB, or #RRGGBBAA when alpha &lt; 255 / 颜色转 #RRGGBB，非不透明时输出 #RRGGBBAA</summary>
+        private static string ColorToHex(Color c)
+        {
+            int r = Mathf.RoundToInt(Mathf.Clamp01(c.r) * 255f);
+            int g = Mathf.RoundToInt(Mathf.Clamp01(c.g) * 255f);
+            int b = Mathf.RoundToInt(Mathf.Clamp01(c.b) * 255f);
+            int a = Mathf.RoundToInt(Mathf.Clamp01(c.a) * 255f);
+            return a < 255 ? $"#{r:X2}{g:X2}{b:X2}{a:X2}" : $"#{r:X2}{g:X2}{b:X2}";
+        }
+
+        /// <summary>Parse #RRGGBB or #RRGGBBAA; 6-digit input sets alpha to opaque / 解析 #RRGGBB 或 #RRGGBBAA；6 位输入时 alpha 设为不透明</summary>
+        private static bool TryParseHex(string input, out Color color)
+        {
+            color = Color.white;
+            string s = string.IsNullOrEmpty(input) ? string.Empty : input.Trim().TrimStart('#');
+            if (s.Length != 6 && s.Length != 8) return false;
+            if (!uint.TryParse(s, System.Globalization.NumberStyles.HexNumber,
+                System.Globalization.CultureInfo.InvariantCulture, out uint v))
+                return false;
+            if (s.Length == 6)
+                color = new Color(((v >> 16) & 0xFF) / 255f, ((v >> 8) & 0xFF) / 255f, (v & 0xFF) / 255f, 1f);
+            else
+                color = new Color(((v >> 24) & 0xFF) / 255f, ((v >> 16) & 0xFF) / 255f, ((v >> 8) & 0xFF) / 255f, (v & 0xFF) / 255f);
+            return true;
+        }
+
         private Color DrawColorPicker(string label, Color currentColor, Color defaultColor)
         {
             GUILayout.BeginVertical();
             GUILayout.Label(label);
-            void DrawChannel(string name, ref float channel)
+
+            // Unique control names allocated up-front in draw order so focus tracking stays stable.
+            // 先按绘制顺序分配唯一的控件名，保证焦点跟踪一致。
+            string ctrlR = "cpi_" + (++colorPickerFieldSeq);
+            string ctrlG = "cpi_" + (++colorPickerFieldSeq);
+            string ctrlB = "cpi_" + (++colorPickerFieldSeq);
+            string ctrlA = "cpi_" + (++colorPickerFieldSeq);
+            string ctrlHex = "cpi_" + (++colorPickerFieldSeq);
+
+            void DrawChannel(string ctrl, string name, ref float channel)
             {
                 GUILayout.BeginHorizontal();
                 GUILayout.Label(name + ":", GUILayout.Width(20));
                 channel = GUILayout.HorizontalSlider(channel, 0f, 1f, GUILayout.Width(150));
-                string txt = GUILayout.TextField(channel.ToString("F2"), GUILayout.Width(40));
+                // Text input keeps Unity's 0-1 scale; use the Hex field below for precise values.
+                // 文本框保持 0-1；要精确取色时用下面的 Hex 输入。
+                string txt = TextInputField(ctrl, channel.ToString("F2"), GUILayout.Width(40));
                 if (float.TryParse(txt, out float val))
                     channel = Mathf.Clamp01(val);
                 GUILayout.EndHorizontal();
             }
-            DrawChannel("R", ref currentColor.r);
-            DrawChannel("G", ref currentColor.g);
-            DrawChannel("B", ref currentColor.b);
-            DrawChannel("A", ref currentColor.a);
+
+            DrawChannel(ctrlR, "R", ref currentColor.r);
+            DrawChannel(ctrlG, "G", ref currentColor.g);
+            DrawChannel(ctrlB, "B", ref currentColor.b);
+            DrawChannel(ctrlA, "A", ref currentColor.a);
+
+            // Direct #RRGGBB / #RRGGBBAA hex entry. / 直接输入 #RRGGBB 或 #RRGGBBAA
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Hex:", GUILayout.Width(20));
+            string hex = TextInputField(ctrlHex, ColorToHex(currentColor), GUILayout.Width(120));
+            if (TryParseHex(hex, out Color parsed))
+                currentColor = parsed;
+            GUILayout.EndHorizontal();
+
             GUILayout.BeginHorizontal();
             GUILayout.Label(I18n.Tr("preview") + ":", GUILayout.Width(40));
             Rect previewRect = GUILayoutUtility.GetRect(100, 20);

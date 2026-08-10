@@ -715,25 +715,27 @@ namespace JipperKeyViewer.KeyViewer
             key.visuals = visuals.transform;
             key.background = CreateImage(visuals, "Background", sizeX, h, keyBackgroundSprite, settings.Data.Background);
             key.outline = CreateImage(visuals, "Outline", sizeX, h, keyOutlineSprite, settings.Data.Outline);
+            // Per-key slot index for text size/spacing overrides: KPS → MaxKeySlots, Total → MaxKeySlots+1 / 每键槽位索引
+            int pki = i == -1 ? MaxKeySlots : i == -2 ? MaxKeySlots + 1 : i;
             // For stacked mode, create separate text/value objects; otherwise use single centered text
             // 堆叠模式创建分离的标签/数值对象，否则使用单个居中文本
             if (stackedText)
             {
-                key.text = CreateKeyText(visuals, sizeX, slim, false, settings, false, true); // label top
-                key.value = CreateCountText(visuals, sizeX, slim, settings, true); // value bottom
+                key.text = CreateKeyText(visuals, sizeX, slim, false, settings, false, true, pki); // label top
+                key.value = CreateCountText(visuals, sizeX, slim, settings, true, pki); // value bottom
             }
             else if (centeredText)
             {
-                key.text = CreateKeyText(visuals, sizeX, slim, false, settings, true); // single merged
+                key.text = CreateKeyText(visuals, sizeX, slim, false, settings, true, false, pki); // single merged
             }
             else if (count)
             {
-                key.text = CreateKeyText(visuals, sizeX, slim, true, settings, false);
-                key.value = CreateCountText(visuals, sizeX, slim, settings);
+                key.text = CreateKeyText(visuals, sizeX, slim, true, settings, false, false, pki);
+                key.value = CreateCountText(visuals, sizeX, slim, settings, false, pki);
             }
             else
             {
-                key.text = CreateKeyText(visuals, sizeX, slim, false, settings, false);
+                key.text = CreateKeyText(visuals, sizeX, slim, false, settings, false, false, pki);
             }
             UpdateKeyText(key, i);
             SetupRainContainer(key, obj, sizeX, raining);
@@ -761,7 +763,7 @@ namespace JipperKeyViewer.KeyViewer
             return image;
         }
 
-        private TextMeshProUGUI CreateKeyText(GameObject parent, float sizeX, bool slim, bool count, KeyViewerSettings settings, bool centered = false, bool stackedLabel = false)
+        private TextMeshProUGUI CreateKeyText(GameObject parent, float sizeX, bool slim, bool count, KeyViewerSettings settings, bool centered = false, bool stackedLabel = false, int perKeyIndex = -1)
         {
             GameObject go = new("KeyText");
             RectTransform rt = go.AddComponent<RectTransform>();
@@ -803,10 +805,10 @@ namespace JipperKeyViewer.KeyViewer
             }
             rt.localScale = Vector3.one;
             TextAlignmentOptions align = stackedLabel ? TextAlignmentOptions.Center : (centered ? TextAlignmentOptions.Center : (slim ? TextAlignmentOptions.Left : TextAlignmentOptions.Center));
-            return ConfigureText(go, settings, align);
+            return ConfigureText(go, settings, align, perKeyIndex);
         }
 
-        private TextMeshProUGUI CreateCountText(GameObject parent, float sizeX, bool slim, KeyViewerSettings settings, bool stackedValue = false)
+        private TextMeshProUGUI CreateCountText(GameObject parent, float sizeX, bool slim, KeyViewerSettings settings, bool stackedValue = false, int perKeyIndex = -1)
         {
             GameObject go = new("CountText");
             RectTransform rt = go.AddComponent<RectTransform>();
@@ -832,10 +834,10 @@ namespace JipperKeyViewer.KeyViewer
             }
             rt.localScale = Vector3.one;
             TextAlignmentOptions align = stackedValue ? TextAlignmentOptions.Center : (slim ? TextAlignmentOptions.Right : TextAlignmentOptions.Top);
-            return ConfigureText(go, settings, align);
+            return ConfigureText(go, settings, align, perKeyIndex);
         }
 
-        private TextMeshProUGUI ConfigureText(GameObject go, KeyViewerSettings settings, TextAlignmentOptions alignment)
+        private TextMeshProUGUI ConfigureText(GameObject go, KeyViewerSettings settings, TextAlignmentOptions alignment, int perKeyIndex = -1)
         {
             var text = go.AddComponent<TextMeshProUGUI>();
             var keyFont = GetCurrentFont();
@@ -848,7 +850,25 @@ namespace JipperKeyViewer.KeyViewer
             text.fontStyle = (FontStyles)settings.Data.FontStyleFlags;
             text.enableAutoSizing = true;
             text.fontSizeMin = 0;
-            text.fontSizeMax = settings.Data.KeyFontSize;
+
+            // Per-key font size and vertical offset (via RectTransform Y) / 每键字号和垂直偏移（通过 RectTransform Y）
+            if (settings.Data.EnablePerKeyTextSize && perKeyIndex >= 0)
+            {
+                int pi = perKeyIndex;
+                if (pi >= 0 && pi < settings.Data.PerKeyFontSize.Length && settings.Data.PerKeyFontSize[pi] > 0)
+                {
+                    text.fontSizeMax = settings.Data.PerKeyFontSize[pi];
+                }
+                else
+                {
+                    text.fontSizeMax = settings.Data.KeyFontSize;
+                }
+            }
+            else
+            {
+                text.fontSizeMax = settings.Data.KeyFontSize;
+            }
+
             text.alignment = alignment;
             text.color = settings.Data.Text;
             text.raycastTarget = false;
@@ -964,13 +984,15 @@ namespace JipperKeyViewer.KeyViewer
         /// 2. 居中单行："KPS 123" 合并为一个居中框
         /// 3. 居中堆叠：标签（上）和数值（下）用较小字号
         /// </summary>
-        private static void SetKpsTotalDisplay(Key key, string label, string valueStr)
+        private static void SetKpsTotalDisplay(Key key, string defaultLabel, string valueStr)
         {
             if (key == null) return;
+            bool isKps = defaultLabel == "KPS";
+            string customLabel = isKps ? Settings.Data.KpsLabel : Settings.Data.TotalLabel;
+            string label = customLabel;
+
             if (KpsTotalStackedApplies())
             {
-                // Stacked mode: separate label (top) and value (bottom) objects
-                // 堆叠模式：分离的标签（上）和数值（下）对象
                 if (key.value != null)
                 {
                     key.value.gameObject.SetActive(true);
@@ -980,13 +1002,11 @@ namespace JipperKeyViewer.KeyViewer
             }
             else if (KpsTotalCenteredApplies())
             {
-                // Single-line centered: merge into one text box / 单行居中：合并为一个文本框
                 if (key.value != null) key.value.gameObject.SetActive(false);
                 key.text.text = label + " " + valueStr;
             }
             else
             {
-                // Default slim: separate objects / 默认 slim：分离对象
                 if (key.value != null)
                 {
                     key.value.gameObject.SetActive(true);
@@ -994,6 +1014,15 @@ namespace JipperKeyViewer.KeyViewer
                 }
                 key.text.text = label;
             }
+        }
+
+        /// <summary>Refresh only the label text (called after user changes KPS/Total custom label) / 仅刷新标签文本（用户修改 KPS/Total 自定义标签后调用）</summary>
+        private void RefreshKpsTotalLabels()
+        {
+            if (Kps != null)
+                SetKpsTotalDisplay(Kps, "KPS", "0");
+            if (Total != null)
+                SetKpsTotalDisplay(Total, "Total", FormatCount(Settings.Data.TotalCount));
         }
 
         /// <summary>

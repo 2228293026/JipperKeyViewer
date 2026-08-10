@@ -269,6 +269,54 @@ namespace JipperKeyViewer.KeyViewer
             TextChangeExpanded = DrawFoldoutButton(I18n.Tr("text_change"), TextChangeExpanded);
             if (TextChangeExpanded)
                 DrawTextChangeSection();
+
+            // KPS / Total custom text / KPS / Total 自定义文本
+            kpsTotalTextExpanded = DrawFoldoutButton(I18n.Tr("kps_total_text"), kpsTotalTextExpanded);
+            if (kpsTotalTextExpanded)
+                DrawKpsTotalTextSection();
+        }
+
+        private bool kpsTotalTextExpanded;
+
+        private void DrawKpsTotalTextSection()
+        {
+            GUILayout.BeginVertical("box");
+
+            // ---- KPS 标签 ----
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("KPS " + I18n.Tr("input_text") + ":");
+            string newKpsLabel = GUILayout.TextField(Settings.Data.KpsLabel, GUILayout.Width(100));
+            if (newKpsLabel != Settings.Data.KpsLabel)
+            {
+                Settings.Data.KpsLabel = newKpsLabel;
+                RefreshKpsTotalLabels();
+            }
+            if (GUILayout.Button(I18n.Tr("reset"), GUILayout.Width(50)))
+            {
+                Settings.Data.KpsLabel = "KPS";
+                RefreshKpsTotalLabels();
+                SaveSettings();
+            }
+            GUILayout.EndHorizontal();
+
+            // ---- Total 标签 ----
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Total " + I18n.Tr("input_text") + ":");
+            string newTotalLabel = GUILayout.TextField(Settings.Data.TotalLabel, GUILayout.Width(100));
+            if (newTotalLabel != Settings.Data.TotalLabel)
+            {
+                Settings.Data.TotalLabel = newTotalLabel;
+                RefreshKpsTotalLabels();
+            }
+            if (GUILayout.Button(I18n.Tr("reset"), GUILayout.Width(50)))
+            {
+                Settings.Data.TotalLabel = "Total";
+                RefreshKpsTotalLabels();
+                SaveSettings();
+            }
+            GUILayout.EndHorizontal();
+
+            GUILayout.EndVertical();
         }
     }
 }

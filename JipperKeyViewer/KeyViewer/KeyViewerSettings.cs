@@ -80,6 +80,16 @@ namespace JipperKeyViewer.KeyViewer
         public int[] Count = new int[KeyViewer.MaxKeySlots];
         public int TotalCount;
 
+        // Custom label text for KPS and Total displays / KPS 和 Total 显示的自定义标签文本
+        // Default to the standard English labels. The GUI detects "user kept the default"
+        // by string comparison with "KPS" / "Total" — no bool flag needed because Unity
+        // JsonUtility serializes both null and "" identically, and treating the default
+        // value as "use default" works as long as we initialize the field to that value.
+        // / 默认填标准英文标签。GUI 通过与 "KPS"/"Total" 字符串对比判断"是否使用默认"——
+        //   不要 bool 标志:JsonUtility 对 null 和 "" 序列化结果相同,直接用默认值即可。
+        public string KpsLabel = "KPS";
+        public string TotalLabel = "Total";
+
         public bool DownLocation;
         public float Size = 1f;
         public bool Enabled = true;
@@ -236,6 +246,12 @@ namespace JipperKeyViewer.KeyViewer
         public Color[] PerKeyRainColor;
         public Color[] PerKeyGhostRainColor;
 
+        // ===== Per-key text size / 每键字号 =====
+        // PerKeyFontSize: 0 = use global KeyFontSize, >0 = override for this key.
+        // / PerKeyFontSize: 0 = 使用全局 KeyFontSize, >0 = 该键独立字号。
+        public bool EnablePerKeyTextSize = false;
+        public float[] PerKeyFontSize;         // size MaxKeySlots+2, 0 = global default
+
         public ProfileData()
         {
             key8Text = key8Text ?? new string[8];
@@ -271,12 +287,22 @@ namespace JipperKeyViewer.KeyViewer
             PerKeyTextClicked = SafeEnsure(PerKeyTextClicked, n, KeyViewer.TextClicked);
             PerKeyRainColor = SafeEnsure(PerKeyRainColor, n, KeyViewer.RainColor);
             PerKeyGhostRainColor = SafeEnsure(PerKeyGhostRainColor, n, KeyViewer.GhostRainColorDefault);
+            PerKeyFontSize = SafeEnsureFloat(PerKeyFontSize, n, 0f);
         }
 
         private static Color[] SafeEnsure(Color[] arr, int len, Color fill)
         {
             if (arr != null && arr.Length == len) return arr;
             Color[] r = new Color[len];
+            for (int i = 0; i < len; i++)
+                r[i] = (arr != null && i < arr.Length) ? arr[i] : fill;
+            return r;
+        }
+
+        private static float[] SafeEnsureFloat(float[] arr, int len, float fill)
+        {
+            if (arr != null && arr.Length == len) return arr;
+            float[] r = new float[len];
             for (int i = 0; i < len; i++)
                 r[i] = (arr != null && i < arr.Length) ? arr[i] : fill;
             return r;

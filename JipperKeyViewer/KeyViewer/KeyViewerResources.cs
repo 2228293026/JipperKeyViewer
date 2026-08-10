@@ -153,19 +153,35 @@ namespace JipperKeyViewer.KeyViewer
                 t.fontStyle = style;
                 t.fontSizeMax = Settings.Data.KeyFontSize;
             }
+            bool hasPerKey = Settings.Data.EnablePerKeyTextSize;
+            void ApplyPerKeyOverride(TMP_Text t, int pi)
+            {
+                if (t == null || !hasPerKey || pi < 0 || pi >= Settings.Data.PerKeyFontSize.Length) return;
+                float fs = Settings.Data.PerKeyFontSize[pi];
+                if (fs > 0f) t.fontSizeMax = fs;
+            }
             if (Keys != null)
             {
-                foreach (Key key in Keys)
+                for (int i = 0; i < Keys.Length; i++)
                 {
-                    if (key == null) continue;
-                    UpdateText(key.text);
-                    UpdateText(key.value);
+                    if (Keys[i] == null) continue;
+                    int pi = i;
+                    UpdateText(Keys[i].text);
+                    ApplyPerKeyOverride(Keys[i].text, pi);
+                    ApplyPerKeyOverride(Keys[i].value, pi);
+                    UpdateText(Keys[i].value);
                 }
             }
+            int kpsPi = MaxKeySlots;
+            int totalPi = MaxKeySlots + 1;
             UpdateText(Kps?.text);
+            ApplyPerKeyOverride(Kps?.text, kpsPi);
             UpdateText(Kps?.value);
+            ApplyPerKeyOverride(Kps?.value, kpsPi);
             UpdateText(Total?.text);
+            ApplyPerKeyOverride(Total?.text, totalPi);
             UpdateText(Total?.value);
+            ApplyPerKeyOverride(Total?.value, totalPi);
         }
 
         /// <summary>

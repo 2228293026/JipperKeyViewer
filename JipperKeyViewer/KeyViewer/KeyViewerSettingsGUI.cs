@@ -454,6 +454,131 @@ namespace JipperKeyViewer.KeyViewer
             }
         }
 
+        // ===== Per-key text size section / 每键字号 区块 =====
+        int perKeyTextSelected = -1;
+        bool perKeyTextExpanded = false;
+
+        private void DrawPerKeyTextSizeSection()
+        {
+            perKeyTextExpanded = DrawFoldoutButton(I18n.Tr("per_key_text_size"), perKeyTextExpanded);
+            if (!perKeyTextExpanded) return;
+
+            GUILayout.BeginVertical("box");
+            bool pk = GUILayout.Toggle(Settings.Data.EnablePerKeyTextSize, I18n.Tr("enable"));
+            if (pk != Settings.Data.EnablePerKeyTextSize)
+            {
+                Settings.Data.EnablePerKeyTextSize = pk;
+                if (!pk)
+                {
+                    int n = KeyViewer.MaxKeySlots + 2;
+                    if (Settings.Data.PerKeyFontSize != null)
+                        for (int i = 0; i < n && i < Settings.Data.PerKeyFontSize.Length; i++)
+                            Settings.Data.PerKeyFontSize[i] = 0f;
+                }
+                UpdateAllFonts();
+                SaveSettings();
+            }
+
+            if (Settings.Data.EnablePerKeyTextSize)
+            {
+                GUILayout.BeginVertical("box");
+                KeyCode[] keyCodes = GetKeyCode();
+                KeyCode[] footKeyCodes = GetFootKeyCode();
+
+                GUILayout.Label(I18n.Tr("row1_keys") + ":");
+                GUILayout.BeginHorizontal();
+                for (int i = 0; i < 8; i++) DrawPerKeyTextSizeBtn(i, KeyToString(keyCodes[i]));
+                GUILayout.EndHorizontal();
+
+                byte[] backSequence = GetBackSequence();
+                if (backSequence.Length > 0)
+                {
+                    GUILayout.Label(I18n.Tr("row2_keys") + ":");
+                    GUILayout.BeginHorizontal();
+                    for (int b = 0; b < backSequence.Length && b < 8; b++)
+                        DrawPerKeyTextSizeBtn(backSequence[b], KeyToString(keyCodes[backSequence[b]]));
+                    GUILayout.EndHorizontal();
+                }
+
+                if (backSequence.Length >= 8)
+                {
+                    GUILayout.Label(I18n.Tr("row3_keys") + ":");
+                    GUILayout.BeginHorizontal();
+                    for (int b = 8; b < backSequence.Length && backSequence[b] < keyCodes.Length; b++)
+                        DrawPerKeyTextSizeBtn(backSequence[b], KeyToString(keyCodes[backSequence[b]]));
+                    GUILayout.EndHorizontal();
+                }
+
+                if (footKeyCodes != null && footKeyCodes.Length > 0)
+                {
+                    GUILayout.Label(I18n.Tr("foot_keys") + ":");
+                    int rows = footKeyCodes.Length <= 8 ? 1 : 2;
+                    for (int r = 0; r < rows; r++)
+                    {
+                        GUILayout.BeginHorizontal();
+                        int start = r * 8;
+                        int end = Mathf.Min(start + 8, footKeyCodes.Length);
+                        for (int f = start; f < end; f++)
+                            DrawPerKeyTextSizeBtn(FootKeyBase + f, KeyToString(footKeyCodes[f]));
+                        GUILayout.EndHorizontal();
+                    }
+                }
+
+                GUILayout.Space(5);
+                GUILayout.BeginHorizontal();
+                DrawPerKeyTextSizeBtn(MaxKeySlots, "KPS");
+                DrawPerKeyTextSizeBtn(MaxKeySlots + 1, "Total");
+                GUILayout.EndHorizontal();
+
+                if (perKeyTextSelected >= 0 && perKeyTextSelected < MaxKeySlots + 2)
+                    DrawPerKeyTextSizeEditor(perKeyTextSelected);
+
+                if (GUILayout.Button(I18n.Tr("per_key_color_reset")))
+                {
+                    int n = MaxKeySlots + 2;
+                    if (Settings.Data.PerKeyFontSize != null)
+                        for (int i = 0; i < n && i < Settings.Data.PerKeyFontSize.Length; i++)
+                            Settings.Data.PerKeyFontSize[i] = 0f;
+                    UpdateAllFonts();
+                    SaveSettings();
+                }
+
+                GUILayout.EndVertical();
+            }
+
+            GUILayout.EndVertical();
+        }
+
+        private void DrawPerKeyTextSizeBtn(int idx, string label)
+        {
+            bool selected = perKeyTextSelected == idx;
+            if (GUILayout.Button((selected ? "[ " : "  ") + label + (selected ? " ]" : ""), GUILayout.MinWidth(50)))
+            {
+                perKeyTextSelected = perKeyTextSelected == idx ? -1 : idx;
+            }
+        }
+
+        private void DrawPerKeyTextSizeEditor(int s)
+        {
+            GUILayout.Space(5);
+            string label = s == MaxKeySlots ? "KPS" : s == MaxKeySlots + 1 ? "Total" : "Key " + s;
+            GUILayout.Label("<b>" + label + " " + I18n.Tr("key_font_size") + "</b>");
+
+            // Font size: 0 = use global, 1-72 = per-key override
+            float curSize = s < Settings.Data.PerKeyFontSize.Length ? Settings.Data.PerKeyFontSize[s] : 0f;
+            string sizeLabel = curSize <= 0f ? "(Global: " + Settings.Data.KeyFontSize.ToString("F0") + ")" : curSize.ToString("F0");
+            float newSize = FloatSliderField(label + " " + I18n.Tr("key_font_size"), curSize, 0f, 72f, "F0");
+            if (newSize != curSize)
+            {
+                if (Settings.Data.PerKeyFontSize != null && s < Settings.Data.PerKeyFontSize.Length)
+                {
+                    Settings.Data.PerKeyFontSize[s] = Mathf.Round(newSize);
+                    UpdateAllFonts();
+                    SaveSettings();
+                }
+            }
+        }
+
         private void DrawDisplaySection()
         {
             // The main-count / per-key-KPS toggles only apply to the normal (non-full-keyboard) layouts;
@@ -502,6 +627,9 @@ namespace JipperKeyViewer.KeyViewer
                 UpdateAllFonts();
                 SaveSettings();
             }
+
+            // Per-key text size / spacing section / 每键字号/字间距 区块
+            DrawPerKeyTextSizeSection();
 
             // Center KPS / Total text — only for flat (slim) KPS/Total designs (e.g. full keyboard, 8K/14K/16K/24K).
             // Hidden for stacked (non-slim) layouts like 12K/10K/20K standard. / 仅对扁平（slim）KPS/Total 生效（全键盘及 8K/14K/16K/24K 等），堆叠布局（12K/10K/20K 标准）隐藏。

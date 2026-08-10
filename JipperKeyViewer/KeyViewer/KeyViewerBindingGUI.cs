@@ -1,0 +1,274 @@
+// Settings GUI: Keys tab content / 设置界面:按键 标签页内容
+// Key rebinding, ghost-key rebinding, and per-key custom text editing / 按键重绑定、鬼键重绑定、每键自定义文本编辑
+
+using System;
+using UnityEngine;
+
+namespace JipperKeyViewer.KeyViewer
+{
+    public partial class KeyViewer : MonoBehaviour
+    {
+        /// <summary>
+        /// Draw the key rebinding section / 绘制按键重绑定区域
+        /// Shows all keys for the current layout as clickable buttons / 将当前布局的所有按键显示为可点击的按钮
+        /// </summary>
+        private void DrawKeyChangeSection()
+        {
+            GUILayout.BeginVertical("box");
+            KeyCode[] keyCodes = GetKeyCode();
+            DrawMainKeyRows(I18n.Tr("row1_keys"), I18n.Tr("row2_keys"), I18n.Tr("row3_keys"),
+                keyCodes, (i, _) => { SelectedKey = i; changeState = 0; });
+            DrawFootKeyRows(I18n.Tr("foot_keys_list"), FootKeyBase,
+                (i, _) => { SelectedKey = i; changeState = 0; });
+            if (SelectedKey != -1 && changeState == 0)
+                GUILayout.Label("<b>" + I18n.Tr("press_new_key") + "</b>");
+            GUILayout.EndVertical();
+        }
+
+        private void DrawMainKeyRows(string row1Label, string row2Label, string row3Label,
+            KeyCode[] keyCodes, Action<int, KeyCode> onKeyClick, Func<int, KeyCode, string> labelFunc = null)
+        {
+            labelFunc ??= (i, kc) => KeyToString(kc);
+            GUILayout.Label(row1Label + ":");
+            GUILayout.BeginHorizontal();
+            for (int i = 0; i < 8; i++)
+                if (GUILayout.Button(labelFunc(i, keyCodes[i])))
+                    onKeyClick(i, keyCodes[i]);
+            GUILayout.EndHorizontal();
+
+            byte[] backSequence = GetBackSequence();
+            if (backSequence.Length > 0)
+            {
+                GUILayout.Label(row2Label + ":");
+                GUILayout.BeginHorizontal();
+                for (int i = 0; i < backSequence.Length && i < 8; i++)
+                {
+                    if (backSequence[i] >= keyCodes.Length) continue;
+                    if (GUILayout.Button(labelFunc(backSequence[i], keyCodes[backSequence[i]])))
+                        onKeyClick(backSequence[i], keyCodes[backSequence[i]]);
+                }
+                GUILayout.EndHorizontal();
+            }
+
+            if (backSequence.Length > 8)
+            {
+                GUILayout.Label(row3Label + ":");
+                GUILayout.BeginHorizontal();
+                for (int i = 8; i < backSequence.Length && backSequence[i] < keyCodes.Length; i++)
+                    if (GUILayout.Button(labelFunc(backSequence[i], keyCodes[backSequence[i]])))
+                        onKeyClick(backSequence[i], keyCodes[backSequence[i]]);
+                GUILayout.EndHorizontal();
+            }
+        }
+
+        private void DrawFootKeyRows(string label, int baseIndex, Action<int, KeyCode> onKeyClick,
+            Func<int, KeyCode, string> labelFunc = null)
+        {
+            labelFunc ??= (i, kc) => KeyToString(kc);
+            KeyCode[] footKeyCodes = GetFootKeyCode();
+            if (footKeyCodes == null || footKeyCodes.Length == 0) return;
+            GUILayout.Label(label + ":");
+            if (footKeyCodes.Length <= 8)
+            {
+                GUILayout.BeginHorizontal();
+                for (int i = 0; i < footKeyCodes.Length; i++)
+                    if (GUILayout.Button(labelFunc(baseIndex + i, footKeyCodes[i])))
+                        onKeyClick(baseIndex + i, footKeyCodes[i]);
+                GUILayout.EndHorizontal();
+            }
+            else
+            {
+                int remaining = footKeyCodes.Length - 8;
+                GUILayout.BeginHorizontal();
+                for (int i = 0; i < 8; i++)
+                    if (GUILayout.Button(labelFunc(baseIndex + i, footKeyCodes[i])))
+                        onKeyClick(baseIndex + i, footKeyCodes[i]);
+                GUILayout.EndHorizontal();
+                GUILayout.BeginHorizontal();
+                for (int s = 0; s < 8 - remaining; s++)
+                    GUILayout.FlexibleSpace();
+                for (int i = 8; i < footKeyCodes.Length; i++)
+                    if (GUILayout.Button(labelFunc(baseIndex + i, footKeyCodes[i])))
+                        onKeyClick(baseIndex + i, footKeyCodes[i]);
+                for (int s = 0; s < 8 - remaining; s++)
+                    GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
+            }
+        }
+
+        /// <summary>
+        /// Draw the ghost key rebinding section / 绘制鬼键重绑定区域
+        /// Shows ghost key slots — click unbound to bind, click bound to clear / 显示鬼键槽位 — 点击未绑定的进入绑定,点击已绑定的清除
+        /// </summary>
+        private void DrawGhostKeyChangeSection()
+        {
+            GUILayout.BeginVertical("box");
+            KeyCode[] ghostKeyCodes = GetGhostKeyCode();
+
+            GUILayout.Label(I18n.Tr("row1_keys") + ":");
+            GUILayout.BeginHorizontal();
+            for (int i = 0; i < 8; i++)
+                DrawGhostKeyButton(i, ghostKeyCodes);
+            GUILayout.EndHorizontal();
+
+            byte[] backSequence = GetBackSequence();
+            if (backSequence.Length > 0)
+            {
+                GUILayout.Label(I18n.Tr("row2_keys") + ":");
+                GUILayout.BeginHorizontal();
+                for (int i = 0; i < backSequence.Length && i < 8; i++)
+                    DrawGhostKeyButton(backSequence[i], ghostKeyCodes);
+                GUILayout.EndHorizontal();
+            }
+
+            if (backSequence.Length > 8)
+            {
+                GUILayout.Label(I18n.Tr("row3_keys") + ":");
+                GUILayout.BeginHorizontal();
+                for (int i = 8; i < backSequence.Length; i++)
+                    DrawGhostKeyButton(backSequence[i], ghostKeyCodes);
+                GUILayout.EndHorizontal();
+            }
+
+            if (SelectedKey != -1 && changeState == 2)
+                GUILayout.Label("<b>" + I18n.Tr("press_new_key") + "</b>");
+            GUILayout.EndVertical();
+        }
+
+        private void DrawGhostKeyButton(int i, KeyCode[] ghostKeyCodes)
+        {
+            bool isBound = ghostKeyCodes[i] != KeyCode.None;
+            string label = isBound ? KeyToString(ghostKeyCodes[i]) : "-";
+            bool selected = i == SelectedKey && changeState == 2;
+            if (GUILayout.Button(selected ? "<b>" + label + "</b>" : label))
+            {
+                if (isBound)
+                {
+                    ghostKeyCodes[i] = KeyCode.None;
+                    SelectedKey = -1;
+                    SaveSettings();
+                }
+                else
+                {
+                    SelectedKey = i;
+                    changeState = 2;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Draw the custom text editing section / 绘制自定义文本编辑区域
+        /// Allows typing custom labels for each key / 允许为每个按键输入自定义标签
+        /// </summary>
+        private void DrawTextChangeSection()
+        {
+            GUILayout.BeginVertical("box");
+            KeyCode[] keyCodes = GetKeyCode();
+            string[] keyTexts = GetKeyText();
+            KeyCode[] footKeyCodes = GetFootKeyCode();
+            string[] footKeyTexts = GetFootKeyText();
+
+            DrawMainKeyRows(I18n.Tr("row1_text"), I18n.Tr("row2_text"), I18n.Tr("row3_text"),
+                keyCodes, (i, _) => { SelectedKey = i; changeState = 1; },
+                (i, kc) => GetKeyTextLabel(keyTexts, keyCodes, i));
+            DrawFootKeyRows(I18n.Tr("foot_keys_text"), FootKeyBase,
+                (i, _) => { SelectedKey = i; changeState = 1; },
+                (i, kc) => GetFootKeyTextLabel(footKeyTexts, footKeyCodes, i - FootKeyBase));
+
+            if (SelectedKey != -1 && changeState == 1)
+                DrawTextEditArea(keyTexts, keyCodes, footKeyTexts, footKeyCodes);
+            GUILayout.EndVertical();
+        }
+
+        private static string GetKeyTextLabel(string[] keyTexts, KeyCode[] keyCodes, int i) =>
+            keyTexts != null && i < keyTexts.Length && !string.IsNullOrEmpty(keyTexts[i])
+                ? keyTexts[i] : KeyToString(i < keyCodes.Length ? keyCodes[i] : KeyCode.None);
+
+        private static string GetFootKeyTextLabel(string[] footKeyTexts, KeyCode[] footKeyCodes, int fi) =>
+            footKeyTexts != null && fi < footKeyTexts.Length && !string.IsNullOrEmpty(footKeyTexts[fi])
+                ? footKeyTexts[fi] : KeyToString(fi < footKeyCodes.Length ? footKeyCodes[fi] : KeyCode.None);
+
+        private void DrawTextEditArea(string[] keyTexts, KeyCode[] keyCodes, string[] footKeyTexts, KeyCode[] footKeyCodes)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(I18n.Tr("input_text") + ":");
+            if (SelectedKey < FootKeyBase)
+                DrawMainKeyTextField(keyTexts, keyCodes);
+            else
+                DrawFootKeyTextField(footKeyTexts, footKeyCodes);
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button(I18n.Tr("reset")))
+            {
+                if (SelectedKey < FootKeyBase)
+                {
+                    keyTexts[SelectedKey] = null;
+                    if (Keys != null && SelectedKey < Keys.Length && Keys[SelectedKey] != null)
+                        Keys[SelectedKey].text.text = KeyToString(keyCodes[SelectedKey]);
+                }
+                else
+                {
+                    int footIndex = SelectedKey - FootKeyBase;
+                    footKeyTexts[footIndex] = null;
+                    if (Keys != null && SelectedKey < Keys.Length && Keys[SelectedKey] != null)
+                        Keys[SelectedKey].text.text = KeyToString(footKeyCodes[footIndex]);
+                }
+                SelectedKey = -1;
+                SaveSettings();
+            }
+            if (GUILayout.Button(I18n.Tr("save_btn")))
+            {
+                SelectedKey = -1;
+                SaveSettings();
+            }
+            GUILayout.EndHorizontal();
+        }
+
+        private void DrawMainKeyTextField(string[] keyTexts, KeyCode[] keyCodes)
+        {
+            string currentText = !string.IsNullOrEmpty(keyTexts[SelectedKey])
+                ? keyTexts[SelectedKey] : KeyToString(keyCodes[SelectedKey]);
+            string newText = GUILayout.TextField(currentText, GUILayout.Width(150));
+            if (keyTexts[SelectedKey] != newText)
+            {
+                if (Keys != null && SelectedKey < Keys.Length && Keys[SelectedKey] != null)
+                    Keys[SelectedKey].text.text = newText;
+                keyTexts[SelectedKey] = string.IsNullOrEmpty(newText) || newText == KeyToString(keyCodes[SelectedKey]) ? null : newText;
+            }
+        }
+
+        private void DrawFootKeyTextField(string[] footKeyTexts, KeyCode[] footKeyCodes)
+        {
+            int footIndex = SelectedKey - FootKeyBase;
+            string currentText = footKeyTexts != null && !string.IsNullOrEmpty(footKeyTexts[footIndex])
+                ? footKeyTexts[footIndex] : KeyToString(footKeyCodes[footIndex]);
+            string newText = GUILayout.TextField(currentText, GUILayout.Width(150));
+            if (footKeyTexts[footIndex] != newText)
+            {
+                if (Keys != null && SelectedKey < Keys.Length && Keys[SelectedKey] != null)
+                    Keys[SelectedKey].text.text = newText;
+                footKeyTexts[footIndex] = string.IsNullOrEmpty(newText) || newText == KeyToString(footKeyCodes[footIndex]) ? null : newText;
+            }
+        }
+
+        private void DrawBindingSection()
+        {
+            if (KeyViewer.IsFullKeyboard) return;
+            KeyChangeExpanded = DrawFoldoutButton(I18n.Tr("key_change"), KeyChangeExpanded);
+            if (KeyChangeExpanded)
+                DrawKeyChangeSection();
+
+            if (Settings.Data.EnableRainEffect && Settings.Data.EnableGhostRain)
+            {
+                GhostRainChangeExpanded = DrawFoldoutButton(I18n.Tr("ghost_rain"), GhostRainChangeExpanded);
+                if (GhostRainChangeExpanded)
+                    DrawGhostKeyChangeSection();
+            }
+
+            TextChangeExpanded = DrawFoldoutButton(I18n.Tr("text_change"), TextChangeExpanded);
+            if (TextChangeExpanded)
+                DrawTextChangeSection();
+        }
+    }
+}

@@ -64,12 +64,11 @@ jobs:
         shell: pwsh
         run: |
           $dist = "dist\JipperKeyViewer"
-          New-Item -ItemType Directory -Force -Path $dist\assets, $dist\lang | Out-Null
+          New-Item -ItemType Directory -Force -Path $dist\assets | Out-Null
           Copy-Item JipperKeyViewer\bin\Release\JipperKeyViewer.dll $dist\
           Copy-Item JipperKeyViewer.Loader.UMM\bin\Release\JipperKeyViewer.Loader.UMM.dll $dist\
           Copy-Item JipperKeyViewer.Loader.Melon\bin\Release\JipperKeyViewer.Loader.Melon.dll $dist\
           Copy-Item Info.json $dist\
-          Copy-Item JipperKeyViewer\lang\lang.json $dist\lang\
           Copy-Item JipperKeyViewer\assets\keyviewer_resources $dist\assets\
 
       # ========== Package FileBased (UMM + MelonLoader) ==========
@@ -78,12 +77,11 @@ jobs:
         shell: pwsh
         run: |
           $dist = "dist\JipperKeyViewer-FileBased"
-          New-Item -ItemType Directory -Force -Path $dist\assets, $dist\lang | Out-Null
+          New-Item -ItemType Directory -Force -Path $dist\assets | Out-Null
           Copy-Item JipperKeyViewer-FileBased\bin\Release\JipperKeyViewer-FileBased.dll $dist\
           Copy-Item JipperKeyViewer-FileBased.Loader.UMM\bin\Release\JipperKeyViewer-FileBased.Loader.UMM.dll $dist\
           Copy-Item JipperKeyViewer-FileBased.Loader.Melon\bin\Release\JipperKeyViewer-FileBased.Loader.Melon.dll $dist\
           Copy-Item JipperKeyViewer-FileBased\Info.json $dist\
-          Copy-Item JipperKeyViewer\lang\lang.json $dist\lang\
           Copy-Item JipperKeyViewer-FileBased\assets\* $dist\assets\
 
       - name: Upload JipperKeyViewer (AssetBundle)

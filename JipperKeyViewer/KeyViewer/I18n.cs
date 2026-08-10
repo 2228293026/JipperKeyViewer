@@ -1,16 +1,15 @@
 // Internationalization (i18n) system / 国际化（i18n）系统
-// Supports English and Chinese with optional external lang.json override / 支持英文和中文，可选外部 lang.json 覆盖
+// Built-in hardcoded translations for English, Chinese and Korean / 内置英文、中文、韩文的硬编码翻译
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using UnityEngine;
 
 namespace JipperKeyViewer.KeyViewer
 {
     /// <summary>
     /// Static i18n helper providing translated strings / 静态国际化辅助类，提供翻译字符串
-    /// Loads default translations from hardcoded dictionaries, then attempts to merge from lang.json / 从硬编码字典加载默认翻译，然后尝试从 lang.json 合并
+    /// Reads from the built-in dictionaries only / 仅读取内置字典
     /// </summary>
     public static class I18n
     {
@@ -122,6 +121,12 @@ namespace JipperKeyViewer.KeyViewer
             ["press_anim_scale"] = "Anim Scale",
             ["press_anim_rain"] = "Animate Rain",
             ["kps_total_stacked"] = "Stack KPS/Total Text",
+            ["tab_general"] = "General",
+            ["tab_layout"] = "Layout",
+            ["tab_display"] = "Display",
+            ["tab_rain"] = "Rain",
+            ["tab_keys"] = "Keys",
+            ["tab_colors"] = "Colors",
         };
 
         /// <summary>Chinese translations dictionary / 中文字典</summary>
@@ -229,6 +234,12 @@ namespace JipperKeyViewer.KeyViewer
             ["press_anim_scale"] = "动画缩放",
             ["press_anim_rain"] = "雨滴动画",
             ["kps_total_stacked"] = "KPS/Total 上下堆叠",
+            ["tab_general"] = "常规",
+            ["tab_layout"] = "布局",
+            ["tab_display"] = "显示",
+            ["tab_rain"] = "雨线",
+            ["tab_keys"] = "按键",
+            ["tab_colors"] = "颜色",
         };
 
         /// <summary>Korean translations dictionary / 韩文字典</summary>
@@ -336,122 +347,13 @@ namespace JipperKeyViewer.KeyViewer
             ["press_anim_scale"] = "애니메이션 크기",
             ["press_anim_rain"] = "빗줄 애니메이션",
             ["kps_total_stacked"] = "KPS/총계 상하 배치",
+            ["tab_general"] = "일반",
+            ["tab_layout"] = "레이아웃",
+            ["tab_display"] = "표시",
+            ["tab_rain"] = "빗줄",
+            ["tab_keys"] = "키",
+            ["tab_colors"] = "색상",
         };
-
-        /// <summary>Path to the lang.json override file / lang.json 覆盖文件路径</summary>
-        static string FilePath
-        {
-            get
-            {
-                string modPath = Loader.ModPath;
-                return Path.Combine(modPath ?? ".", "lang", "lang.json");
-            }
-        }
-
-        /// <summary>
-        /// Load translations from lang.json if present, merging into the built-in dictionaries / 从 lang.json 加载翻译（如果存在），合并到内置字典中
-        /// </summary>
-        public static void Load()
-        {
-            string path = FilePath;
-            if (!File.Exists(path))
-            {
-                Loader.Log($"I18n: no lang.json at {path}, using defaults");
-                return;
-            }
-
-            try
-            {
-                string json = File.ReadAllText(path);
-                int count = ParseEntries(json);
-                if (count < 0)
-                {
-                    Loader.Error($"I18n: 'entries' array not found in lang.json");
-                    return;
-                }
-                Loader.Log($"I18n: loaded {count} entries from lang.json");
-            }
-            catch (Exception e)
-            {
-                Loader.Error($"I18n: failed to parse lang.json: {e.Message}");
-            }
-        }
-
-        private static int ParseEntries(string json)
-        {
-            int idx = json.IndexOf("\"entries\"", StringComparison.Ordinal);
-            if (idx < 0) return -1;
-            idx = json.IndexOf('[', idx);
-            if (idx < 0) return -1;
-            idx++;
-            int count = 0;
-            while (idx < json.Length)
-            {
-                char c = json[idx];
-                if (c <= ' ') { idx++; continue; }
-                if (c == ']') break;
-                if (c != '{') { idx++; continue; }
-                int end = SkipObject(json, idx);
-                if (end < 0) break;
-                if (ParseEntry(json, idx, end))
-                    count++;
-                idx = end + 1;
-            }
-            return count;
-        }
-
-        private static int SkipObject(string json, int start)
-        {
-            bool inStr = false;
-            int depth = 0;
-            for (int i = start; i < json.Length; i++)
-            {
-                char c = json[i];
-                if (inStr)
-                {
-                    if (c == '\\') i++;
-                    else if (c == '"') inStr = false;
-                }
-                else if (c == '"') inStr = true;
-                else if (c == '{') depth++;
-                else if (c == '}' && --depth == 0) return i;
-            }
-            return -1;
-        }
-
-        private static bool ParseEntry(string json, int start, int end)
-        {
-            string key = ExtractStr(json, start, end, "key");
-            if (key == null) return false;
-            string enVal = ExtractStr(json, start, end, "en");
-            string zhVal = ExtractStr(json, start, end, "zh");
-            string koVal = ExtractStr(json, start, end, "ko");
-            if (!string.IsNullOrEmpty(enVal)) en[key] = enVal;
-            if (!string.IsNullOrEmpty(zhVal)) zh[key] = zhVal;
-            if (!string.IsNullOrEmpty(koVal)) ko[key] = koVal;
-            return true;
-        }
-
-        private static string ExtractStr(string json, int start, int end, string key)
-        {
-            int idx = json.IndexOf("\"" + key + "\"", start, end - start, StringComparison.Ordinal);
-            if (idx < 0) return null;
-            idx = json.IndexOf('"', idx + key.Length + 2);
-            if (idx < 0) return null;
-            idx++;
-            int valStart = idx;
-            while (idx < end)
-            {
-                char c = json[idx];
-                if (c == '\\') idx++;
-                else if (c == '"') break;
-                idx++;
-            }
-            if (idx >= end) return null;
-            string val = json.Substring(valStart, idx - valStart);
-            val = val.Replace("\\\"", "\"").Replace("\\\\", "\\").Replace("\\n", "\n").Replace("\\t", "\t");
-            return val;
-        }
 
         /// <summary>Returns the currently active translation dictionary / 返回当前活跃的翻译字典</summary>
         static Dictionary<string, string> current => Lang == "ko" ? ko : Lang == "zh" ? zh : en;

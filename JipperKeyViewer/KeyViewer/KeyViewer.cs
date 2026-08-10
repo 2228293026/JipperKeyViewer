@@ -320,7 +320,6 @@ namespace JipperKeyViewer.KeyViewer
         {
             instance = this;
             LoadSettings();
-            I18n.Load();
             I18n.Lang = Settings.Language;
             rainSystem = new RainSystem(Settings);
             TryLoadResources();
@@ -476,6 +475,7 @@ namespace JipperKeyViewer.KeyViewer
 
                 EnsureSettingsArrays();
                 SyncProfilesWithDisk();
+                settingsGuiTab = Mathf.Clamp(Settings.UiTab, 0, TabCount - 1);
             }
             catch (Exception e)
             {
@@ -719,6 +719,7 @@ namespace JipperKeyViewer.KeyViewer
         {
             try
             {
+                Settings.UiTab = settingsGuiTab;
                 SaveCurrentProfile();
                 SaveMetaOnly();
             }
@@ -740,7 +741,8 @@ namespace JipperKeyViewer.KeyViewer
                 Version = Settings.Version,
                 CurrentProfile = Settings.CurrentProfile,
                 ProfileNames = Settings.ProfileNames,
-                Language = Settings.Language
+                Language = Settings.Language,
+                UiTab = Settings.UiTab
             }, true);
             File.WriteAllText(ConfigPath, metaJson);
         }
@@ -935,10 +937,11 @@ namespace JipperKeyViewer.KeyViewer
         [System.Serializable]
         private class SettingsMeta
         {
-            public int Version = 3;
+            public int Version = 5;
             public string CurrentProfile = "Default";
             public string[] ProfileNames = new[] { "Default" };
             public string Language = "en";
+            public int UiTab;
         }
 
     }

@@ -62,7 +62,6 @@ UMMMods/JipperKeyViewer/
 ├── JipperKeyViewer.dll                  # Core DLL
 ├── JipperKeyViewer.Loader.UMM.dll       # UMM entry (referenced by Info.json)
 ├── Info.json
-├── lang/lang.json
 └── assets/keyviewer_resources
 ```
 
@@ -76,7 +75,6 @@ UMMMods/JipperKeyViewer-FileBased/
 ├── JipperKeyViewer-FileBased.dll
 ├── JipperKeyViewer-FileBased.Loader.UMM.dll
 ├── Info.json
-├── lang/lang.json
 └── assets/
     ├── KeyBackground.png
     ├── KeyOutline.png
@@ -99,7 +97,6 @@ UMMMods/JipperKeyViewer-FileBased/
 Mods/JipperKeyViewer/
 ├── JipperKeyViewer.dll                  # Core DLL
 ├── JipperKeyViewer.Loader.Melon.dll     # MelonLoader entry (auto-detected)
-├── lang/lang.json
 └── assets/keyviewer_resources
 ```
 
@@ -112,7 +109,6 @@ Mods/JipperKeyViewer/
 Mods/JipperKeyViewer-FileBased/
 ├── JipperKeyViewer-FileBased.dll
 ├── JipperKeyViewer-FileBased.Loader.Melon.dll
-├── lang/lang.json
 └── assets/
     ├── KeyBackground.png
     ├── KeyOutline.png
@@ -188,7 +184,6 @@ To rebuild: open in Unity → `Tools → Build KeyViewer AssetBundle` → copy `
 │   │   ├── FootKeyviewerStyle.cs   # Foot key layout enum
 │   │   └── I18n.cs                 # i18n system (en/zh/ko)
 │   ├── Properties/AssemblyInfo.cs
-│   ├── lang/lang.json              # Translations
 │   └── assets/keyviewer_resources  # AssetBundle (runtime)
 │
 ├── JipperKeyViewer.Loader.UMM/     # UMM loader (AssetBundle)

@@ -349,6 +349,8 @@ namespace JipperKeyViewer.KeyViewer
         public string CurrentProfile = "Default";
         public string[] ProfileNames = new[] { "Default" };
         public string Language = "en";
+        /// <summary>Last active settings GUI tab (persisted in meta JSON) / 上次停留的设置界面标签页(存入 meta JSON)</summary>
+        public int UiTab;
         public ProfileData Data = new ProfileData();
 
         public KeyViewerSettings()

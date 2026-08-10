@@ -660,7 +660,7 @@ namespace JipperKeyViewer.KeyViewer
                 if (size > 8 && row == 1)
                     x += (8 - (size - 8)) * 17;
                 int y = baseY - row * 34;
-                Keys[i] = CreateKey(i, x, y, 30, -1, true, false);
+                Keys[i] = CreateKey(i, x, y, 30, -1, true, false, 0f, true);
             }
         }
 
@@ -674,7 +674,7 @@ namespace JipperKeyViewer.KeyViewer
         /// <param name="raining">Rain row index (-1=no rain, 0=row1, 1=row2, 3=row3) / 雨滴行索引（-1=无雨滴，0=第1排，1=第2排，3=第3排）</param>
         /// <param name="slim">Use slim style (for KPS/Total display) / 使用窄样式（用于 KPS/Total 显示）</param>
         /// <param name="count">Show press count text / 显示按下计数文本</param>
-        private Key CreateKey(int i, float x, float y, float sizeX, int raining, bool slim = false, bool count = true, float sizeY = 0f)
+        private Key CreateKey(int i, float x, float y, float sizeX, int raining, bool slim = false, bool count = true, float sizeY = 0f, bool isFootKey = false)
         {
             if (i >= 0 && i < FootKeyBase && Settings.Data.HideMainKeyCount)
                 count = false;
@@ -721,7 +721,7 @@ namespace JipperKeyViewer.KeyViewer
             // 堆叠模式创建分离的标签/数值对象，否则使用单个居中文本
             if (stackedText)
             {
-                key.text = CreateKeyText(visuals, sizeX, slim, false, settings, false, true, pki); // label top
+                key.text = CreateKeyText(visuals, sizeX, slim, false, settings, false, true, pki, isFootKey); // label top
                 key.value = CreateCountText(visuals, sizeX, slim, settings, true, pki); // value bottom
             }
             else if (centeredText)
@@ -735,7 +735,7 @@ namespace JipperKeyViewer.KeyViewer
             }
             else
             {
-                key.text = CreateKeyText(visuals, sizeX, slim, false, settings, false, false, pki);
+                key.text = CreateKeyText(visuals, sizeX, slim, false, settings, false, false, pki, isFootKey);
             }
             UpdateKeyText(key, i);
             SetupRainContainer(key, obj, sizeX, raining);
@@ -763,7 +763,7 @@ namespace JipperKeyViewer.KeyViewer
             return image;
         }
 
-        private TextMeshProUGUI CreateKeyText(GameObject parent, float sizeX, bool slim, bool count, KeyViewerSettings settings, bool centered = false, bool stackedLabel = false, int perKeyIndex = -1)
+        private TextMeshProUGUI CreateKeyText(GameObject parent, float sizeX, bool slim, bool count, KeyViewerSettings settings, bool centered = false, bool stackedLabel = false, int perKeyIndex = -1, bool isFootKey = false)
         {
             GameObject go = new("KeyText");
             RectTransform rt = go.AddComponent<RectTransform>();
@@ -783,7 +783,7 @@ namespace JipperKeyViewer.KeyViewer
                 rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 1);
                 rt.anchoredPosition = new Vector2(0, -1);
             }
-            else if (slim)
+            else if (slim && !isFootKey)
             {
                 rt.sizeDelta = new Vector2(sizeX / 2, 30);
                 rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0, 0.5f);
@@ -804,7 +804,7 @@ namespace JipperKeyViewer.KeyViewer
                 }
             }
             rt.localScale = Vector3.one;
-            TextAlignmentOptions align = stackedLabel ? TextAlignmentOptions.Center : (centered ? TextAlignmentOptions.Center : (slim ? TextAlignmentOptions.Left : TextAlignmentOptions.Center));
+            TextAlignmentOptions align = stackedLabel ? TextAlignmentOptions.Center : (centered ? TextAlignmentOptions.Center : ((slim && !isFootKey) ? TextAlignmentOptions.Left : TextAlignmentOptions.Center));
             return ConfigureText(go, settings, align, perKeyIndex);
         }
 

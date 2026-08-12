@@ -1,3 +1,24 @@
+## v1.7.0
+
+### 🚀 Features
+- **Hide KPS/Total Label**: New toggle that hides the "KPS"/"Total" label text and centers the value in the middle of the box, updating every frame. Only shown for non-flat layouts (10K/12K/20K standard mode).
+- **Stacked KPS/Total display**: New "Stacked" toggle, only available when Centered is enabled. Label on top (compact font), value on bottom, both stacked inside the box.
+- **Settings UI multi-tab refactor**: Settings window split into 6 tabs — General, Layout, Display, Rain, Keys, Colors — with a permanent top bar for master toggles. Each tab's content lives in its own partial class file for cleaner organization and easier maintenance. Current tab index persisted to settings for cross-session recall.
+- **Hex color input**: Color picker fields now accept `#RRGGBB` / `#RRGGBBAA` hex paste/typing, auto-parsed to Unity `Color`. Input focus no longer resets on redraw; each channel input has a unique control name.
+- **Foot key text centered**: Foot key text is now centered in the key box instead of pinned to the top.
+
+### 🐛 Bug Fixes
+- **Profile data leak on switch**: `LoadProfile` now creates `new ProfileData()` before `FromJsonOverwrite` — prevents fields from the previously loaded profile leaking into the newly loaded one.
+- **Profile size not applied after switch**: `ResetKeyViewer()` now re-applies `KeyViewerSizeObject` localScale at the end, so a profile's Size setting isn't overridden by the previous profile's slider value.
+- **Centered text stuck after switching layouts**: Turning centering on for one layout and switching to another now correctly restores the normal label/number layout.
+- **Skip count update when main key count is hidden**: `HideMainKeyCount=true` no longer creates a `value` text object or tries to update it.
+- **Full keyboard KPS/Total toggle survives layout switch**: Switching away from and back to the full keyboard no longer loses the KPS/Total show/hide state.
+
+### 🔧 Performance
+- Smoother settings access and reworked rain-drop object pool (larger, no leftover drops).
+
+---
+
 ## v1.6.5
 
 ### 🚀 Features

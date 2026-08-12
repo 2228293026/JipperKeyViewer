@@ -620,6 +620,20 @@ namespace JipperKeyViewer.KeyViewer
                 }
             }
 
+            // Hide KPS/Total label (non-slim only): value centered, replaces the top label
+            // 隐藏 KPS/Total 标签（仅非 slim）：数值居中，替换顶部标签
+            bool hasNonSlimKpsTotal = !KeyViewer.KpsTotalIsSlim();
+            if (hasNonSlimKpsTotal)
+            {
+                bool newHideLabel = GUILayout.Toggle(Settings.Data.HideKpsTotalLabel, I18n.Tr("hide_kps_total_label"));
+                if (newHideLabel != Settings.Data.HideKpsTotalLabel)
+                {
+                    Settings.Data.HideKpsTotalLabel = newHideLabel;
+                    ChangeKeyViewer();
+                    SaveSettings();
+                }
+            }
+
             float newFontSize = FloatSliderField(I18n.Tr("key_font_size"), Settings.Data.KeyFontSize, 8f, 72f, "F0");
             if (newFontSize != Settings.Data.KeyFontSize)
             {

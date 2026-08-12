@@ -230,6 +230,8 @@ namespace JipperKeyViewer.KeyViewer
                 NumBuffer.Format(lastTotal, d.EnableCountFormatting, out var buf, out int off, out int len);
                 if (KpsTotalCenteredApplies())
                     SetKpsTotalDisplay(Total, "Total", new string(buf, off, len));
+                else if (!KpsTotalIsSlim() && Settings.Data.HideKpsTotalLabel)
+                    Total.text.SetText(buf, off, len);
                 else if (Total.value != null)
                     Total.value.SetText(buf, off, len);
             }
@@ -313,6 +315,8 @@ namespace JipperKeyViewer.KeyViewer
                     NumBuffer.Format(currentKps, Settings.Data.EnableCountFormatting, out var buf, out int off, out int len);
                     if (KpsTotalCenteredApplies())
                         SetKpsTotalDisplay(Kps, "KPS", new string(buf, off, len));
+                    else if (!KpsTotalIsSlim() && Settings.Data.HideKpsTotalLabel)
+                        Kps.text.SetText(buf, off, len);
                     else if (Kps.value != null)
                         Kps.value.SetText(buf, off, len);
                 }

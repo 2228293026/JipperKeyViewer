@@ -159,6 +159,7 @@ namespace JipperKeyViewer.KeyViewer
         public bool EnablePerKeyKps = false;
         public bool StreamerMode = false;
         public bool StandardKeyWidth = false;
+        public bool HideKpsTotalLabel = false;
 
         public float KeyFontSize = 20f;
         public bool EnablePressAnimation = false;

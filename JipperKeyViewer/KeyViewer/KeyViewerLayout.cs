@@ -306,7 +306,8 @@ namespace JipperKeyViewer.KeyViewer
                 Keys[i] = CreateKey(i, 54 * i, layout.frontY - remove, 50, 0);
             foreach (var e in layout.extras)
             {
-                Key key = CreateKey(e.index, e.x, e.y - remove, e.w, e.rainRow, e.slim);
+                bool hideLabel = (e.index == -1 || e.index == -2) && !e.slim && Settings.Data.HideKpsTotalLabel;
+                Key key = CreateKey(e.index, e.x, e.y - remove, e.w, e.rainRow, e.slim, true, 0f, false, hideLabel);
                 if (e.index == -1) Kps = key;
                 else if (e.index == -2) Total = key;
                 else Keys[e.index] = key;
@@ -674,18 +675,21 @@ namespace JipperKeyViewer.KeyViewer
         /// <param name="raining">Rain row index (-1=no rain, 0=row1, 1=row2, 3=row3) / 雨滴行索引（-1=无雨滴，0=第1排，1=第2排，3=第3排）</param>
         /// <param name="slim">Use slim style (for KPS/Total display) / 使用窄样式（用于 KPS/Total 显示）</param>
         /// <param name="count">Show press count text / 显示按下计数文本</param>
-        private Key CreateKey(int i, float x, float y, float sizeX, int raining, bool slim = false, bool count = true, float sizeY = 0f, bool isFootKey = false)
+        /// <param name="hideLabel">Hide label text, center value (non-slim KPS/Total only) / 隐藏标签文字，数值居中（仅非 slim 的 KPS/Total）</param>
+        private Key CreateKey(int i, float x, float y, float sizeX, int raining, bool slim = false, bool count = true, float sizeY = 0f, bool isFootKey = false, bool hideLabel = false)
         {
             if (i >= 0 && i < FootKeyBase && Settings.Data.HideMainKeyCount)
                 count = false;
-            // KPS / Total boxes: three modes
+            // KPS / Total boxes: four modes
             // 1. Default slim: left label / right number
             // 2. Centered single-line: "KPS 123" in one centered box
             // 3. Centered stacked: label on top, number below (smaller font to fit)
-            // KPS/Total 框三种模式：
+            // 4. Hide label: value centered, replacing the top label (non-slim only)
+            // KPS/Total 框四种模式：
             // 1. 默认 slim：左标签右数值
             // 2. 居中单行："KPS 123" 合并为一个居中框
             // 3. 居中堆叠：标签在上方，数值在下方（字号缩小以适应）
+            // 4. 隐藏标签：数值居中，替换顶部标签（仅非 slim）
             bool centeredText = (i == -1 || i == -2) && KpsTotalCenteredApplies();
             bool stackedText = centeredText && KpsTotalStackedApplies();
             GameObject obj = new("Key " + i);
@@ -727,6 +731,11 @@ namespace JipperKeyViewer.KeyViewer
             else if (centeredText)
             {
                 key.text = CreateKeyText(visuals, sizeX, slim, false, settings, true, false, pki); // single merged
+            }
+            else if (hideLabel)
+            {
+                // Hide label: single centered text, value only / 隐藏标签：单个居中文本，仅数值
+                key.text = CreateKeyText(visuals, sizeX, slim, false, settings, true, false, pki);
             }
             else if (count)
             {
@@ -975,14 +984,16 @@ namespace JipperKeyViewer.KeyViewer
         }
 
         /// <summary>
-        /// Set the KPS / Total display. Three modes:
+        /// Set the KPS / Total display. Modes:
         /// 1. Default slim: separate label (left) and value (right)
         /// 2. Centered single-line: merged "KPS 123" in one centered box
         /// 3. Centered stacked: label (top) and value (bottom) with smaller fonts
-        /// 设置 KPS/Total 显示。三种模式：
+        /// 4. Hide label (non-slim only): value centered, replacing the top label
+        /// 设置 KPS/Total 显示。模式：
         /// 1. 默认 slim：标签（左）和数值（右）分开
         /// 2. 居中单行："KPS 123" 合并为一个居中框
         /// 3. 居中堆叠：标签（上）和数值（下）用较小字号
+        /// 4. 隐藏标签（仅非 slim）：数值居中显示，替换顶部标签
         /// </summary>
         private static void SetKpsTotalDisplay(Key key, string defaultLabel, string valueStr)
         {
@@ -991,28 +1002,39 @@ namespace JipperKeyViewer.KeyViewer
             string customLabel = isKps ? Settings.Data.KpsLabel : Settings.Data.TotalLabel;
             string label = customLabel;
 
-            if (KpsTotalStackedApplies())
+            // Hide label mode (non-slim only): value hidden, text already centered from CreateKey
+            // 隐藏标签模式（仅非 slim）：隐藏数值，文字已在 CreateKey 中居中
+            if (!KpsTotalIsSlim() && Settings.Data.HideKpsTotalLabel)
             {
                 if (key.value != null)
-                {
-                    key.value.gameObject.SetActive(true);
-                    key.value.text = valueStr;
-                }
-                key.text.text = label;
-            }
-            else if (KpsTotalCenteredApplies())
-            {
-                if (key.value != null) key.value.gameObject.SetActive(false);
-                key.text.text = label + " " + valueStr;
+                    key.value.gameObject.SetActive(false);
+                key.text.text = valueStr;
             }
             else
             {
-                if (key.value != null)
+                if (KpsTotalStackedApplies())
                 {
-                    key.value.gameObject.SetActive(true);
-                    key.value.text = valueStr;
+                    if (key.value != null)
+                    {
+                        key.value.gameObject.SetActive(true);
+                        key.value.text = valueStr;
+                    }
+                    key.text.text = label;
                 }
-                key.text.text = label;
+                else if (KpsTotalCenteredApplies())
+                {
+                    if (key.value != null) key.value.gameObject.SetActive(false);
+                    key.text.text = label + " " + valueStr;
+                }
+                else
+                {
+                    if (key.value != null)
+                    {
+                        key.value.gameObject.SetActive(true);
+                        key.value.text = valueStr;
+                    }
+                    key.text.text = label;
+                }
             }
         }
 

@@ -5,7 +5,7 @@ using JipperKeyViewer;
 using MelonLoader;
 using UnityEngine;
 
-[assembly: MelonInfo(typeof(JipperKeyViewer.LoaderMelon.JipperMelonMod), "Jipper Key Viewer", "1.6.5", "HitMargin", null)]
+[assembly: MelonInfo(typeof(JipperKeyViewer.LoaderMelon.JipperMelonMod), "Jipper Key Viewer", "1.7.0", "HitMargin", null)]
 
 namespace JipperKeyViewer.LoaderMelon
 {

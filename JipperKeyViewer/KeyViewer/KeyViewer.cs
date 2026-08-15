@@ -381,6 +381,7 @@ namespace JipperKeyViewer.KeyViewer
         void OnDestroy()
         {
             SaveSettings();
+            instance = null; // stop loader GUI callbacks from running on the destroyed component / 阻止加载器 GUI 回调继续在已销毁组件上运行
             SceneManager.sceneLoaded -= OnSceneLoaded;
             rainSystem?.ClearAll(Keys);
             foreach (var mat in shadowMaterials.Values)

@@ -30,8 +30,10 @@ namespace JipperKeyViewer
                 else DisableKeyViewer();
             };
 
-            loader.OnGUI += () => KeyViewer.KeyViewer.instance?.DrawSettingsWindow();
-            loader.OnSaveGUI += () => KeyViewer.KeyViewer.instance?.SaveSettings();
+            // Unity-aware null checks (?. bypasses the destroyed-object check on UnityEngine.Object) /
+            // Unity 感知的空检查（?. 会绕过 UnityEngine.Object 的已销毁判断）
+            loader.OnGUI += () => { var kv = KeyViewer.KeyViewer.instance; if (kv != null) kv.DrawSettingsWindow(); };
+            loader.OnSaveGUI += () => { var kv = KeyViewer.KeyViewer.instance; if (kv != null) kv.SaveSettings(); };
         }
 
         /// <summary>

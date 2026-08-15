@@ -1257,6 +1257,7 @@ namespace JipperKeyViewer.KeyViewer
 
         private void UpdateAllKeyColors()
         {
+            if (Keys == null) return; // overlay disabled — nothing to recolor / 覆盖层未启用，无需重着色
             if (IsFullKeyboard) { ApplyFullKeyboardColors(); return; }
             if (Settings.Data.EnablePerKeyColors)
                 ApplyPerKeyColorsToAll();
@@ -1366,6 +1367,11 @@ namespace JipperKeyViewer.KeyViewer
         private void ResetKeyViewer()
         {
             SelectedKey = -1;
+            // Rebuilding needs the overlay; with the display off just keep the changed settings —
+            // the next EnableKeyViewer builds from them. GUI handlers can fire while disabled.
+            // 重建需要覆盖层存在；显示关闭时仅保留已改的设置——下次启用时按新设置构建
+            //（GUI 处理器可能在显示关闭时触发）。
+            if (KeyViewerObject == null) return;
             if (Keys != null)
             {
                 // Destroy EVERY key child under the size object (main keys, foot keys, KPS/Total boxes,
@@ -1434,6 +1440,9 @@ namespace JipperKeyViewer.KeyViewer
         {
             if (IsFullKeyboard) return; // full keyboard has no foot keys / 全键盘无脚键
             SelectedKey = -1;
+            // Same overlay guard as ResetKeyViewer — GUI can fire while the display is off /
+            // 与 ResetKeyViewer 相同的覆盖层守卫——GUI 可能在显示关闭时触发
+            if (KeyViewerObject == null) return;
             if (Keys != null)
             {
                 for (int i = FootKeyBase; i < Keys.Length; i++)

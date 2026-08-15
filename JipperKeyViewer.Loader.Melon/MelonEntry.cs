@@ -118,7 +118,8 @@ namespace JipperKeyViewer.LoaderMelon
 
         public override void OnApplicationQuit()
         {
-            KeyViewer.KeyViewer.instance?.SaveSettings();
+            var kv = KeyViewer.KeyViewer.instance;
+            if (kv != null) kv.SaveSettings();
         }
 
         private void ToggleSettings()
@@ -128,6 +129,15 @@ namespace JipperKeyViewer.LoaderMelon
                 _settingsRect = new Rect(
                     Screen.width * 0.05f, Screen.height * 0.05f,
                     Screen.width * 0.9f,  Screen.height * 0.85f);
+            else
+            {
+                // UMM saves on window close via OnSaveGUI/OnHideGUI; Melon's equivalents are no-op
+                // events, so persist directly on hide — several sliders rely on close-time saving.
+                // UMM 关窗经 OnSaveGUI/OnHideGUI 保存；Melon 对应事件为空实现，隐藏窗口时直接
+                // 落盘——多处滑块依赖关窗时保存。
+                var kv = KeyViewer.KeyViewer.instance;
+                if (kv != null) kv.SaveSettings();
+            }
         }
     }
 

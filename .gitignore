@@ -370,3 +370,6 @@ Temp
 
 libs/
 /.vscode
+
+# Unity-generated project files (regenerated per editor version) / Unity 生成的工程文件（随编辑器版本重新生成）
+Assembly-CSharp*.csproj

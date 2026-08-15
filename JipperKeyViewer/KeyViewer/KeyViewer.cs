@@ -443,6 +443,7 @@ namespace JipperKeyViewer.KeyViewer
             }
             if (KeyViewerObject != null && enabled)
             {
+                CheckResolutionChanged();
                 long now = Stopwatch.ElapsedMilliseconds;
                 ProcessKeySelection();              // Handle key rebinding input / 处理按键重新绑定输入
                 ProcessMainAndFootKeysInUpdate(now); // Detect key presses / 检测按键按下

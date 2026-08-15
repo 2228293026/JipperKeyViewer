@@ -1211,6 +1211,32 @@ namespace JipperKeyViewer.KeyViewer
             }
         }
 
+        /// <summary>
+        /// Re-apply CanvasWidth-derived positions when the resolution changes mid-session. Full-KB
+        /// KPS/Total, the 108-key block offset, and the custom-position bases are computed only at
+        /// build / slider time and would otherwise stay misplaced until the next rebuild.
+        /// 会话中途分辨率变化时重新应用由 CanvasWidth 推导的位置。全键盘 KPS/Total、108 键整体
+        /// 偏移与自定义位置基点只在构建/滑块操作时计算，不重排会一直错位到下次重建。
+        /// </summary>
+        private void CheckResolutionChanged()
+        {
+            if (lastScreenWidth == Screen.width && lastScreenHeight == Screen.height) return;
+            canvasWidth = Screen.width * 1080f / Screen.height; // keep CanvasWidth's cache in sync / 同步 CanvasWidth 的缓存
+            lastScreenWidth = Screen.width;
+            lastScreenHeight = Screen.height;
+            if (KeyViewerObject == null) return;
+            if (IsFullKeyboard)
+            {
+                RepositionFullKeyboard();
+                ApplyFullKeyboardKpsTotalPosition();
+            }
+            else if (Settings.Data.CustomPositionEnabled)
+            {
+                ResetKeyViewerPosition();
+                ResetFootKeyViewerPosition();
+            }
+        }
+
         private void SetKeyPosition(int keyIndex, float x, float y)
         {
             Key key = keyIndex == -1 ? Kps

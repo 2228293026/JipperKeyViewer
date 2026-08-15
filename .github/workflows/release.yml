@@ -65,25 +65,34 @@ jobs:
             "is_prerelease=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           }
 
+      # Patch the version into the sources before building: classic (non-SDK) csproj ignores
+      # msbuild's /p:Version, and the version also lives in Info.json / Repository.json /
+      # [MelonInfo]. The same script can be run locally before tagging a release.
+      # 构建前把版本号打进源码：经典（非 SDK）csproj 不吃 /p:Version，版本号还存在于
+      # Info.json / Repository.json / [MelonInfo]。打 tag 发版前本地也可运行同一脚本。
+      - name: Apply version to sources
+        shell: pwsh
+        run: ./tools/SetVersion.ps1 -Version "${{ steps.ver.outputs.version }}"
+
       # ========== Build All (6 projects) ==========
 
       - name: Build core (AssetBundle)
-        run: msbuild JipperKeyViewer\JipperKeyViewer.csproj /p:Configuration=Release /p:Platform="AnyCPU" /p:Version=${{ steps.ver.outputs.version }}
+        run: msbuild JipperKeyViewer\JipperKeyViewer.csproj /p:Configuration=Release /p:Platform="AnyCPU"
 
       - name: Build Loader.UMM (AssetBundle)
-        run: msbuild JipperKeyViewer.Loader.UMM\JipperKeyViewer.Loader.UMM.csproj /p:Configuration=Release /p:Platform="AnyCPU" /p:Version=${{ steps.ver.outputs.version }}
+        run: msbuild JipperKeyViewer.Loader.UMM\JipperKeyViewer.Loader.UMM.csproj /p:Configuration=Release /p:Platform="AnyCPU"
 
       - name: Build Loader.Melon (AssetBundle)
-        run: msbuild JipperKeyViewer.Loader.Melon\JipperKeyViewer.Loader.Melon.csproj /p:Configuration=Release /p:Platform="AnyCPU" /p:Version=${{ steps.ver.outputs.version }}
+        run: msbuild JipperKeyViewer.Loader.Melon\JipperKeyViewer.Loader.Melon.csproj /p:Configuration=Release /p:Platform="AnyCPU"
 
       - name: Build core (FileBased)
-        run: msbuild JipperKeyViewer-FileBased\JipperKeyViewer-FileBased.csproj /p:Configuration=Release /p:Platform="AnyCPU" /p:Version=${{ steps.ver.outputs.version }}
+        run: msbuild JipperKeyViewer-FileBased\JipperKeyViewer-FileBased.csproj /p:Configuration=Release /p:Platform="AnyCPU"
 
       - name: Build Loader.UMM (FileBased)
-        run: msbuild JipperKeyViewer-FileBased.Loader.UMM\JipperKeyViewer-FileBased.Loader.UMM.csproj /p:Configuration=Release /p:Platform="AnyCPU" /p:Version=${{ steps.ver.outputs.version }}
+        run: msbuild JipperKeyViewer-FileBased.Loader.UMM\JipperKeyViewer-FileBased.Loader.UMM.csproj /p:Configuration=Release /p:Platform="AnyCPU"
 
       - name: Build Loader.Melon (FileBased)
-        run: msbuild JipperKeyViewer-FileBased.Loader.Melon\JipperKeyViewer-FileBased.Loader.Melon.csproj /p:Configuration=Release /p:Platform="AnyCPU" /p:Version=${{ steps.ver.outputs.version }}
+        run: msbuild JipperKeyViewer-FileBased.Loader.Melon\JipperKeyViewer-FileBased.Loader.Melon.csproj /p:Configuration=Release /p:Platform="AnyCPU"
 
       # ========== Package AssetBundle (UMM + MelonLoader) ==========
 
@@ -170,14 +179,3 @@ jobs:
             dist/JipperKeyViewer-FileBased.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Update version in release assets
-        shell: pwsh
-        run: |
-          $v = '${{ steps.ver.outputs.version }}'
-          $info1 = Get-Content dist\JipperKeyViewer\Info.json -Raw | ConvertFrom-Json
-          $info1.Version = $v
-          $info1 | ConvertTo-Json -Depth 10 | Set-Content dist\JipperKeyViewer\Info.json -Encoding utf8
-          $info2 = Get-Content "dist\JipperKeyViewer-FileBased\Info.json" -Raw | ConvertFrom-Json
-          $info2.Version = $v
-          $info2 | ConvertTo-Json -Depth 10 | Set-Content "dist\JipperKeyViewer-FileBased\Info.json" -Encoding utf8

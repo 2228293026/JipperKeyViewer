@@ -117,6 +117,7 @@ namespace JipperKeyViewer.KeyViewer
         public void SetScale(int slot, float scale)
         {
             if (slot < 0 || slot >= count) return;
+            if (scales[slot] == scale) return;
             scales[slot] = scale;
             MarkDirty();
         }
@@ -184,8 +185,13 @@ namespace JipperKeyViewer.KeyViewer
             Texture tex = sprite.texture;
             float tw = tex.width, th = tex.height;
             Rect o = new Rect(tr.x / tw, tr.y / th, tr.width / tw, tr.height / th);
-            Vector4 spriteBorder = sprite.border;
-            if (spriteBorder == Vector4.zero)
+            // uGUI scales the on-screen border by ppu/100 (border / multipliedPixelsPerUnit); UV
+            // splits stay raw texture fractions. Inert at ppu 100 — guards non-default imports.
+            // uGUI 按公式 ppu/100 缩放屏幕边框（border / multipliedPixelsPerUnit）；UV 分割仍为
+            // 纹理像素比例。ppu=100 时无变化——防御非默认导入设置。
+            float ppuf = sprite.pixelsPerUnit > 0f ? sprite.pixelsPerUnit / 100f : 1f;
+            Vector4 spriteBorder = sprite.border * ppuf;
+            if (sprite.border == Vector4.zero)
             {
                 AddQuad(vh, r.xMin, r.xMax, r.yMin, r.yMax, o.xMin, o.xMax, o.yMin, o.yMax, color);
                 return;

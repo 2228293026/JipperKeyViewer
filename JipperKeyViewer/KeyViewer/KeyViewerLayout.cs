@@ -45,11 +45,11 @@ namespace JipperKeyViewer.KeyViewer
             rectTransform.offsetMin = rectTransform.offsetMax = Vector2.zero;
             // Merged shape layers: every key box (background + outline) renders into two meshes
             // instead of per-key Image hierarchies. Texts live on their own sub-canvas so text
-            // updates never re-batch the shape meshes and vice versa. Key roots (rain containers)
-            // are created after both, preserving the old z-order (boxes < texts < rain).
+            // updates never re-batch the shape meshes and vice versa. Key roots are pure data
+            // holders (position anchor + rain state) created after all layers.
             // 合并形状层：所有按键框（背景+描边）画进两个 mesh，不再每键一组 Image。
-            // 文本放独立子画布，文本更新不会重批形状 mesh，反之亦然。按键根（雨滴容器）在两者之后创建，
-            // 保持原有层级顺序（框 < 文本 < 雨滴）。
+            // 文本放独立子画布，文本更新不会重批形状 mesh，反之亦然。按键根为纯数据载体
+            // （位置锚点 + 雨滴状态），在所有图层之后创建。
             keyShapeLayer = CreateFullStretchRect("KeyShapes").gameObject.AddComponent<KeyShapeLayer>();
             keyOutlineLayer = CreateFullStretchRect("KeyOutlines").gameObject.AddComponent<KeyShapeLayer>();
             keyShapeLayer.AttachOutlineLayer(keyOutlineLayer);
@@ -58,9 +58,20 @@ namespace JipperKeyViewer.KeyViewer
             Canvas textCanvas = textGo.AddComponent<Canvas>();
             textCanvas.additionalShaderChannels = Canvas.additionalShaderChannels; // match TMP input channels of the root canvas / 与根画布的 TMP 通道一致
             textLayer = textGo.transform;
+            // Merged rain layers: all drops render into two meshes (solid-color quads / ghost sprite),
+            // replacing the per-key RainLine canvases and pooled Rain GameObjects. Created after the
+            // text layer so rain keeps rendering above texts.
+            // 合并雨滴层：全部雨滴画进两个 mesh（纯色四边形/鬼雨贴图），取代每键 RainLine 画布与
+            // Rain 对象池。创建于文本层之后，雨滴保持绘制在文本之上。
+            rainLayer = CreateFullStretchRect("RainLayer").gameObject.AddComponent<RainLayer>();
+            ghostRainLayer = CreateFullStretchRect("GhostRainLayer").gameObject.AddComponent<GhostRainLayer>();
+            rainLayer.AttachGhostLayer(ghostRainLayer);
+            rainLayer.SetSprite(ghostRainSprite);
+            rainSystem.AttachLayers(rainLayer, ghostRainLayer);
             // Initialize main keys based on selected layout / 根据选中的布局初始化主按键
             Keys = new Key[GetKeyCount()];
             keyShapeLayer.Init(Keys.Length + 2); // + KPS/Total slots / 加上 KPS/Total 槽位
+            rainLayer.Init(Keys.Length); // per-key rain press scales / 每键雨滴按压缩放
             InitializeMainKeys(GetLayout(Settings.Data.KeyViewerStyle));
             // Initialize foot keys based on selected layout (full keyboard has none) / 根据选中的布局初始化脚键（全键盘无脚键）
             if (!IsFullKeyboard)
@@ -96,7 +107,7 @@ namespace JipperKeyViewer.KeyViewer
             Object.Destroy(KeyViewerObject);
             KeyViewerObject = null;
             KeyViewerSizeObject = null;
-            rainSystem?.ClearPool();
+            rainSystem.DetachLayers();
             // Destroy shadow materials / 销毁阴影材质
             foreach (var mat in shadowMaterials.Values)
                 Object.Destroy(mat);
@@ -105,6 +116,8 @@ namespace JipperKeyViewer.KeyViewer
             keyShapeLayer = null;
             keyOutlineLayer = null;
             textLayer = null;
+            rainLayer = null;
+            ghostRainLayer = null;
             Keys = null;
             PressTimes = null;
             keyPressTimes = null;
@@ -546,10 +559,10 @@ namespace JipperKeyViewer.KeyViewer
                 SetKeyPosition(-2, Settings.Data.FullTotalPosition.x * CanvasWidth, Settings.Data.FullTotalPosition.y * 1080f);
         }
 
-        /// <summary>Redirect back-row rain containers to front-row ones for layouts with non-standard key widths.
-        /// Matches JipperResourcePack's RainPool sharing — rain drops inherit front row's X position and width,
+        /// <summary>Redirect back-row rain to front-row columns for layouts with non-standard key widths.
+        /// Matches JipperResourcePack's RainPool sharing — rain drops inherit front row's X position,
         /// while per-row settings (color, speed, height) remain from the pressed key's row.
-        /// 将非标准宽度的后排雨滴容器重指向前排按键，雨滴位置与前列对齐
+        /// 将非标准宽度布局的后排雨滴重指向前排列，雨滴位置与前列对齐
         /// </summary>
         private void ApplyRainContainerSharing()
         {
@@ -585,19 +598,14 @@ namespace JipperKeyViewer.KeyViewer
             if (backIndex < 0 || backIndex >= Keys.Length || frontIndex < 0 || frontIndex >= Keys.Length) return;
             var backKey = Keys[backIndex];
             var frontKey = Keys[frontIndex];
-            if (backKey?.rain == null || frontKey?.rain == null) return;
-            if (backKey.rain == frontKey.rain) return;
+            if (backKey == null || frontKey == null) return;
 
-            // Keep back key's own RainLine — just align its X and width to the front column.
-            // Each key keeps its own container, so Z-order is naturally correct (no Canvas hack needed).
-            // 保留后排按键的雨滴容器，不共享，只调 X 偏移对齐前列，宽度改为标准 50px
-            RectTransform rt = backKey.rain.GetComponent<RectTransform>();
-            float frontX = frontKey.GetComponent<RectTransform>().anchoredPosition.x;
-            float backX = backKey.GetComponent<RectTransform>().anchoredPosition.x;
-            backKey.rainOffsetX = frontX - backX;
-            Vector2 pos = rt.anchoredPosition;
-            rt.anchoredPosition = new Vector2(backKey.rainOffsetX, pos.y);
-            rt.sizeDelta = new Vector2(50, rt.sizeDelta.y);
+            // Keep the back key's own rain column — just align its center to the front column
+            // (the old code repointed the container and reset its width to 50).
+            // 保留后排按键自己的雨滴列，只把列中心对齐到前列（旧代码重指容器并把宽度重置为 50）。
+            backKey.rainOffsetX = ((RectTransform)frontKey.transform).anchoredPosition.x
+                - ((RectTransform)backKey.transform).anchoredPosition.x;
+            backKey.rainWidth = 50f;
         }
 
         private void RepositionMainKeys(LayoutDesc layout, float baseX, float baseY)
@@ -774,7 +782,7 @@ namespace JipperKeyViewer.KeyViewer
                 key.text = CreateKeyText(visuals, sizeX, slim, false, settings, false, false, pki, isFootKey);
             }
             UpdateKeyText(key, i);
-            SetupRainContainer(key, obj, sizeX, raining);
+            SetupRainContainer(key, raining, sizeX);
             ApplyKeyColors(key, i, raining);
             return key;
         }
@@ -920,75 +928,12 @@ namespace JipperKeyViewer.KeyViewer
             return text;
         }
 
-        private void UpdateRainContainerPositions()
+        /// <summary>Assign the key's rain row (-1 = no rain); drops render in the merged RainLayer /
+        /// 设置按键的雨滴行（-1 = 无雨滴）；雨滴绘制在合并 RainLayer 中</summary>
+        private static void SetupRainContainer(Key key, int raining, float sizeX)
         {
-            if (Keys == null) return;
-            var processed = new HashSet<RectTransform>();
-            foreach (var key in Keys)
-            {
-                if (key?.rain == null) continue;
-                RectTransform rt = key.rain.GetComponent<RectTransform>();
-                if (rt == null || !processed.Add(rt)) continue;
-                rt.anchoredPosition = new Vector2(key.rainOffsetX, key.color switch
-                {
-                    0 => Settings.Data.RainStartYRow1,
-                    3 => Settings.Data.RainStartYRow3,
-                    _ => Settings.Data.RainStartYRow2
-                });
-            }
-        }
-
-        private void UpdateGhostRainStartY()
-        {
-            if (Keys == null || rainSystem == null) return;
-            for (int i = 0; i < Keys.Length; i++)
-            {
-                var key = Keys[i];
-                if (key?.rain == null) continue;
-                int row = i < 8 ? 1 : i < 16 ? 2 : 3;
-                float baseY = row == 1 ? Settings.Data.RainStartYRow1
-                    : row == 2 ? Settings.Data.RainStartYRow2
-                    : Settings.Data.RainStartYRow3;
-                float ghostY = row == 1 ? Settings.Data.GhostRainStartYRow1
-                    : row == 2 ? Settings.Data.GhostRainStartYRow2
-                    : Settings.Data.GhostRainStartYRow3;
-                float startY = ghostY - baseY;
-                foreach (var rawRain in key.rainList)
-                {
-                    if (rawRain.isGhost)
-                        rawRain.startY = startY;
-                }
-            }
-        }
-
-        private static void SetupRainContainer(Key key, GameObject parent, float sizeX, int raining)
-        {
-            if (raining >= 0)
-            {
-                if (key.rain == null)
-                {
-                    key.rain = new GameObject("RainLine");
-                    RectTransform rt = key.rain.AddComponent<RectTransform>();
-                    rt.SetParent(parent.transform);
-                    rt.sizeDelta = new Vector2(sizeX, 275);
-                    rt.anchorMin = rt.anchorMax = rt.pivot = Vector2.zero;
-                    rt.anchoredPosition = new Vector2(0, raining switch
-                    {
-                        0 => KeyViewer.Settings.Data.RainStartYRow1,
-                        3 => KeyViewer.Settings.Data.RainStartYRow3,
-                        _ => KeyViewer.Settings.Data.RainStartYRow2
-                    });
-                    rt.localScale = Vector3.one;
-                    key.rain.AddComponent<Canvas>();
-                }
-                key.color = (byte)raining;
-            }
-            else
-            {
-                key.color = 1;
-                key.rain?.SetActive(false);
-                key.rain = null;
-            }
+            key.color = raining >= 0 ? (byte)raining : (byte)1;
+            key.rainWidth = sizeX;
         }
 
         private int KeyIndex(int i) => i >= 0 && i < Keys.Length ? i : i == -1 ? Keys.Length : i == -2 ? Keys.Length + 1 : -1;
@@ -1433,13 +1378,15 @@ namespace JipperKeyViewer.KeyViewer
                 rainSystem.ClearActiveDrops(Keys);
                 Transform shapeT = keyShapeLayer != null ? keyShapeLayer.transform : null;
                 Transform outlineT = keyOutlineLayer != null ? keyOutlineLayer.transform : null;
+                Transform rainT = rainLayer != null ? rainLayer.transform : null;
+                Transform ghostT = ghostRainLayer != null ? ghostRainLayer.transform : null;
                 if (KeyViewerSizeObject != null)
                 {
                     var children = KeyViewerSizeObject.transform;
                     for (int c = children.childCount - 1; c >= 0; c--)
                     {
                         Transform child = children.GetChild(c);
-                        if (child == shapeT || child == outlineT || child == textLayer) continue;
+                        if (child == shapeT || child == outlineT || child == textLayer || child == rainT || child == ghostT) continue;
                         Object.Destroy(child.gameObject);
                     }
                 }
@@ -1455,9 +1402,9 @@ namespace JipperKeyViewer.KeyViewer
             // 数组长度必须匹配目标布局（标准40/全键盘105）。
             Keys = new Key[GetKeyCount()];
             if (keyShapeLayer != null) keyShapeLayer.Init(Keys.Length + 2); // resets slots, bumps Generation / 重置槽位并递增 Generation
+            if (rainLayer != null) rainLayer.Init(Keys.Length); // resets per-key rain press scales / 重置每键雨滴按压缩放
             Total = null;
             Kps = null;
-            rainSystem.ClearPool();
             InitializeMainKeys(GetLayout(Settings.Data.KeyViewerStyle));
             // Rebuild foot keys too: ResetKeyViewer now destroys every child (including foot keys)
             // to avoid leaking them when switching to the full keyboard, so they must be recreated here.
@@ -1494,14 +1441,7 @@ namespace JipperKeyViewer.KeyViewer
                     var key = Keys[i];
                     if (key == null) continue;
                     foreach (var rain in key.rainList)
-                    {
-                        if (rain.rainComponent != null)
-                        {
-                            rainSystem.ReturnRain(rain.rainComponent);
-                            rain.rainComponent = null;
-                        }
                         rainSystem.ReturnRawRain(rain);
-                    }
                     key.rainList.Clear();
                     // Texts live in the text canvas; hide + reset the slot (a leftover press-animation
                     // scale would render the recreated key's box permanently shrunken) /
@@ -1517,7 +1457,6 @@ namespace JipperKeyViewer.KeyViewer
                         Object.Destroy(key.gameObject);
                 }
             }
-            rainSystem.ClearPool();
             int footSize = FootKeySize(Settings.Data.FootKeyViewerStyle);
             if (footSize > 0) InitializeFootKeyViewer(footSize);
             if (Settings.Data.CustomPositionEnabled)

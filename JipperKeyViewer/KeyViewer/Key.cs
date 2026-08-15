@@ -1,8 +1,9 @@
 // Key MonoBehaviour: logical key / 按键 MonoBehaviour：逻辑按键
 // Box geometry lives in the merged KeyShapeLayer; text lives under a per-key wrapper in the text
-// canvas; this component stays on the key root, anchoring the rain container and holding state.
-// 按键框几何在合并的 KeyShapeLayer 中；文本在文本画布的每键包裹层下；本组件保留在按键根节点上，
-// 锚定雨滴容器并持有状态。
+// canvas; rain drops live in the merged RainLayer reading key.rainList. This component stays on
+// the key root, marking the key's position and holding state.
+// 按键框几何在合并的 KeyShapeLayer 中；文本在文本画布的每键包裹层下；雨滴在合并 RainLayer 中读取
+// key.rainList。本组件保留在按键根节点上，标记按键位置并持有状态。
 
 using System.Collections.Generic;
 using TMPro;
@@ -24,8 +25,6 @@ namespace JipperKeyViewer.KeyViewer
         public int shapeSlot = -1;
         /// <summary>Key box size (width, height) for layer/text positioning / 按键框尺寸（宽，高），用于图层与文本定位</summary>
         public Vector2 keySize;
-        /// <summary>Rain effect container GameObject / 雨滴效果容器 GameObject</summary>
-        public GameObject rain;
         /// <summary>Rain color index (0=row1, 1=row2, 3=row3) / 雨滴颜色索引（0=第1排，1=第2排，3=第3排）</summary>
         public byte color;
         /// <summary>Pre-computed rain color for this key / 预先计算的该键雨滴颜色</summary>
@@ -40,5 +39,7 @@ namespace JipperKeyViewer.KeyViewer
         public Transform visuals;
         /// <summary>X offset for rain container alignment (0 for standard keys) / 雨滴容器的 X 偏移（标准按键为 0）</summary>
         public float rainOffsetX;
+        /// <summary>Rain column width (key width; 50 when redirected to a front column) / 雨滴列宽（按键宽度；重指向前列时为 50）</summary>
+        public float rainWidth = 50f;
     }
 }

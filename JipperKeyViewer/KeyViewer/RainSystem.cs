@@ -1,41 +1,73 @@
 using System.Collections.Generic;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace JipperKeyViewer.KeyViewer
 {
+    /// <summary>
+    /// Rain effect state machine. Drops are pooled RawRain records; rendering happens in the merged
+    /// RainLayer / GhostRainLayer meshes that read this state every frame — no per-drop GameObjects.
+    /// 雨滴效果状态机。雨滴为对象池 RawRain 记录；渲染由每帧读取本状态的合并 RainLayer /
+    /// GhostRainLayer mesh 完成——无逐雨滴 GameObject。
+    /// </summary>
     public class RainSystem
     {
         private readonly KeyViewerSettings settings;
 
-        private readonly Stack<Rain> rainPool = new Stack<Rain>();
+        /// <summary>Current key array (kept in sync by UpdateEffects) for the render layers / 当前键数组（由 UpdateEffects 保持同步），供渲染层读取</summary>
+        internal Key[] Keys;
+        /// <summary>Merged rain render layers / 合并雨滴渲染层</summary>
+        internal RainLayer Layer;
+        internal GhostRainLayer GhostLayer;
+
         private readonly Stack<RawRain> rawRainPool = new Stack<RawRain>();
         private readonly List<int> rainActiveKeys = new List<int>();
         private readonly HashSet<int> rainActiveSet = new HashSet<int>();
-        private Transform _poolParent;
 
         private const int MAX_RAWRAIN_POOL_SIZE = 60;
-        private const int MAX_POOL_SIZE = 64;
-
-        public Sprite GhostRainSprite { get; set; }
+        /// <summary>Height of the old per-key rain container; drops measured their top from it / 旧每键雨滴容器的高度；雨滴顶边以此为基准</summary>
+        private const float RainContainerHeight = 275f;
 
         private readonly float[] rowSpeeds = new float[3];
         private readonly float[] rowHeights = new float[3];
         private readonly float[] ghostRowSpeeds = new float[3];
         private readonly float[] ghostRowHeights = new float[3];
+        private readonly float[] rowStartYs = new float[3];
+        private readonly float[] ghostRowStartYs = new float[3];
         private float cachedRainSpeed1, cachedRainSpeed2, cachedRainSpeed3;
         private float cachedRainHeight1, cachedRainHeight2, cachedRainHeight3;
         private float cachedGhostSpeed1, cachedGhostSpeed2, cachedGhostSpeed3;
         private float cachedGhostHeight1, cachedGhostHeight2, cachedGhostHeight3;
+        private float cachedStartY1, cachedStartY2, cachedStartY3;
+        private float cachedGhostStartY1, cachedGhostStartY2, cachedGhostStartY3;
 
         public RainSystem(KeyViewerSettings settings)
         {
             this.settings = settings;
         }
 
+        public void AttachLayers(RainLayer layer, GhostRainLayer ghostLayer)
+        {
+            Layer = layer;
+            GhostLayer = ghostLayer;
+            if (layer != null) layer.System = this;
+            if (ghostLayer != null) ghostLayer.System = this;
+        }
+
+        public void DetachLayers()
+        {
+            Layer = null;
+            GhostLayer = null;
+            Keys = null;
+        }
+
         public void UpdateEffects(Key[] keys)
         {
-            if (keys == null || keys.Length == 0) return;
+            if (keys == null || keys.Length == 0)
+            {
+                Keys = keys;
+                return;
+            }
+            Keys = keys;
             if (rainActiveKeys.Count == 0) return;
 
             SyncCachedSpeeds();
@@ -54,10 +86,15 @@ namespace JipperKeyViewer.KeyViewer
                     continue;
                 }
 
+                RectTransform keyRt = (RectTransform)key.transform;
+                Vector2 keyPos = keyRt.anchoredPosition;
                 int row = ki < 8 ? 0 : (ki < 16 ? 1 : 2);
                 for (int j = key.rainList.Count - 1; j >= 0; j--)
-                    UpdateSingleRainDrop(key.rainList[j], key, j, row, dtSec);
+                    UpdateSingleRainDrop(key.rainList[j], key, ki, keyPos, j, row, dtSec);
             }
+
+            // One mesh rebuild per frame while anything is active / 只要有活跃雨滴，每帧重建一次 mesh
+            if (Layer != null) Layer.MarkDirty();
         }
 
         private void SyncCachedSpeeds()
@@ -67,7 +104,10 @@ namespace JipperKeyViewer.KeyViewer
                 cachedRainHeight2 == settings.Data.RainHeightRow2 && cachedRainHeight3 == settings.Data.RainHeightRow3 &&
                 cachedGhostSpeed1 == settings.Data.GhostRainSpeedRow1 && cachedGhostSpeed2 == settings.Data.GhostRainSpeedRow2 &&
                 cachedGhostSpeed3 == settings.Data.GhostRainSpeedRow3 && cachedGhostHeight1 == settings.Data.GhostRainHeightRow1 &&
-                cachedGhostHeight2 == settings.Data.GhostRainHeightRow2 && cachedGhostHeight3 == settings.Data.GhostRainHeightRow3)
+                cachedGhostHeight2 == settings.Data.GhostRainHeightRow2 && cachedGhostHeight3 == settings.Data.GhostRainHeightRow3 &&
+                cachedStartY1 == settings.Data.RainStartYRow1 && cachedStartY2 == settings.Data.RainStartYRow2 &&
+                cachedStartY3 == settings.Data.RainStartYRow3 && cachedGhostStartY1 == settings.Data.GhostRainStartYRow1 &&
+                cachedGhostStartY2 == settings.Data.GhostRainStartYRow2 && cachedGhostStartY3 == settings.Data.GhostRainStartYRow3)
                 return;
             rowSpeeds[0] = settings.Data.RainSpeedRow1 / 300f;
             rowSpeeds[1] = settings.Data.RainSpeedRow2 / 300f;
@@ -81,6 +121,12 @@ namespace JipperKeyViewer.KeyViewer
             ghostRowHeights[0] = settings.Data.GhostRainHeightRow1;
             ghostRowHeights[1] = settings.Data.GhostRainHeightRow2;
             ghostRowHeights[2] = settings.Data.GhostRainHeightRow3;
+            rowStartYs[0] = settings.Data.RainStartYRow1;
+            rowStartYs[1] = settings.Data.RainStartYRow2;
+            rowStartYs[2] = settings.Data.RainStartYRow3;
+            ghostRowStartYs[0] = settings.Data.GhostRainStartYRow1;
+            ghostRowStartYs[1] = settings.Data.GhostRainStartYRow2;
+            ghostRowStartYs[2] = settings.Data.GhostRainStartYRow3;
             cachedRainSpeed1 = settings.Data.RainSpeedRow1;
             cachedRainSpeed2 = settings.Data.RainSpeedRow2;
             cachedRainSpeed3 = settings.Data.RainSpeedRow3;
@@ -93,9 +139,15 @@ namespace JipperKeyViewer.KeyViewer
             cachedGhostHeight1 = settings.Data.GhostRainHeightRow1;
             cachedGhostHeight2 = settings.Data.GhostRainHeightRow2;
             cachedGhostHeight3 = settings.Data.GhostRainHeightRow3;
+            cachedStartY1 = settings.Data.RainStartYRow1;
+            cachedStartY2 = settings.Data.RainStartYRow2;
+            cachedStartY3 = settings.Data.RainStartYRow3;
+            cachedGhostStartY1 = settings.Data.GhostRainStartYRow1;
+            cachedGhostStartY2 = settings.Data.GhostRainStartYRow2;
+            cachedGhostStartY3 = settings.Data.GhostRainStartYRow3;
         }
 
-        private void UpdateSingleRainDrop(RawRain rain, Key key, int j, int row, float dtSec)
+        private void UpdateSingleRainDrop(RawRain rain, Key key, int keyIndex, Vector2 keyPos, int j, int row, float dtSec)
         {
             if (rain.removed) return;
 
@@ -104,67 +156,79 @@ namespace JipperKeyViewer.KeyViewer
             float dt = dtSec * 1000f;
             if (!rain.UpdateLocation(rain.growing, speed, height, dt))
             {
-                ReturnRainAndRawRain(rain, key, j);
+                ReturnRawRainAndRemove(rain, key, j);
                 return;
             }
 
-            Rain r = rain.rainComponent;
-            if (r == null) return;
-
-            ApplyRainTransforms(rain, r);
-            UpdateFadeOut(r, dtSec, rain, key, j);
-            UpdateTrailEdge(rain, r, speed, height);
+            // Rect first, fade last: a drop removed by fade-out must not be written to again
+            // (ReturnRawRain can hand the record to a new drop in the same frame).
+            // 先算矩形后处理淡出：被淡出移除的雨滴不能再被写入（ReturnRawRain 可能在同帧
+            // 就把记录发给了新雨滴）。
+            UpdateRectAndTrail(rain, key, keyIndex, keyPos, speed, height);
+            UpdateFade(rain, dtSec, key, j);
         }
 
-        private static void ApplyRainTransforms(RawRain rain, Rain r)
+        private void UpdateFade(RawRain rain, float dtSec, Key key, int j)
         {
-            if (rain.sizeDelta != null)
-            {
-                r.transform.sizeDelta = rain.sizeDelta.Value;
-                rain.sizeDelta = null;
-            }
-            if (rain.anchoredPosition != null)
-            {
-                r.transform.anchoredPosition = rain.anchoredPosition.Value;
-                rain.anchoredPosition = null;
-            }
-        }
-
-        private void UpdateFadeOut(Rain r, float dtSec, RawRain rain, Key key, int j)
-        {
-            if (!r.fadingOut) return;
-            r.fadeTimer += dtSec;
-            float t = Mathf.Clamp01(r.fadeTimer / settings.Data.RainFadeDuration);
-            float a = 1f - (t * (2f - t));
-            var c = r.graphic.color;
-            c.a = a;
-            r.graphic.color = c;
+            if (!rain.fadingOut) return;
+            rain.fadeTimer += dtSec;
+            float t = Mathf.Clamp01(rain.fadeTimer / settings.Data.RainFadeDuration);
+            rain.alpha = 1f - (t * (2f - t));
             if (t >= 1f)
-                ReturnRainAndRawRain(rain, key, j);
+                ReturnRawRainAndRemove(rain, key, j);
         }
 
-        private void UpdateTrailEdge(RawRain rain, Rain r, float speed, float height)
+        /// <summary>
+        /// Compute the drop's layer-space rect (including the affect-rain press scale) and trail
+        /// gradient params. Start-Y and ghost offsets are read live from settings, so the GUI sliders
+        /// update existing drops without any container bookkeeping.
+        /// 计算雨滴的图层空间矩形（含雨滴跟随按压缩放）与轨迹渐变参数。起始 Y 与鬼雨偏移实时读取
+        /// 设置，GUI 滑块直接作用于现有雨滴，无需容器簿记。
+        /// </summary>
+        private void UpdateRectAndTrail(RawRain rain, Key key, int keyIndex, Vector2 keyPos, float speed, float height)
         {
             float trailEdgeDist = rain.elapsedMs * speed;
             float drawH = trailEdgeDist > height
                 ? rain.FinalSize.y - trailEdgeDist + height
                 : (rain.growing ? trailEdgeDist : rain.FinalSize.y);
-            trailEdgeDist = Mathf.Min(trailEdgeDist, height);
+            rain.dFar = Mathf.Min(trailEdgeDist, height);
+            rain.dNear = rain.dFar - drawH;
+            rain.trackHeight = height;
+            rain.fadePx = settings.Data.EnableRainGradient && !rain.isGhost ? settings.Data.RainFadePx : 0f;
 
-            float dFar = trailEdgeDist;
-            float dNear = dFar - drawH;
-            float fp = settings.Data.EnableRainGradient && !rain.isGhost ? settings.Data.RainFadePx : 0f;
-            r.graphic.SetFadeParams(dNear, dFar, height, fp, false);
+            float w = rain.sizeDelta?.x ?? rain.FinalSize.x;
+            float h = rain.sizeDelta?.y ?? rain.FinalSize.y;
+            // Old layout: the 275px container anchored to the key rect's BOTTOM-LEFT corner, and the
+            // drop hung on the container's top-center anchor — so X centers on the container column,
+            // Y measures from (key bottom + start-Y + container height). Start-Y (normal and ghost)
+            // is read live here; the baked startY is subtracted back out.
+            // 旧布局：275px 容器锚在按键矩形左下角，雨滴挂在容器顶中锚点上——X 以容器列居中，
+            // Y 从（键底边 + 起始 Y + 容器高）起算。起始 Y（普通与鬼雨）在此实时读取，
+            // 创建时烙入的 startY 被减回。
+            int ri = rain.color == 0 ? 0 : rain.color == 3 ? 2 : 1;
+            float baseStart = rain.isGhost ? ghostRowStartYs[ri] : rowStartYs[ri];
+            float travel = rain.anchoredPosition.Value.y - rain.startY;
+            float cx = keyPos.x + key.rainOffsetX + key.rainWidth * 0.5f;
+            float topY = keyPos.y - key.keySize.y * 0.5f + baseStart + RainContainerHeight + travel;
+
+            float s = Layer != null ? Layer.GetKeyScale(keyIndex) : 1f;
+            rain.scaleF = s;
+            if (s != 1f)
+            {
+                // Scale around the key box center — what the old root-scale + compensation achieved /
+                // 围绕按键框中心缩放——与旧根缩放 + 位置补偿等效
+                float kcx = keyPos.x + key.keySize.x * 0.5f;
+                cx = kcx + (cx - kcx) * s;
+                w *= s;
+                topY = keyPos.y + (topY - keyPos.y) * s;
+                h *= s;
+            }
+            rain.rect = new Rect(cx - w * 0.5f, topY - h, w, h);
         }
 
-        private void ReturnRainAndRawRain(RawRain rain, Key key, int listIndex)
+        private void ReturnRawRainAndRemove(RawRain rain, Key key, int listIndex)
         {
             rain.removed = true;
-            if (rain.rainComponent != null)
-            {
-                ReturnRain(rain.rainComponent);
-                rain.rainComponent = null;
-            }
             ReturnRawRain(rain);
             key.rainList.RemoveAt(listIndex);
         }
@@ -183,8 +247,11 @@ namespace JipperKeyViewer.KeyViewer
             {
                 if (key.rainList[i].isGhost) continue;
                 key.rainList[i].growing = false;
-                if (settings.Data.EnableRainFade && key.rainList[i].rainComponent != null)
-                    key.rainList[i].rainComponent.StartFadeOut(settings.Data.RainFadeDuration);
+                if (settings.Data.EnableRainFade)
+                {
+                    key.rainList[i].fadingOut = true;
+                    key.rainList[i].fadeTimer = 0f;
+                }
                 break;
             }
         }
@@ -217,37 +284,16 @@ namespace JipperKeyViewer.KeyViewer
             {
                 if (key == null) continue;
                 foreach (var rain in key.rainList)
-                {
-                    if (rain.rainComponent != null)
-                    {
-                        ReturnRain(rain.rainComponent);
-                        rain.rainComponent = null;
-                    }
                     ReturnRawRain(rain);
-                }
                 key.rainList.Clear();
             }
+            if (Layer != null) Layer.MarkDirty();
         }
 
         public void ClearAll(Key[] keys)
         {
             ClearActiveDrops(keys);
-            ClearPool();
-        }
-
-        public void ClearPool()
-        {
-            while (rainPool.Count > 0)
-            {
-                var r = rainPool.Pop();
-                if (r != null)
-                    Object.Destroy(r.gameObject);
-            }
-            if (_poolParent != null)
-            {
-                Object.Destroy(_poolParent.gameObject);
-                _poolParent = null;
-            }
+            rawRainPool.Clear();
         }
 
         public Color GetRainColor(byte color) => RainColor(color, false);
@@ -264,48 +310,6 @@ namespace JipperKeyViewer.KeyViewer
             };
         }
 
-        public Rain GetRainFromPool(Transform parent)
-        {
-            return GetRainFromPool(parent, null, false);
-        }
-
-        public Rain GetRainFromPool(Transform parent, Sprite sprite, bool isTiled)
-        {
-            Rain r = null;
-            while (rainPool.Count > 0)
-            {
-                r = rainPool.Pop();
-                if (r != null) break;
-            }
-            if (r == null)
-            {
-                GameObject go = new GameObject("Rain");
-                go.AddComponent<RectTransform>();
-                r = go.AddComponent<Rain>();
-            }
-            if (sprite == null)
-                r.Init(parent);
-            else
-                r.Init(parent, sprite, isTiled);
-            return r;
-        }
-
-        public void ReturnRain(Rain r)
-        {
-            if (_poolParent == null)
-            {
-                _poolParent = new GameObject("RainPool").transform;
-                _poolParent.gameObject.SetActive(false);
-            }
-            r.gameObject.SetActive(false);
-            r.transform.SetParent(_poolParent, false);
-            r.rawRain = null;
-            if (rainPool.Count < MAX_POOL_SIZE)
-                rainPool.Push(r);
-            else
-                Object.Destroy(r.gameObject);
-        }
-
         private RawRain GetRawRain(byte color)
         {
             RawRain r;
@@ -318,10 +322,18 @@ namespace JipperKeyViewer.KeyViewer
                 r.startY = 0f;
                 r.sizeDelta = null;
                 r.anchoredPosition = null;
-                r.rainComponent = null;
                 r.isGhost = false;
                 r.growing = false;
                 r.FinalSize = default;
+                r.rect = default;
+                r.mainColor = Color.white;
+                r.alpha = 1f;
+                r.scaleF = 1f;
+                r.fadingOut = false;
+                r.fadeTimer = 0f;
+                r.dNear = r.dFar = r.trackHeight = r.fadePx = 0f;
+                r.shadowEnabled = false;
+                r.outlineEnabled = false;
             }
             else
             {
@@ -336,7 +348,6 @@ namespace JipperKeyViewer.KeyViewer
             r.removed = false;
             r.sizeDelta = null;
             r.anchoredPosition = null;
-            r.rainComponent = null;
             r.isGhost = false;
             r.growing = false;
             rawRainPool.Push(r);
@@ -353,81 +364,62 @@ namespace JipperKeyViewer.KeyViewer
             rawRain.startY = isGhost
                 ? (row == 1 ? settings.Data.GhostRainStartYRow1 : row == 2 ? settings.Data.GhostRainStartYRow2 : settings.Data.GhostRainStartYRow3) - baseY
                 : 0f;
-            Rain rainComponent;
+
             if (isGhost)
             {
-                rainComponent = GetRainFromPool(key.rain.transform, GhostRainSprite, true);
-                rainComponent.ghostImage.color = settings.Data.EnablePerKeyColors
+                rawRain.mainColor = settings.Data.EnablePerKeyColors
                     ? settings.Data.PerKeyGhostRainColor[keyIndex]
                     : GetGhostRainColor(key.color);
-            }
-            else
-            {
-                rainComponent = GetRainFromPool(key.rain.transform);
-                rainComponent.graphic.color = key.rainColor;
-            }
 
-            // Ghost-specific or normal-specific shadow/outline settings
-            if (isGhost)
-            {
-                bool hasShadow = row == 1 ? settings.Data.EnableGhostRainShadowRow1
+                rawRain.shadowEnabled = row == 1 ? settings.Data.EnableGhostRainShadowRow1
                     : row == 2 ? settings.Data.EnableGhostRainShadowRow2
                     : settings.Data.EnableGhostRainShadowRow3;
-                bool hasOutline = row == 1 ? settings.Data.EnableGhostRainOutlineRow1
-                    : row == 2 ? settings.Data.EnableGhostRainOutlineRow2
-                    : settings.Data.EnableGhostRainOutlineRow3;
-                rainComponent.graphic.enabled = hasShadow || hasOutline;
-                rainComponent.graphic.shadowEnabled = hasShadow;
-                rainComponent.graphic.shadowColor = row == 1 ? settings.Data.GhostRainShadowColorRow1
+                rawRain.shadowColor = row == 1 ? settings.Data.GhostRainShadowColorRow1
                     : row == 2 ? settings.Data.GhostRainShadowColorRow2
                     : settings.Data.GhostRainShadowColorRow3;
-                rainComponent.graphic.shadowOffsetX = row == 1 ? settings.Data.GhostRainShadowOffsetXRow1
+                rawRain.shadowOffsetX = row == 1 ? settings.Data.GhostRainShadowOffsetXRow1
                     : row == 2 ? settings.Data.GhostRainShadowOffsetXRow2
                     : settings.Data.GhostRainShadowOffsetXRow3;
-                rainComponent.graphic.shadowOffsetY = row == 1 ? settings.Data.GhostRainShadowOffsetYRow1
+                rawRain.shadowOffsetY = row == 1 ? settings.Data.GhostRainShadowOffsetYRow1
                     : row == 2 ? settings.Data.GhostRainShadowOffsetYRow2
                     : settings.Data.GhostRainShadowOffsetYRow3;
-
-                rainComponent.graphic.outlineEnabled = hasOutline;
-                rainComponent.graphic.outlineColor = row == 1 ? settings.Data.GhostRainOutlineColorRow1
+                rawRain.outlineEnabled = row == 1 ? settings.Data.EnableGhostRainOutlineRow1
+                    : row == 2 ? settings.Data.EnableGhostRainOutlineRow2
+                    : settings.Data.EnableGhostRainOutlineRow3;
+                rawRain.outlineColor = row == 1 ? settings.Data.GhostRainOutlineColorRow1
                     : row == 2 ? settings.Data.GhostRainOutlineColorRow2
                     : settings.Data.GhostRainOutlineColorRow3;
-                rainComponent.graphic.outlineWidth = row == 1 ? settings.Data.GhostRainOutlineWidthRow1
+                rawRain.outlineWidth = row == 1 ? settings.Data.GhostRainOutlineWidthRow1
                     : row == 2 ? settings.Data.GhostRainOutlineWidthRow2
                     : settings.Data.GhostRainOutlineWidthRow3;
             }
             else
             {
-                rainComponent.graphic.shadowEnabled = row == 1 ? settings.Data.EnableRainShadowRow1
+                rawRain.mainColor = key.rainColor;
+
+                rawRain.shadowEnabled = row == 1 ? settings.Data.EnableRainShadowRow1
                     : row == 2 ? settings.Data.EnableRainShadowRow2
                     : settings.Data.EnableRainShadowRow3;
-                rainComponent.graphic.shadowColor = row == 1 ? settings.Data.RainShadowColorRow1
+                rawRain.shadowColor = row == 1 ? settings.Data.RainShadowColorRow1
                     : row == 2 ? settings.Data.RainShadowColorRow2
                     : settings.Data.RainShadowColorRow3;
-                rainComponent.graphic.shadowOffsetX = row == 1 ? settings.Data.RainShadowOffsetXRow1
+                rawRain.shadowOffsetX = row == 1 ? settings.Data.RainShadowOffsetXRow1
                     : row == 2 ? settings.Data.RainShadowOffsetXRow2
                     : settings.Data.RainShadowOffsetXRow3;
-                rainComponent.graphic.shadowOffsetY = row == 1 ? settings.Data.RainShadowOffsetYRow1
+                rawRain.shadowOffsetY = row == 1 ? settings.Data.RainShadowOffsetYRow1
                     : row == 2 ? settings.Data.RainShadowOffsetYRow2
                     : settings.Data.RainShadowOffsetYRow3;
-
-                rainComponent.graphic.outlineEnabled = row == 1 ? settings.Data.EnableRainOutlineRow1
+                rawRain.outlineEnabled = row == 1 ? settings.Data.EnableRainOutlineRow1
                     : row == 2 ? settings.Data.EnableRainOutlineRow2
                     : settings.Data.EnableRainOutlineRow3;
-                rainComponent.graphic.outlineColor = row == 1 ? settings.Data.RainOutlineColorRow1
+                rawRain.outlineColor = row == 1 ? settings.Data.RainOutlineColorRow1
                     : row == 2 ? settings.Data.RainOutlineColorRow2
                     : settings.Data.RainOutlineColorRow3;
-                rainComponent.graphic.outlineWidth = row == 1 ? settings.Data.RainOutlineWidthRow1
+                rawRain.outlineWidth = row == 1 ? settings.Data.RainOutlineWidthRow1
                     : row == 2 ? settings.Data.RainOutlineWidthRow2
                     : settings.Data.RainOutlineWidthRow3;
             }
 
-            // Set render order: front row behind, middle row in front, third row on top
-            // (1,3,5 for ghost rain so ghost is always above normal within the same row)
-            rainComponent.transform.SetSiblingIndex((row - 1) * 2 + (isGhost ? 1 : 0));
-
-            rainComponent.rawRain = rawRain;
-            rawRain.rainComponent = rainComponent;
             rawRain.isGhost = isGhost;
             rawRain.growing = true;
 
@@ -443,9 +435,39 @@ namespace JipperKeyViewer.KeyViewer
         private bool IsRainEnabledForKey(int keyIndex)
         {
             if (KeyViewer.IsFullKeyboard) return false;
+            // Row mapping must match the speed/height/start-Y rows: 0-7 = row 1, 8-15 = row 2,
+            // 16+ = row 3. (The released version gated rows 1+2 together on Row2, leaving the
+            // row-1 toggle dead.) / 排映射须与速度/高度/起始 Y 一致：0-7 第1排，8-15 第2排，16+ 第3排。
+            // （旧版本把第 1、2 排一起挂在 Row2 开关上，第 1 排开关无效。）
+            if (keyIndex < 8) return settings.Data.EnableRainForRow1;
             if (keyIndex < 16) return settings.Data.EnableRainForRow2;
             if (keyIndex < KeyViewer.FootKeyBase) return settings.Data.EnableRainForRow3;
             return false;
+        }
+
+        /// <summary>Return the active drops of one rain row (0/1/2) to the pool / 将某一雨滴排（0/1/2）的活跃雨滴回收到池</summary>
+        public void ClearRowDrops(Key[] keys, int row)
+        {
+            if (keys == null) return;
+            int start = row * 8;
+            int end = start + 8;
+            for (int i = start; i < end && i < keys.Length; i++)
+            {
+                Key key = keys[i];
+                if (key == null) continue;
+                foreach (var rain in key.rainList)
+                    ReturnRawRain(rain);
+                key.rainList.Clear();
+            }
+            for (int i = rainActiveKeys.Count - 1; i >= 0; i--)
+            {
+                if (rainActiveKeys[i] >= start && rainActiveKeys[i] < end)
+                {
+                    rainActiveSet.Remove(rainActiveKeys[i]);
+                    rainActiveKeys.RemoveAt(i);
+                }
+            }
+            if (Layer != null) Layer.MarkDirty();
         }
     }
 }

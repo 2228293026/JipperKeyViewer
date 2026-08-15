@@ -225,10 +225,32 @@ namespace JipperKeyViewer.KeyViewer
 
             GUILayout.Label(I18n.Tr("rain_rows") + ":");
             GUILayout.BeginHorizontal();
-            Settings.Data.EnableRainForRow1 = GUILayout.Toggle(Settings.Data.EnableRainForRow1, I18n.Tr("rain_row1"));
-            Settings.Data.EnableRainForRow2 = GUILayout.Toggle(Settings.Data.EnableRainForRow2, I18n.Tr("rain_row2"));
+            // Turning a row off also clears that row's in-flight drops, so the toggle takes effect
+            // immediately / 关闭某排时同时清掉该排飞行中的雨滴，开关立即生效
+            bool newRow1 = GUILayout.Toggle(Settings.Data.EnableRainForRow1, I18n.Tr("rain_row1"));
+            if (newRow1 != Settings.Data.EnableRainForRow1)
+            {
+                Settings.Data.EnableRainForRow1 = newRow1;
+                if (!newRow1 && rainSystem != null) rainSystem.ClearRowDrops(Keys, 0);
+                SaveSettings();
+            }
+            bool newRow2 = GUILayout.Toggle(Settings.Data.EnableRainForRow2, I18n.Tr("rain_row2"));
+            if (newRow2 != Settings.Data.EnableRainForRow2)
+            {
+                Settings.Data.EnableRainForRow2 = newRow2;
+                if (!newRow2 && rainSystem != null) rainSystem.ClearRowDrops(Keys, 1);
+                SaveSettings();
+            }
             if (HasThirdRow)
-                Settings.Data.EnableRainForRow3 = GUILayout.Toggle(Settings.Data.EnableRainForRow3, I18n.Tr("rain_row3"));
+            {
+                bool newRow3 = GUILayout.Toggle(Settings.Data.EnableRainForRow3, I18n.Tr("rain_row3"));
+                if (newRow3 != Settings.Data.EnableRainForRow3)
+                {
+                    Settings.Data.EnableRainForRow3 = newRow3;
+                    if (!newRow3 && rainSystem != null) rainSystem.ClearRowDrops(Keys, 2);
+                    SaveSettings();
+                }
+            }
             GUILayout.EndHorizontal();
 
             GUILayout.Label(I18n.Tr("rain_height") + ":");
@@ -250,14 +272,17 @@ namespace JipperKeyViewer.KeyViewer
                 Settings.Data.RainWidthRow3 = FloatSliderField(I18n.Tr("rain_width_row3"), Settings.Data.RainWidthRow3, 10f, 200f, "F0");
 
             GUILayout.Label(I18n.Tr("rain_start_y") + ":");
+            // Start-Y is read live at render time — sliders apply to existing drops directly;
+            // saved together with the next settings write, matching the old no-save-on-tick behaviour /
+            // 起始 Y 渲染时实时读取——滑块直接作用于现有雨滴；随下次设置写入一并保存，与旧实现不逐帧存盘一致
             float newStartY1 = FloatSliderField(I18n.Tr("rain_row1"), Settings.Data.RainStartYRow1, -2000f, 1000f, "F0");
-            if (newStartY1 != Settings.Data.RainStartYRow1) { Settings.Data.RainStartYRow1 = newStartY1; UpdateRainContainerPositions(); }
+            if (newStartY1 != Settings.Data.RainStartYRow1) { Settings.Data.RainStartYRow1 = newStartY1; }
             float newStartY2 = FloatSliderField(I18n.Tr("rain_row2"), Settings.Data.RainStartYRow2, -2000f, 1000f, "F0");
-            if (newStartY2 != Settings.Data.RainStartYRow2) { Settings.Data.RainStartYRow2 = newStartY2; UpdateRainContainerPositions(); }
+            if (newStartY2 != Settings.Data.RainStartYRow2) { Settings.Data.RainStartYRow2 = newStartY2; }
             if (HasThirdRow)
             {
                 float newStartY3 = FloatSliderField(I18n.Tr("rain_row3"), Settings.Data.RainStartYRow3, -2000f, 1000f, "F0");
-                if (newStartY3 != Settings.Data.RainStartYRow3) { Settings.Data.RainStartYRow3 = newStartY3; UpdateRainContainerPositions(); }
+                if (newStartY3 != Settings.Data.RainStartYRow3) { Settings.Data.RainStartYRow3 = newStartY3; }
             }
 
             GUILayout.Space(5);
@@ -312,14 +337,15 @@ namespace JipperKeyViewer.KeyViewer
                 DrawRainRowEffectSection(true, true);
 
                 GUILayout.Label(I18n.Tr("ghost_rain") + " " + I18n.Tr("rain_start_y") + ":");
+                // Ghost start-Y offsets are read live at render time / 鬼雨起始 Y 渲染时实时读取
                 float newGY1 = FloatSliderField(I18n.Tr("rain_row1"), Settings.Data.GhostRainStartYRow1, -2000f, 1000f, "F0");
-                if (!Mathf.Approximately(newGY1, Settings.Data.GhostRainStartYRow1)) { Settings.Data.GhostRainStartYRow1 = newGY1; UpdateGhostRainStartY(); SaveSettings(); }
+                if (!Mathf.Approximately(newGY1, Settings.Data.GhostRainStartYRow1)) { Settings.Data.GhostRainStartYRow1 = newGY1; SaveSettings(); }
                 float newGY2 = FloatSliderField(I18n.Tr("rain_row2"), Settings.Data.GhostRainStartYRow2, -2000f, 1000f, "F0");
-                if (!Mathf.Approximately(newGY2, Settings.Data.GhostRainStartYRow2)) { Settings.Data.GhostRainStartYRow2 = newGY2; UpdateGhostRainStartY(); SaveSettings(); }
+                if (!Mathf.Approximately(newGY2, Settings.Data.GhostRainStartYRow2)) { Settings.Data.GhostRainStartYRow2 = newGY2; SaveSettings(); }
                 if (HasThirdRow)
                 {
                     float newGY3 = FloatSliderField(I18n.Tr("rain_row3"), Settings.Data.GhostRainStartYRow3, -2000f, 1000f, "F0");
-                    if (!Mathf.Approximately(newGY3, Settings.Data.GhostRainStartYRow3)) { Settings.Data.GhostRainStartYRow3 = newGY3; UpdateGhostRainStartY(); SaveSettings(); }
+                    if (!Mathf.Approximately(newGY3, Settings.Data.GhostRainStartYRow3)) { Settings.Data.GhostRainStartYRow3 = newGY3; SaveSettings(); }
                 }
 
                 GUILayout.Label(I18n.Tr("ghost_rain_height") + ":");

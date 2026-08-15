@@ -95,10 +95,9 @@
     <Compile Include="..\JipperKeyViewer\KeyViewer\KeyShapeLayer.cs" Link="KeyViewer\KeyShapeLayer.cs" />
     <Compile Include="..\JipperKeyViewer\KeyViewer\KeyViewerLayout.cs" Link="KeyViewer\KeyViewerLayout.cs" />
     <Compile Include="..\JipperKeyViewer\KeyViewer\RainSystem.cs" Link="KeyViewer\RainSystem.cs" />
+    <Compile Include="..\JipperKeyViewer\KeyViewer\RainLayer.cs" Link="KeyViewer\RainLayer.cs" />
     <Compile Include="..\JipperKeyViewer\KeyViewer\KeyViewerSettings.cs" Link="KeyViewer\KeyViewerSettings.cs" />
     <Compile Include="..\JipperKeyViewer\KeyViewer\KeyviewerStyle.cs" Link="KeyViewer\KeyviewerStyle.cs" />
-    <Compile Include="..\JipperKeyViewer\KeyViewer\Rain.cs" Link="KeyViewer\Rain.cs" />
-    <Compile Include="..\JipperKeyViewer\KeyViewer\RainGraphic.cs" Link="KeyViewer\RainGraphic.cs" />
     <Compile Include="..\JipperKeyViewer\KeyViewer\RawRain.cs" Link="KeyViewer\RawRain.cs" />
     <Compile Include="..\JipperKeyViewer\Main.cs" Link="Main.cs" />
     <Compile Include="KeyViewer\KeyViewerResources.cs" />

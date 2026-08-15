@@ -196,6 +196,10 @@ namespace JipperKeyViewer.KeyViewer
         KeyShapeLayer keyOutlineLayer;
         /// <summary>Sub-canvas holding all key texts (isolates text rebatching from shape layer) / 持有全部按键文本的子画布（文本重批与形状层隔离）</summary>
         Transform textLayer;
+        /// <summary>Merged rain layer (solid quads: normal bodies + ghost shadow/outline) / 合并雨滴层（纯色四边形：普通本体 + 鬼雨阴影/描边）</summary>
+        RainLayer rainLayer;
+        /// <summary>Merged ghost rain layer (ghost sprite bodies) / 合并鬼雨层（鬼雨贴图本体）</summary>
+        GhostRainLayer ghostRainLayer;
         /// <summary>The overlay canvas (ScreenSpaceOverlay) / 覆盖层画布</summary>
         Canvas Canvas;
         /// <summary>All key instances (index 0-19 main, 20-35 foot) / 所有按键实例（0-19 主键，20-35 脚键）</summary>
@@ -329,7 +333,6 @@ namespace JipperKeyViewer.KeyViewer
             I18n.Lang = Settings.Language;
             rainSystem = new RainSystem(Settings);
             TryLoadResources();
-            rainSystem.GhostRainSprite = ghostRainSprite;
             wasEnabled = Settings.Data.Enabled;
             SceneManager.sceneLoaded += OnSceneLoaded;
         }

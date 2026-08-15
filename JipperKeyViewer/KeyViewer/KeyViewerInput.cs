@@ -419,31 +419,16 @@ namespace JipperKeyViewer.KeyViewer
         }
 
         /// <summary>
-        /// Smoothly animate key visuals scale (center-pivot text wrapper + merged shape mesh).
-        /// When EnablePressAnimationOnRain is on, scales the full key root (rain included) with pivot
-        /// compensation instead, and mirrors the scale onto texts and the shape mesh.
-        /// 平滑缩放按键：默认缩放文本包裹层与合并形状 mesh（雨滴不动）；开启雨滴动画时缩放整个按键根
-        /// （含雨滴）并做位置补偿，同时把缩放同步到文本与形状 mesh。
+        /// Smoothly animate key visuals scale (text wrapper + merged shape mesh).
+        /// When EnablePressAnimationOnRain is on, the merged rain layer scales that key's drops too;
+        /// the key root carries no visuals, so nothing else needs scaling.
+        /// 平滑缩放按键：文本包裹层 + 合并形状 mesh。开启「雨滴跟随缩放」时合并雨滴层同步缩放该键
+        /// 雨滴；按键根不承载可见物体，无需再缩放其它内容。
         /// </summary>
         private IEnumerator AnimateKeyScale(Key key, float target, float duration)
         {
             bool affectRain = Settings.Data.EnablePressAnimationOnRain;
-            Transform animTarget;
-            Vector2 origPos = Vector2.zero;
-            float width = 0f;
-            if (affectRain)
-            {
-                // Scale full key including rain — pivot (0, 0.5) needs compensation / 缩放整个按键包含雨滴
-                RectTransform rt = key.transform as RectTransform;
-                animTarget = rt;
-                origPos = rt.anchoredPosition;
-                width = rt.sizeDelta.x;
-            }
-            else
-            {
-                // Scale the text wrapper only — center-pivot, no compensation needed / 仅缩放文本包裹层
-                animTarget = key.visuals;
-            }
+            Transform animTarget = key.visuals;
             float startS = animTarget.localScale.x;
             int generation = keyShapeLayer != null ? keyShapeLayer.Generation : -1;
             float elapsed = 0f;
@@ -457,24 +442,19 @@ namespace JipperKeyViewer.KeyViewer
                 float p = Mathf.Min(1f, elapsed / duration);
                 float s = Mathf.Lerp(startS, target, p);
                 animTarget.localScale = new Vector3(s, s, 1);
-                if (affectRain)
-                {
-                    (animTarget as RectTransform).anchoredPosition = origPos + new Vector2(width * (startS - s) * 0.5f, 0);
-                    // Texts are no longer children of the key root — mirror the scale explicitly / 文本不再挂在按键根下，需显式同步缩放
-                    if (key.visuals != null) key.visuals.localScale = new Vector3(s, s, 1);
-                }
+                // shapeSlot equals the key index for all real keys; when rain-follow is off, drive
+                // the rain scale back to 1 so a mid-hold toggle never leaves it stuck scaled /
+                // 真实按键的 shapeSlot 即键索引；雨滴跟随关闭时把雨滴缩放拉回 1，
+                // 避免按住途中切换开关导致缩放卡住
                 if (key.shapeSlot >= 0) keyShapeLayer.SetScale(key.shapeSlot, s);
+                if (rainLayer != null && key.shapeSlot >= 0) rainLayer.SetKeyScale(key.shapeSlot, affectRain ? s : 1f);
                 yield return null;
             }
             if (key == null || animTarget == null) yield break;
             if (keyShapeLayer == null || keyShapeLayer.Generation != generation) yield break;
             animTarget.localScale = new Vector3(target, target, 1);
-            if (affectRain)
-            {
-                (animTarget as RectTransform).anchoredPosition = origPos + new Vector2(width * (startS - target) * 0.5f, 0);
-                if (key.visuals != null) key.visuals.localScale = new Vector3(target, target, 1);
-            }
             if (key.shapeSlot >= 0) keyShapeLayer.SetScale(key.shapeSlot, target);
+            if (rainLayer != null && key.shapeSlot >= 0) rainLayer.SetKeyScale(key.shapeSlot, affectRain ? target : 1f);
         }
     }
 }

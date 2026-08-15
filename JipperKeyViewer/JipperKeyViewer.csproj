@@ -103,10 +103,9 @@
     <Compile Include="KeyViewer\KeyViewerLayout.cs" />
     <Compile Include="KeyViewer\KeyViewerResources.cs" />
     <Compile Include="KeyViewer\RainSystem.cs" />
+    <Compile Include="KeyViewer\RainLayer.cs" />
     <Compile Include="KeyViewer\KeyViewerSettings.cs" />
     <Compile Include="KeyViewer\KeyviewerStyle.cs" />
-    <Compile Include="KeyViewer\Rain.cs" />
-    <Compile Include="KeyViewer\RainGraphic.cs" />
     <Compile Include="KeyViewer\RawRain.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

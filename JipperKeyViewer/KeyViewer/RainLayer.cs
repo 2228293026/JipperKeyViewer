@@ -94,6 +94,12 @@ namespace JipperKeyViewer.KeyViewer
             vh.Clear();
             Key[] keys = System != null ? System.Keys : null;
             if (keys == null) return;
+            // Ghost bodies normally render in GhostRainLayer; if the ghost sprite failed to load
+            // (missing bundle asset / PNG), fall back to solid ghost-colored quads here — the old
+            // code's sprite-null path did the same via its plain-init renderer.
+            // 鬼雨本体通常画在 GhostRainLayer；鬼雨贴图加载失败（bundle 缺资源 / PNG 缺失）时
+            // 在此退化为鬼雨色纯色四边形——与旧版无贴图时的纯色渲染路径一致。
+            bool ghostFallback = ghostLayer == null || ghostLayer.Sprite == null;
             for (int i = 0; i < keys.Length; i++)
             {
                 Key key = keys[i];
@@ -101,8 +107,8 @@ namespace JipperKeyViewer.KeyViewer
                 for (int d = 0; d < key.rainList.Count; d++)
                 {
                     RawRain rain = key.rainList[d];
-                    if (rain.removed || rain.isGhost && !rain.shadowEnabled && !rain.outlineEnabled) continue;
-                    DrawDrop(vh, rain, drawMain: !rain.isGhost);
+                    if (rain.removed || rain.isGhost && !ghostFallback && !rain.shadowEnabled && !rain.outlineEnabled) continue;
+                    DrawDrop(vh, rain, drawMain: !rain.isGhost || ghostFallback);
                 }
             }
         }
@@ -112,11 +118,13 @@ namespace JipperKeyViewer.KeyViewer
         {
             Rect r = rain.rect;
             if (r.width <= 0f || r.height <= 0f) return;
-            // Old ghosts kept their RainGraphic white (only the Image body was tinted), so shadow /
-            // outline alpha follows the fade only; normal drops tint everything with the rain color.
-            // 旧鬼雨的 RainGraphic 保持白色（仅 Image 本体着色），阴影/描边透明度只受淡出影响；
-            // 普通雨滴全部以雨色着色。
-            Color baseCol = rain.isGhost
+            // Ghost quads drawn here (shadow/outline, or the sprite-missing fallback body) keep the
+            // old RainGraphic white base — alpha follows the fade only. Normal drops tint everything
+            // with the rain color; the fallback ghost body uses the ghost color like the old path.
+            // 此处绘制的鬼雨四边形（阴影/描边，或贴图缺失时的本体回退）保持旧 RainGraphic 的
+            // 白色基底——透明度只受淡出影响。普通雨滴全部以雨色着色；回退鬼雨本体与旧路径
+            // 一致使用鬼雨色。
+            Color baseCol = rain.isGhost && !drawMain
                 ? new Color(1f, 1f, 1f, rain.alpha)
                 : new Color(rain.mainColor.r, rain.mainColor.g, rain.mainColor.b, rain.mainColor.a * rain.alpha);
             float h = r.height;

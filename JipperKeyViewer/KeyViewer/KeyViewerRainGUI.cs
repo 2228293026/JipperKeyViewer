@@ -216,7 +216,7 @@ namespace JipperKeyViewer.KeyViewer
             if (newRainEffect != Settings.Data.EnableRainEffect)
             {
                 Settings.Data.EnableRainEffect = newRainEffect;
-                if (!Settings.Data.EnableRainEffect)
+                if (!Settings.Data.EnableRainEffect && rainSystem != null)
                     rainSystem.ClearActiveDrops(Keys);
                 SaveSettings();
             }

@@ -1,6 +1,26 @@
 ## Unreleased
 
 ### 🐛 Bug Fixes
+- **Slider text fields couldn't type intermediate values**: The old helper re-fed `value.ToString` every IMGUI event, wiping half-typed input ("", "-", "0.") — negatives in the rain shadow X/Y fields (-10..10) were unreachable by typing — and silently re-clamped stored below-min values to the minimum just by opening the tab. Text fields now use the color picker's input-buffer pattern and only commit when the text actually changed; the open text ceiling stays by design (v1.6.2).
+- **Old-profile migration crashed and wiped user settings**: Builds between the profile refactor and MaxKeySlots=40 wrote `Count[36]`; the V3→V4 foot-base migration's `Array.Copy` ran past its end, the exception reset everything to defaults, and the next save overwrote the profile files — permanent settings loss. `EnsureSettingsArrays` now resizes `Count`, `PerKeyGhostRainColor`, `PerKeyFontSize`, and `key108` to their target lengths (it used to null-check only), and the batch migration of other profile files resizes first too.
+- **Load failures swallowed user config**: On a parse failure or migration exception, settings fall back to defaults — but now the offending settings.json and current profile are first backed up as `*.corrupt`. All config writes are atomic (temp file + replace), so a crash or power loss mid-write can no longer truncate the file.
+- **Press animation stuck shrunken when toggled off mid-press**: The release transition is gated on the toggle; turning it off now resets every key's scale and stops the running animation coroutines.
+- **Ghost rain desynced when re-enabled mid-hold**: Ghost key states weren't tracked while the rain toggles were off, so a held key needed an extra release/press cycle before triggering again. Tracking no longer depends on the gates.
+- **Profile foldout scanned the disk every GUI event** while expanded (several times per frame); it now syncs once on open.
+- **16K drew an empty "row 3" label** in the per-key color / text-size sections (`>= 8` vs the binding tab's `> 8`; 16K has exactly 8 back keys). Unified to `> 8`.
+- **Per-key text-size section shown on the 108-key layout** with mislabeled rows — it targets the standard layouts and is now hidden there.
+- **24K key lists ordered 23 before 22**, opposite the on-screen layout (…22, 23 left-to-right). Sequence corrected.
+- **Unknown language highlighted Korean** while I18n rendered English; unknown codes now map to English everywhere.
+- **Profile duplicate checks were case-sensitive**: On NTFS "MyProfile"/"myprofile" are the same file, and renaming could delete the case variant first. Comparisons are now case-insensitive (case-only renames still work).
+- **Per-scene font restore was dead logic**: `OnSceneLoaded` reset the flag but `RestoreFontOnce` only ever ran from `Start`. It now runs at the end of each scene load.
+- **Unity fake-null checks**: `UpdateAllFonts` / `ExecuteCountReset` used `?.` on MonoBehaviours (bypasses the destroyed-check) — replaced with explicit nulls; one `ClearActiveDrops` call gained the null guard its siblings have.
+- **FileBased variant failed silently on missing assets**: font files (MapleStory/CJK) and GhostRain.png missing produced no log — a missing CJK font also broke the fallback chain and rendered CJK labels as boxes. Both now log like the bundle variant.
+- **Foot keys rebuilt twice per layout/profile switch**: `ResetKeyViewer` already recreates them internally; the outer duplicate calls were removed.
+
+### 🔧 Performance
+- **Zero-allocation KPS/Total update path**: `KpsTotalIsSlim` allocated a fresh LayoutDesc + ExtraSlot[] per keypress via `GetLayout` (twice per press in hide-label mode). Its result depends only on layout + standard-width, so it's cached now.
+- **Settings GUI GUIStyle caching**: the per-key color button loop allocated a GUIStyle per button (~26 per frame) plus red-text styles every event — all cached; `PerKeyTypeOrder` arrays made static.
+- **Bundle rebuild can't lose sprite borders**: `.meta` files aren't version-controlled, so a fresh clone re-imported the PNGs with border 0, silently collapsing 9-slicing and ghost-rain tiling in both variants. The build script now enforces the 11px spriteBorder + 100 ppu on the three sprites.
 - **Per-row rain toggles did nothing individually**: The released version wired rows 1 and 2 both to the Row-2 toggle, leaving the Row-1 toggle dead. All three rows now toggle independently (keys 0-7 = row 1, 8-15 = row 2, 16+ = row 3), and turning a row off immediately clears that row's in-flight drops.
 - **Ghost rain sprite broke on long holds**: The GhostRain sprite carries an 11px 9-slice border, and the old `Image.Type.Tiled` only tiles the inner region for bordered sprites, repeating the border strips along their own direction. The merged renderer mistakenly tiled the whole texture, so ghost columns past 100px re-drew a border every 100px. Now ported from uGUI's `GenerateTiledSpriteToVertexBuffer` verbatim: center tiles whole, side border columns tile vertically, top/bottom rows tile horizontally, corners once, borders squeeze when the rect is too small.
 - **FileBased: font-size slider didn't update existing texts**: The file-based variant's `UpdateAllFonts` was missing the `fontSizeMax` write the bundle variant has.

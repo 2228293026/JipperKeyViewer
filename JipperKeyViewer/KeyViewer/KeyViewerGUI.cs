@@ -25,6 +25,7 @@ namespace JipperKeyViewer.KeyViewer
         public void DrawSettingsWindow()
         {
             colorPickerFieldSeq = 0;
+            sliderFieldSeq = 0;
             GUILayout.BeginVertical();
             DrawHeaderBar();
             DrawTabBar();
@@ -63,6 +64,10 @@ namespace JipperKeyViewer.KeyViewer
         /// <summary>
         /// Always-visible top bar: master key-display toggle, reset-counts button, current profile / 常驻顶部栏:密钥显示总开关、重置计数按钮、当前配置名
         /// </summary>
+        // Cached red-text button style — IMGUI redraws every event, so a per-call new GUIStyle was a
+        // per-frame allocation. / 缓存的红字按钮样式——IMGUI 每事件重绘,逐调用 new GUIStyle 是每帧分配。
+        private static GUIStyle redButtonStyle;
+
         private void DrawHeaderBar()
         {
             GUILayout.BeginVertical("box");
@@ -79,8 +84,9 @@ namespace JipperKeyViewer.KeyViewer
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            var redTextStyle = new GUIStyle(GUI.skin.button) { normal = { textColor = Color.red } };
-            if (GUILayout.Button(I18n.Tr("reset_counts"), redTextStyle, GUILayout.MinWidth(120)))
+            if (redButtonStyle == null)
+                redButtonStyle = new GUIStyle(GUI.skin.button) { normal = { textColor = Color.red } };
+            if (GUILayout.Button(I18n.Tr("reset_counts"), redButtonStyle, GUILayout.MinWidth(120)))
                 ExecuteCountReset();
             GUILayout.EndHorizontal();
             GUILayout.EndVertical();

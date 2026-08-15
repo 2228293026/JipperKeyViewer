@@ -43,7 +43,7 @@ namespace JipperKeyViewer.KeyViewer
         public static readonly byte[] BackSequence14 = new byte[] { 13, 9, 8, 10, 11, 12 };
         public static readonly byte[] BackSequence16 = new byte[] { 12, 13, 9, 8, 10, 11, 14, 15 };
         public static readonly byte[] BackSequence20 = new byte[] { 12, 13, 9, 8, 10, 11, 14, 15, 17, 16, 18, 19 };
-        public static readonly byte[] BackSequence24 = new byte[] { 12, 13, 9, 8, 10, 11, 14, 15, 17, 16, 18, 19, 21, 20, 23, 22 };
+        public static readonly byte[] BackSequence24 = new byte[] { 12, 13, 9, 8, 10, 11, 14, 15, 17, 16, 18, 19, 21, 20, 22, 23 };
 
         /// <summary>Display names for main key layout selection grid / 主按键布局选择网格的显示名称</summary>
         static readonly string[] KeyLayoutNames = { "12K", "16K", "20K", "10K", "8K", "14K", "24K", "108K" };
@@ -402,6 +402,11 @@ namespace JipperKeyViewer.KeyViewer
             fontRestored = false;
             LinkFallbackFonts();
             rainSystem.ClearActiveDrops(Keys);
+            // RestoreFontOnce re-maps FontName to a valid index — the pruning above may have shifted
+            // the list. It used to run only from Start, so the per-scene reset above was dead logic.
+            // RestoreFontOnce 把 FontName 重新映射为有效索引——上面的清理可能使列表移位。
+            // 此前它只从 Start 调用，上面的每场景重置是死逻辑。
+            RestoreFontOnce();
         }
 
         /// <summary>
@@ -469,6 +474,7 @@ namespace JipperKeyViewer.KeyViewer
                 if (Settings == null)
                 {
                     Loader.Error("Failed to parse settings file (empty or corrupt), creating new settings");
+                    BackupCorruptConfig();
                     Settings = new KeyViewerSettings();
                     return;
                 }
@@ -490,8 +496,30 @@ namespace JipperKeyViewer.KeyViewer
             catch (Exception e)
             {
                 Loader.Error($"Failed to load settings: {e.Message}");
+                // Back up the offending files before falling back to defaults — the next SaveSettings
+                // would otherwise overwrite them and permanently lose the user's config (an old
+                // mid-migration crash used to wipe profiles this way).
+                // 回退默认前先备份出问题的文件——否则下一次 SaveSettings 会直接覆盖，用户的配置就
+                // 永久丢了（旧版本迁移中途崩溃曾以此方式清空配置）。
+                BackupCorruptConfig();
                 Settings = new KeyViewerSettings();
             }
+        }
+
+        /// <summary>Copy the config meta + current profile to *.corrupt backups before falling back to defaults / 回退默认前把配置元数据与当前 Profile 备份为 *.corrupt</summary>
+        private void BackupCorruptConfig()
+        {
+            try
+            {
+                if (File.Exists(ConfigPath)) File.Copy(ConfigPath, ConfigPath + ".corrupt", true);
+                string cur = Settings?.CurrentProfile;
+                if (!string.IsNullOrEmpty(cur))
+                {
+                    string pp = GetProfilePath(cur);
+                    if (File.Exists(pp)) File.Copy(pp, pp + ".corrupt", true);
+                }
+            }
+            catch { /* best-effort backup; the load failure is already reported / 尽力备份；加载失败已另行报告 */ }
         }
 
         private void MigrateV1toV2()
@@ -620,6 +648,19 @@ namespace JipperKeyViewer.KeyViewer
                     };
                     if (fs == 0) continue;
                     const int oldBase = 20;
+                    // Old builds wrote Count[36]; FromJsonOverwrite restores that shorter array and the
+                    // copy below would run past its end (throwing, and the profile would then be
+                    // skipped forever because the meta Version already advanced). Resize first, the
+                    // same way EnsureSettingsArrays handles the live settings.
+                    // 旧版本写入的是 Count[36]；FromJsonOverwrite 会还原成短数组，下面的复制会越界
+                    //（抛异常后该 Profile 被永久跳过——meta 的 Version 已经先升上去了）。先按
+                    // EnsureSettingsArrays 处理在线设置的同样方式重定长度。
+                    if (pd.Count == null || pd.Count.Length != MaxKeySlots)
+                    {
+                        int[] c = new int[MaxKeySlots];
+                        if (pd.Count != null) Array.Copy(pd.Count, c, Math.Min(pd.Count.Length, MaxKeySlots));
+                        pd.Count = c;
+                    }
                     Array.Copy(pd.Count, oldBase, pd.Count, FootKeyBase, fs);
                     Array.Clear(pd.Count, oldBase, fs);
                     static void Shift(Color[] a, int from, int to, int n)
@@ -640,7 +681,7 @@ namespace JipperKeyViewer.KeyViewer
                     Shift(pd.PerKeyText, oldBase, FootKeyBase, fs);
                     Shift(pd.PerKeyTextClicked, oldBase, FootKeyBase, fs);
                     Shift(pd.PerKeyRainColor, oldBase, FootKeyBase, fs);
-                    File.WriteAllText(path, JsonUtility.ToJson(pd, true));
+                    WriteAllTextSafe(path, JsonUtility.ToJson(pd, true));
                 }
                 catch (Exception e)
                 {
@@ -689,7 +730,13 @@ namespace JipperKeyViewer.KeyViewer
             Settings.Data.key16Text = Settings.Data.key16Text ?? new string[16];
             Settings.Data.key20Text = Settings.Data.key20Text ?? new string[20];
             Settings.Data.key24Text = Settings.Data.key24Text ?? new string[24];
-            Settings.Data.key108 = Settings.Data.key108 ?? BuildDefaultKey108();
+            // A truncated key108 (hand-edited profile) would crash InitializeFullKeyboard's fixed
+            // 105-slot table; the array isn't user-rebindable (SetupKey ignores full-keyboard mode),
+            // so a wrong-length array is simply replaced with the default.
+            // 截断的 key108（手工编辑的 Profile）会让 InitializeFullKeyboard 的固定 105 槽位表越界；
+            // 该数组不支持用户重绑（SetupKey 在全键盘模式下直接返回），长度不对时直接换回默认值。
+            if (Settings.Data.key108 == null || Settings.Data.key108.Length != 105)
+                Settings.Data.key108 = BuildDefaultKey108();
             Settings.Data.footkey2Text = Settings.Data.footkey2Text ?? new string[2];
             Settings.Data.footkey4Text = Settings.Data.footkey4Text ?? new string[4];
             Settings.Data.footkey6Text = Settings.Data.footkey6Text ?? new string[6];
@@ -699,6 +746,20 @@ namespace JipperKeyViewer.KeyViewer
             Settings.Data.footkey14Text = Settings.Data.footkey14Text ?? new string[14];
             Settings.Data.footkey16Text = Settings.Data.footkey16Text ?? new string[16];
             Settings.Data.Count = Settings.Data.Count ?? new int[MaxKeySlots];
+            // FromJsonOverwrite restores whatever array length the profile JSON carries — builds
+            // between the profile refactor and MaxKeySlots=40 wrote Count[36]. A short array made
+            // the V3→V4 foot-base migration's Array.Copy throw (which reset ALL settings to
+            // defaults and saved them over the profile files). Resize like the color arrays.
+            // FromJsonOverwrite 会按 Profile JSON 里的数组长度原样还原——profile 重构到
+            // MaxKeySlots=40 之间的版本写入的是 Count[36]。短数组会让 V3→V4 脚键基线迁移的
+            // Array.Copy 抛异常（进而把全部设置重置为默认值并覆盖 Profile 文件）。像颜色数组
+            // 一样重定长度。
+            if (Settings.Data.Count.Length != MaxKeySlots)
+            {
+                int[] c = new int[MaxKeySlots];
+                Array.Copy(Settings.Data.Count, c, Math.Min(Settings.Data.Count.Length, MaxKeySlots));
+                Settings.Data.Count = c;
+            }
             int n = MaxKeySlots + 2;
             Settings.Data.PerKeyBackground = EnsureColorArray(Settings.Data.PerKeyBackground, n, Settings.Data.Background);
             Settings.Data.PerKeyBackgroundClicked = EnsureColorArray(Settings.Data.PerKeyBackgroundClicked, n, Settings.Data.BackgroundClicked);
@@ -707,6 +768,19 @@ namespace JipperKeyViewer.KeyViewer
             Settings.Data.PerKeyText = EnsureColorArray(Settings.Data.PerKeyText, n, Settings.Data.Text);
             Settings.Data.PerKeyTextClicked = EnsureColorArray(Settings.Data.PerKeyTextClicked, n, Settings.Data.TextClicked);
             Settings.Data.PerKeyRainColor = EnsureColorArray(Settings.Data.PerKeyRainColor, n, Settings.Data.RainColor);
+            // Same gap class as Count: these two are indexed unguarded by the rain system
+            // (PerKeyGhostRainColor) and the per-key font path, and were only sized by the
+            // constructor that FromJsonOverwrite bypasses. / 与 Count 同类缺口:雨滴系统未加守卫地
+            // 索引 PerKeyGhostRainColor,每键字号路径亦然;此前仅靠被 FromJsonOverwrite 绕过的
+            // 构造函数定长。
+            Settings.Data.PerKeyGhostRainColor = EnsureColorArray(Settings.Data.PerKeyGhostRainColor, n, GhostRainColorDefault);
+            if (Settings.Data.PerKeyFontSize == null || Settings.Data.PerKeyFontSize.Length != n)
+            {
+                float[] f = new float[n]; // 0 = use the global font size / 0 = 使用全局字号
+                if (Settings.Data.PerKeyFontSize != null)
+                    Array.Copy(Settings.Data.PerKeyFontSize, f, Math.Min(Settings.Data.PerKeyFontSize.Length, n));
+                Settings.Data.PerKeyFontSize = f;
+            }
         }
 
         private void ClearKpsTimers()
@@ -740,7 +814,7 @@ namespace JipperKeyViewer.KeyViewer
         }
 
         /// <summary>
-        /// Save only the meta file (Settings.Data.json) — Version, CurrentProfile, ProfileNames, Language / 仅保存元数据文件
+        /// Save only the meta file (settings.json) — Version, CurrentProfile, ProfileNames, Language / 仅保存元数据文件（settings.json）
         /// </summary>
         private void SaveMetaOnly()
         {
@@ -754,7 +828,21 @@ namespace JipperKeyViewer.KeyViewer
                 Language = Settings.Language,
                 UiTab = Settings.UiTab
             }, true);
-            File.WriteAllText(ConfigPath, metaJson);
+            WriteAllTextSafe(ConfigPath, metaJson);
+        }
+
+        /// <summary>
+        /// Atomic file write: temp file + replace, so a crash or power loss mid-write can't truncate
+        /// the live config (SaveSettings runs on every scene load, so the write window is exercised
+        /// constantly). / 原子写文件：先写临时文件再替换，崩溃或断电在写入中途也不会截断现有配置
+        ///（SaveSettings 每次场景加载都会执行，写入窗口一直在被反复触发）。
+        /// </summary>
+        private static void WriteAllTextSafe(string path, string contents)
+        {
+            string tmp = path + ".tmp";
+            File.WriteAllText(tmp, contents);
+            if (File.Exists(path)) File.Replace(tmp, path, null);
+            else File.Move(tmp, path);
         }
 
         /// <summary>
@@ -765,7 +853,7 @@ namespace JipperKeyViewer.KeyViewer
             if (!Directory.Exists(ProfileDir)) Directory.CreateDirectory(ProfileDir);
             string profilePath = GetProfilePath(Settings.CurrentProfile);
             string json = JsonUtility.ToJson(Settings.Data, true);
-            File.WriteAllText(profilePath, json);
+            WriteAllTextSafe(profilePath, json);
         }
 
         /// <summary>
@@ -814,9 +902,12 @@ namespace JipperKeyViewer.KeyViewer
             cachedMainKeys = null;
             cachedFootKeys = null;
             cachedGhostKeys = null;
-            // Rebuild overlay for new settings
+            // Rebuild overlay for new settings. ResetKeyViewer recreates foot keys internally (it
+            // destroys every child including them), so the outer ResetFootKeyViewer here would only
+            // destroy and recreate them a second time.
+            // 为新设置重建覆盖层。ResetKeyViewer 内部已重建脚键（它销毁含脚键在内的全部子物体），
+            // 此处再调 ResetFootKeyViewer 只会把脚键销毁重建第二遍。
             ResetKeyViewer();
-            ResetFootKeyViewer();
             UpdateAllFonts();
             UpdateAllKeyColors();
             if (Settings.Data.StreamerMode && !IsFullKeyboard)
@@ -866,7 +957,12 @@ namespace JipperKeyViewer.KeyViewer
             if (string.IsNullOrWhiteSpace(newName)) return;
             newName = SanitizeFileName(newName.Trim());
             if (oldName == newName) return;
-            if (Settings.ProfileNames != null && Settings.ProfileNames.Any(p => SanitizeFileName(p) == newName)) return;
+            // Case-insensitive: on NTFS a case variant names the same file, so the File.Delete below
+            // would remove that other profile before the move. (oldName vs newName stays an exact
+            // compare — a case-only rename is a legitimate way to fix a profile's casing.)
+            // 大小写不敏感：NTFS 上大小写变体指向同一文件，否则下面的 File.Delete 会在移动前删掉
+            // 那个 Profile。（oldName 与 newName 仍精确比较——仅改大小写的重命名是合法操作。）
+            if (Settings.ProfileNames != null && Settings.ProfileNames.Any(p => string.Equals(SanitizeFileName(p), newName, StringComparison.OrdinalIgnoreCase))) return;
             string oldPath = GetProfilePath(oldName);
             string newPath = GetProfilePath(newName);
             if (oldPath != newPath)

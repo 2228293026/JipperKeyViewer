@@ -174,14 +174,25 @@ namespace JipperKeyViewer.KeyViewer
             }
             int kpsPi = MaxKeySlots;
             int totalPi = MaxKeySlots + 1;
-            UpdateText(Kps?.text);
-            ApplyPerKeyOverride(Kps?.text, kpsPi);
-            UpdateText(Kps?.value);
-            ApplyPerKeyOverride(Kps?.value, kpsPi);
-            UpdateText(Total?.text);
-            ApplyPerKeyOverride(Total?.text, totalPi);
-            UpdateText(Total?.value);
-            ApplyPerKeyOverride(Total?.value, totalPi);
+            // Explicit null checks, not `?.` — Key is a MonoBehaviour, and the null-conditional
+            // bypasses Unity's destroyed-check (a destroyed component would slip through and only
+            // survive via the later Unity-overload checks). / 显式判空而非 `?.`——Key 是
+            // MonoBehaviour，空条件运算符绕过 Unity 的销毁检查（已销毁组件会漏进来，仅靠后续
+            // Unity 重载检查兜底）。
+            if (Kps != null)
+            {
+                UpdateText(Kps.text);
+                ApplyPerKeyOverride(Kps.text, kpsPi);
+                UpdateText(Kps.value);
+                ApplyPerKeyOverride(Kps.value, kpsPi);
+            }
+            if (Total != null)
+            {
+                UpdateText(Total.text);
+                ApplyPerKeyOverride(Total.text, totalPi);
+                UpdateText(Total.value);
+                ApplyPerKeyOverride(Total.value, totalPi);
+            }
         }
 
         /// <summary>

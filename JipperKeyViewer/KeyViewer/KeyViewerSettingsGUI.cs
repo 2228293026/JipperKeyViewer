@@ -17,19 +17,35 @@ namespace JipperKeyViewer.KeyViewer
         string profileRenameBuffer = "";
         string profileSaveAsBuffer = "";
 
-        private static float FloatSliderField(GUIContent label, float value, float min, float max, string format = "F2")
+        private float FloatSliderField(GUIContent label, float value, float min, float max, string format = "F2")
         {
             GUILayout.BeginHorizontal();
             GUILayout.Label(label, GUILayout.Width(100));
-            value = GUILayout.HorizontalSlider(value, min, max, GUILayout.Width(120));
-            string text = GUILayout.TextField(value.ToString(format), FloatFieldWidth(value.ToString(format)));
-            if (float.TryParse(text, out float parsed))
-                value = Mathf.Clamp(parsed, min, float.MaxValue);
+            float slid = GUILayout.HorizontalSlider(value, min, max, GUILayout.Width(120));
+            // Buffered text field (TextInputField): typed intermediate states ("", "-", "0.") survive
+            // until they parse, and the model only changes when the text actually differs from the
+            // model echo. The old version re-fed value.ToString every event, wiping half-typed values
+            // (negatives in the -10..10 offset fields were unreachable by typing) and re-clamping a
+            // stored below-min value to min on every event while the tab was open.
+            // 缓冲文本框（TextInputField）：输入中间态（""、"-"、"0."）保留到可解析为止；仅当文本
+            // 与模型回显不同才写回模型。旧版每事件重灌 value.ToString，半输入的值被立刻冲掉
+            // （-10..10 偏移字段无法用键盘输入负数），且存储值低于下限时打开标签页就被静默改写。
+            string ctrl = "fsf_" + (++sliderFieldSeq);
+            string modelText = slid.ToString(format);
+            if (slid != value) textInputBuffer.Remove(ctrl); // slider drag refreshes the field / 拖动滑块时刷新文本框
+            string text = TextInputField(ctrl, modelText, FloatFieldWidth(modelText));
+            if (text != modelText && float.TryParse(text, out float parsed))
+            {
+                // Lower bound only — the text ceiling is deliberately open (v1.6.2): values beyond the
+                // slider max (rain height/speed etc.) stay typeable; the slider thumb just pegs.
+                // 仅钳下限——文本上限有意放开（v1.6.2）：雨高/雨速等可输入超过滑块上限的值，滑块仅顶格。
+                slid = Mathf.Clamp(parsed, min, float.MaxValue);
+            }
             GUILayout.EndHorizontal();
-            return value;
+            return slid;
         }
 
-        private static float FloatSliderField(string label, float value, float min, float max, string format = "F2")
+        private float FloatSliderField(string label, float value, float min, float max, string format = "F2")
             => FloatSliderField(new GUIContent(label), value, min, max, format);
 
         private static bool DrawFoldoutButton(string label, bool expanded)
@@ -58,7 +74,6 @@ namespace JipperKeyViewer.KeyViewer
             DrawProfileFoldout();
             if (profileExpanded)
             {
-                SyncProfilesWithDisk();
                 DrawProfileList();
                 GUILayout.Space(3);
                 GUILayout.BeginHorizontal();
@@ -75,7 +90,16 @@ namespace JipperKeyViewer.KeyViewer
         {
             string label = I18n.Tr("profile") + ": " + Settings.CurrentProfile;
             if (GUILayout.Button((profileExpanded ? "◢ " : "▶ ") + label, GUILayout.MinWidth(200)))
+            {
                 profileExpanded = !profileExpanded;
+                // Sync with disk once on open instead of on every OnGUI event while expanded — IMGUI
+                // fires Layout+Repaint per frame, so the old call was a directory scan several times
+                // per frame. The list buttons themselves keep ProfileNames in sync on every action.
+                // 展开那一刻与磁盘同步一次，而不是展开期间每个 GUI 事件都同步——IMGUI 每帧触发
+                // Layout+Repaint 多次，旧实现等于每帧数次目录扫描。列表按钮的各种操作自身会维护
+                // ProfileNames 的同步。
+                if (profileExpanded) SyncProfilesWithDisk();
+            }
         }
 
         private void DrawProfileList()
@@ -101,8 +125,10 @@ namespace JipperKeyViewer.KeyViewer
                 string name = SanitizeFileName(profileSaveAsBuffer.Trim());
                 if (string.IsNullOrEmpty(name)) return;
                 if (Settings.ProfileNames != null)
+                    // Case-insensitive: on NTFS "MyProfile"/"myprofile" are the same file / 大小写不敏感:
+                    // NTFS 上 "MyProfile"/"myprofile" 是同一个文件
                     foreach (var p in Settings.ProfileNames)
-                        if (SanitizeFileName(p) == name) return;
+                        if (string.Equals(SanitizeFileName(p), name, System.StringComparison.OrdinalIgnoreCase)) return;
                 var list = new List<string>(Settings.ProfileNames ?? new string[0]) { name };
                 Settings.ProfileNames = list.ToArray();
                 Settings.CurrentProfile = name;
@@ -158,7 +184,10 @@ namespace JipperKeyViewer.KeyViewer
         {
             GUILayout.BeginHorizontal();
             string[] langLabels = { "English", "中文", "한국어" };
-            int langIdx = Settings.Language == "en" ? 0 : Settings.Language == "zh" ? 1 : 2;
+            // I18n renders unknown language codes as English — mirror that here so the highlighted
+            // entry matches what is actually shown. / I18n 将未知语言代码按英文渲染——此处保持一致,
+            // 让高亮项与实际显示一致。
+            int langIdx = Settings.Language == "zh" ? 1 : Settings.Language == "ko" ? 2 : 0;
             if (GUILayout.Button(I18n.Tr("language") + ": " + langLabels[langIdx]))
             {
                 langIdx = (langIdx + 1) % 3;
@@ -194,7 +223,7 @@ namespace JipperKeyViewer.KeyViewer
             ClearKpsTimers();
             if (Keys != null)
                 for (int i = 0; i < Keys.Length; i++)
-                    if (Keys[i]?.value != null)
+                    if (Keys[i] != null && Keys[i].value != null) // Unity overload catches destroyed keys / Unity 重载可识别已销毁按键
                         Keys[i].value.text = "0";
             if (Kps != null) SetKpsTotalDisplay(Kps, "KPS", "0");
             if (Total != null) SetKpsTotalDisplay(Total, "Total", "0");
@@ -460,6 +489,10 @@ namespace JipperKeyViewer.KeyViewer
 
         private void DrawPerKeyTextSizeSection()
         {
+            // Per-key text size targets the standard layouts — GetKeyCode/GetBackSequence don't map to
+            // the 108-key view, so hide the whole section there. / 每键字号面向标准布局——
+            // GetKeyCode/GetBackSequence 与 108 键视图不对应，全键盘下隐藏整个区块。
+            if (KeyViewer.IsFullKeyboard) return;
             perKeyTextExpanded = DrawFoldoutButton(I18n.Tr("per_key_text_size"), perKeyTextExpanded);
             if (!perKeyTextExpanded) return;
 
@@ -500,7 +533,7 @@ namespace JipperKeyViewer.KeyViewer
                     GUILayout.EndHorizontal();
                 }
 
-                if (backSequence.Length >= 8)
+                if (backSequence.Length > 8)
                 {
                     GUILayout.Label(I18n.Tr("row3_keys") + ":");
                     GUILayout.BeginHorizontal();
@@ -674,6 +707,10 @@ namespace JipperKeyViewer.KeyViewer
             if (newPressAnim != Settings.Data.EnablePressAnimation)
             {
                 Settings.Data.EnablePressAnimation = newPressAnim;
+                // Turning the animation off mid-press skips the release transition (it's gated on
+                // this toggle) — reset scales so no key stays stuck shrunken. / 按住途中关闭动画
+                // 会跳过释放过渡（受本开关门控）——重置缩放，避免按键卡在缩小状态。
+                if (!newPressAnim) ResetAllPressScales();
                 SaveSettings();
             }
 

@@ -109,25 +109,28 @@ namespace JipperKeyViewer.KeyViewer
             }
         }
 
-        // Per-frame counter naming the color picker's text fields (reset in DrawSettingsWindow) so focus
-        // can be tracked per-field via control names on every IMGUI version. / 每帧自增的字段命名计数器
-        // (在 DrawSettingsWindow 开头重置),用于跨版本稳定跟踪颜色输入框的焦点。
+        // Per-frame counters naming the text fields of color pickers and slider rows (reset in
+        // DrawSettingsWindow) so focus can be tracked per-field via control names on every IMGUI
+        // version. / 每帧自增的字段命名计数器(在 DrawSettingsWindow 开头重置),颜色选择器与
+        // 滑块行的文本框都用它跨版本稳定跟踪焦点。
         private static int colorPickerFieldSeq;
+        private static int sliderFieldSeq;
 
-        // In-progress text for the color picker text fields, keyed by control name. Persists across
-        // frames so a focused field isn't reset to the model value while its value is being typed.
-        // / 颜色输入框的进行中输入(按控件名缓存),跨帧保留,避免输入过程中被模型值重置。
-        private readonly Dictionary<string, string> colorInputBuffer = new Dictionary<string, string>();
+        // In-progress text for named text fields (color pickers, slider text boxes), keyed by control
+        // name. Persists across frames so a focused field isn't reset to the model value while its
+        // value is being typed. / 命名文本框(颜色选择器、滑块文本框)的进行中输入(按控件名缓存),
+        // 跨帧保留,避免输入过程中被模型值重置。
+        private readonly Dictionary<string, string> textInputBuffer = new Dictionary<string, string>();
 
         private string TextInputField(string ctrlName, string modelText, params GUILayoutOption[] options)
         {
             GUI.SetNextControlName(ctrlName);
             bool focused = GUI.GetNameOfFocusedControl() == ctrlName;
-            string display = focused && colorInputBuffer.TryGetValue(ctrlName, out string pending)
+            string display = focused && textInputBuffer.TryGetValue(ctrlName, out string pending)
                 ? pending : modelText;
             string txt = GUILayout.TextField(display, options);
-            if (focused) colorInputBuffer[ctrlName] = txt;
-            else colorInputBuffer.Remove(ctrlName);
+            if (focused) textInputBuffer[ctrlName] = txt;
+            else textInputBuffer.Remove(ctrlName);
             return txt;
         }
 
@@ -233,7 +236,7 @@ namespace JipperKeyViewer.KeyViewer
                 GUILayout.EndHorizontal();
             }
 
-            if (backSequence.Length >= 8)
+            if (backSequence.Length > 8)
             {
                 GUILayout.Label(I18n.Tr("row3_keys") + ":");
                 GUILayout.BeginHorizontal();
@@ -274,16 +277,24 @@ namespace JipperKeyViewer.KeyViewer
             GUILayout.EndVertical();
         }
 
+        // Cached button styles — IMGUI redraws every event; the old per-call new GUIStyle(...) in the
+        // per-key loop was ~26 allocations per frame. textColor is set per call, before the single
+        // Button that consumes the style. / 缓存的按钮样式——IMGUI 每事件重绘;旧实现在每键循环里
+        // 逐调用 new GUIStyle(...) 约每帧 26 次分配。textColor 在每次调用时、紧随其后的唯一
+        // Button 消费前设置。
+        private static GUIStyle perKeyBtnStyle;
+        private static GUIStyle redBtnStyle;
+
         private void DrawPerKeyColorBtn(int idx, string label)
         {
             Color c = Settings.Data.PerKeyBackground[idx];
-            var style = new GUIStyle(GUI.skin.button);
-            style.normal.textColor = c.grayscale > 0.5f ? Color.black : Color.white;
+            if (perKeyBtnStyle == null) perKeyBtnStyle = new GUIStyle(GUI.skin.button);
+            perKeyBtnStyle.normal.textColor = c.grayscale > 0.5f ? Color.black : Color.white;
             if (perKeyColorSelected == idx)
                 GUI.backgroundColor = Color.Lerp(c, Color.white, 0.4f);
             else
                 GUI.backgroundColor = c;
-            bool pressed = GUILayout.Button(label, style);
+            bool pressed = GUILayout.Button(label, perKeyBtnStyle);
             GUI.backgroundColor = Color.white;
             if (pressed)
             {
@@ -299,10 +310,15 @@ namespace JipperKeyViewer.KeyViewer
             _ => KeyToString(GetKeyCodeForIndex(s))
         };
 
+        // Type sets per slot kind — static: the GUI redraws every event, so per-call new[] was steady
+        // garbage. / 槽位类型集合——静态:GUI 每事件重绘,逐调用 new[] 是持续垃圾。
+        private static readonly int[] PerKeyMainTypes = { 0, 1, 2, 3, 4, 5, 6, 7 };
+        private static readonly int[] PerKeyFootTypes = { 0, 1, 2, 3, 4, 5 };
+        private static readonly int[] KpsTotalTypes = { 0, 2, 4 };
+
         private static int[] PerKeyTypeOrder(int s) => s >= MaxKeySlots
-            ? new int[] { 0, 2, 4 }
-            : s >= FootKeyBase ? new int[] { 0, 1, 2, 3, 4, 5 }
-            : new int[] { 0, 1, 2, 3, 4, 5, 6, 7 };
+            ? KpsTotalTypes
+            : s >= FootKeyBase ? PerKeyFootTypes : PerKeyMainTypes;
 
         private bool DrawColorFoldout(int t, string name)
         {
@@ -377,8 +393,9 @@ namespace JipperKeyViewer.KeyViewer
         private void DrawPerKeyCountReset(int s)
         {
             GUILayout.Space(5);
-            var redStyle = new GUIStyle(GUI.skin.button) { normal = { textColor = Color.red } };
-            if (GUILayout.Button(I18n.Tr("reset_counts") + " (" + Settings.Data.Count[s] + ")", redStyle))
+            if (redBtnStyle == null)
+                redBtnStyle = new GUIStyle(GUI.skin.button) { normal = { textColor = Color.red } };
+            if (GUILayout.Button(I18n.Tr("reset_counts") + " (" + Settings.Data.Count[s] + ")", redBtnStyle))
             {
                 Settings.Data.Count[s] = 0;
                 if (keyPressTimes != null && s < keyPressTimes.Length && keyPressTimes[s] != null)

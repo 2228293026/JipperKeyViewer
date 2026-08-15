@@ -308,16 +308,27 @@ namespace JipperKeyViewer.KeyViewer
         }
 
         /// <summary>Whether the current layout's KPS / Total boxes use the flat (slim) left-label / right-number design / 当前布局的 KPS/Total 是否采用扁平（slim）左右设计</summary>
+        // Cached — this runs on the KPS/Total update path for every keypress, and GetLayout allocates
+        // a fresh ExtraSlot[] per call. The result depends only on style + StandardKeyWidth, so a
+        // two-bit cache key covers every invalidation (layout switch, toggle, profile switch).
+        // 结果缓存——每次按键都会经 KPS/Total 更新路径调用，而 GetLayout 每次新分配 ExtraSlot[]。
+        // 结果只取决于 style + StandardKeyWidth，双比特缓存键覆盖全部失效场景（切布局、切开关、切 Profile）。
+        private static int _slimCacheKey = int.MinValue;
+        private static bool _slimCacheValue;
         private static bool KpsTotalIsSlim()
         {
             if (IsFullKeyboard) return true; // full keyboard KPS/Total are always slim / 全键盘 KPS/Total 始终为 slim
+            int key = (int)Settings.Data.KeyViewerStyle << 1 | (Settings.Data.StandardKeyWidth ? 1 : 0);
+            if (key == _slimCacheKey) return _slimCacheValue;
+            _slimCacheKey = key;
             var layout = GetLayout(Settings.Data.KeyViewerStyle);
+            _slimCacheValue = false;
             if (layout.extras != null)
             {
                 foreach (var e in layout.extras)
-                    if (e.index == -1) return e.slim;
+                    if (e.index == -1) { _slimCacheValue = e.slim; break; }
             }
-            return false;
+            return _slimCacheValue;
         }
 
         /// <summary>Single source of truth: centered KPS/Total applies only to flat (slim) designs with the toggle on.
@@ -1357,8 +1368,11 @@ namespace JipperKeyViewer.KeyViewer
         /// </summary>
         private void ChangeKeyViewer()
         {
+            // ResetKeyViewer destroys every child (foot keys included) and recreates them internally —
+            // a second ResetFootKeyViewer here would only destroy and recreate them again.
+            // ResetKeyViewer 销毁全部子物体（含脚键）并在内部重建——此处再调一次
+            // ResetFootKeyViewer 只会把脚键销毁重建第二遍。
             ResetKeyViewer();
-            ResetFootKeyViewer();
         }
 
         /// <summary>
@@ -1367,6 +1381,12 @@ namespace JipperKeyViewer.KeyViewer
         private void ResetKeyViewer()
         {
             SelectedKey = -1;
+            // Per-key editor selections point at slots of the old layout — drop them so the Colors /
+            // Display tabs don't keep editing a slot the new layout never draws.
+            // 每键编辑器的选中项指向旧布局的槽位——清掉，避免颜色/显示标签页继续编辑新布局
+            // 根本不绘制的槽位。
+            perKeyColorSelected = -1;
+            perKeyTextSelected = -1;
             // Rebuilding needs the overlay; with the display off just keep the changed settings —
             // the next EnableKeyViewer builds from them. GUI handlers can fire while disabled.
             // 重建需要覆盖层存在；显示关闭时仅保留已改的设置——下次启用时按新设置构建
@@ -1440,6 +1460,8 @@ namespace JipperKeyViewer.KeyViewer
         {
             if (IsFullKeyboard) return; // full keyboard has no foot keys / 全键盘无脚键
             SelectedKey = -1;
+            perKeyColorSelected = -1;
+            perKeyTextSelected = -1;
             // Same overlay guard as ResetKeyViewer — GUI can fire while the display is off /
             // 与 ResetKeyViewer 相同的覆盖层守卫——GUI 可能在显示关闭时触发
             if (KeyViewerObject == null) return;

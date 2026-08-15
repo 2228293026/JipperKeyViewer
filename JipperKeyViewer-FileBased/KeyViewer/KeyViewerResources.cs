@@ -76,6 +76,11 @@ namespace JipperKeyViewer.KeyViewer
                 Loader.Warning("KeyViewer: KeyBackground.png not found in assets/");
             if (keyOutlineSprite == null)
                 Loader.Warning("KeyViewer: KeyOutline.png not found in assets/");
+            // The bundle variant warns for this too; without the sprite ghost rain silently degrades
+            // to ghost-color solid columns — log it so the change isn't mysterious.
+            // bundle 变体同样会警告;缺贴图时鬼雨静默退化为鬼雨色纯色柱——记日志避免莫名其妙。
+            if (ghostRainSprite == null)
+                Loader.Warning("KeyViewer: GhostRain.png not found in assets/ (ghost rain falls back to solid columns)");
 
             ScanCustomFonts();
             LinkFallbackFonts();
@@ -158,7 +163,10 @@ namespace JipperKeyViewer.KeyViewer
         private static void LoadFontFromFile(string assetsDir, string fileName, string entryName, ref TMP_FontAsset target, List<FontEntry> fontList)
         {
             string path = Path.Combine(assetsDir, fileName);
-            if (!File.Exists(path)) return;
+            // The bundle variant logs an error when this font is missing; without it the entry simply
+            // never appears in the font list with no hint why. / bundle 变体在缺此字体时会记错误;
+            // 不打日志则字体列表里永远不出现该条目且无任何线索。
+            if (!File.Exists(path)) { Loader.Error($"KeyViewer: font file not found: {path}"); return; }
             try
             {
                 Font font = new Font(path);
@@ -182,7 +190,10 @@ namespace JipperKeyViewer.KeyViewer
         private static void LoadCJKFontFromFile(string assetsDir, string fileName, string entryName, List<FontEntry> fontList)
         {
             string path = Path.Combine(assetsDir, fileName);
-            if (!File.Exists(path)) return;
+            // Losing the CJK font also breaks the fallback chain LinkFallbackFonts wires into every
+            // other font — CJK key labels would render as boxes with zero log hints. / CJK 字体缺失
+            // 还会破坏 LinkFallbackFonts 接到其他所有字体上的后备链——中文键位会渲染成方块且无任何日志线索。
+            if (!File.Exists(path)) { Loader.Error($"KeyViewer: CJK font file not found: {path} (CJK labels render as boxes)"); return; }
             try
             {
                 Font font = new Font(path);
@@ -247,14 +258,25 @@ namespace JipperKeyViewer.KeyViewer
             }
             int kpsPi = MaxKeySlots;
             int totalPi = MaxKeySlots + 1;
-            UpdateText(Kps?.text);
-            ApplyPerKeyOverride(Kps?.text, kpsPi);
-            UpdateText(Kps?.value);
-            ApplyPerKeyOverride(Kps?.value, kpsPi);
-            UpdateText(Total?.text);
-            ApplyPerKeyOverride(Total?.text, totalPi);
-            UpdateText(Total?.value);
-            ApplyPerKeyOverride(Total?.value, totalPi);
+            // Explicit null checks, not `?.` — Key is a MonoBehaviour, and the null-conditional
+            // bypasses Unity's destroyed-check (a destroyed component would slip through and only
+            // survive via the later Unity-overload checks). / 显式判空而非 `?.`——Key 是
+            // MonoBehaviour，空条件运算符绕过 Unity 的销毁检查（已销毁组件会漏进来，仅靠后续
+            // Unity 重载检查兜底）。
+            if (Kps != null)
+            {
+                UpdateText(Kps.text);
+                ApplyPerKeyOverride(Kps.text, kpsPi);
+                UpdateText(Kps.value);
+                ApplyPerKeyOverride(Kps.value, kpsPi);
+            }
+            if (Total != null)
+            {
+                UpdateText(Total.text);
+                ApplyPerKeyOverride(Total.text, totalPi);
+                UpdateText(Total.value);
+                ApplyPerKeyOverride(Total.value, totalPi);
+            }
         }
 
         /// <summary>

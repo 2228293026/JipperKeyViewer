@@ -362,7 +362,6 @@ namespace JipperKeyViewer.KeyViewer
             ProfileData d = Settings.Data;
             bool rainEnabled = d.EnableRainEffect;
             bool ghostRainEnabled = d.EnableGhostRain;
-            if (!rainEnabled || !ghostRainEnabled) return;
 
             KeyCode[] ghosts = cachedGhostKeys;
             for (int i = 0; i < ghosts.Length; i++)
@@ -370,13 +369,48 @@ namespace JipperKeyViewer.KeyViewer
                 if (ghosts[i] == KeyCode.None) continue;
 
                 bool current = Input.GetKey(ghosts[i]);
-                if (current != ghostKeyStates[i])
+                if (current == ghostKeyStates[i]) continue;
+                ghostKeyStates[i] = current;
+                // Keep tracking state even while the rain gates are off, so re-enabling them mid-hold
+                // doesn't desync — the old early-return left a held ghost key "pressed" and its next
+                // real press produced no rain until an extra release/press cycle.
+                // 即便雨滴开关关闭也继续跟踪状态，避免按住途中重新开启后失步——旧的提前返回会让
+                // 按住的鬼键停留在“已按下”，下一次真实按键不触发雨滴，直到多松/按一次才恢复。
+                if (!rainEnabled || !ghostRainEnabled) continue;
+                if (current)
+                    rainSystem.TriggerGhostRain(i, Keys[i]);
+                else
+                    rainSystem.ReleaseGhostRain(i, Keys[i]);
+            }
+        }
+
+        /// <summary>
+        /// Reset every key's press-animation scale to 1 and stop running animations. Used when the
+        /// press animation is turned off mid-press: the release transition is gated on the toggle,
+        /// so without this the key would stay stuck at PressAnimationScale (visuals wrapper, shape
+        /// slot, rain scale) until the next rebuild or a press with the toggle re-enabled.
+        /// 将所有按键的按压缩放重置为 1 并停止进行中的动画。按压动画在按住途中被关闭时使用：
+        /// 释放过渡受开关门控，不重置的话按键会卡在缩小状态（文本包裹层、形状槽位、雨滴缩放），
+        /// 直到下次重建或重新开启动画后再按一次。
+        /// </summary>
+        private void ResetAllPressScales()
+        {
+            if (Keys == null) return;
+            for (int i = 0; i < Keys.Length; i++)
+            {
+                Key key = Keys[i];
+                if (key == null) continue;
+                if (key.currentAnim != null)
                 {
-                    ghostKeyStates[i] = current;
-                    if (current)
-                        rainSystem.TriggerGhostRain(i, Keys[i]);
-                    else
-                        rainSystem.ReleaseGhostRain(i, Keys[i]);
+                    StopCoroutine(key.currentAnim);
+                    key.currentAnim = null;
+                }
+                if (key.visuals != null)
+                    key.visuals.localScale = Vector3.one;
+                if (key.shapeSlot >= 0)
+                {
+                    if (keyShapeLayer != null) keyShapeLayer.SetScale(key.shapeSlot, 1f);
+                    if (rainLayer != null) rainLayer.SetKeyScale(key.shapeSlot, 1f);
                 }
             }
         }

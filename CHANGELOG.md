@@ -11,7 +11,8 @@
 - **Per-key text-size section shown on the 108-key layout** with mislabeled rows — it targets the standard layouts and is now hidden there.
 - **24K key lists ordered 23 before 22**, opposite the on-screen layout (…22, 23 left-to-right). Sequence corrected.
 - **Unknown language highlighted Korean** while I18n rendered English; unknown codes now map to English everywhere.
-- **Profile duplicate checks were case-sensitive**: On NTFS "MyProfile"/"myprofile" are the same file, and renaming could delete the case variant first. Comparisons are now case-insensitive (case-only renames still work).
+- **Profile duplicate checks were case-sensitive**: On NTFS "MyProfile"/"myprofile" are the same file, and renaming could delete the case variant first. The check is now case-insensitive against OTHER profiles; case-only renames stay allowed (the old code path deleted the source file before the move — now a single File.Move performs the case change).
+- **NaN alpha on the first frame when fade duration is 0**: the 0/0 NaN slips past Clamp01; zero/negative durations now behave as an instant fade.
 - **Per-scene font restore was dead logic**: `OnSceneLoaded` reset the flag but `RestoreFontOnce` only ever ran from `Start`. It now runs at the end of each scene load.
 - **Unity fake-null checks**: `UpdateAllFonts` / `ExecuteCountReset` used `?.` on MonoBehaviours (bypasses the destroyed-check) — replaced with explicit nulls; one `ClearActiveDrops` call gained the null guard its siblings have.
 - **FileBased variant failed silently on missing assets**: font files (MapleStory/CJK) and GhostRain.png missing produced no log — a missing CJK font also broke the fallback chain and rendered CJK labels as boxes. Both now log like the bundle variant.

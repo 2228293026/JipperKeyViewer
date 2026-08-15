@@ -31,13 +31,17 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 function Update-File([string]$relPath, [scriptblock]$edit) {
     $path = Join-Path $repoRoot $relPath
     if (-not (Test-Path $path)) { throw "File not found: $path" }
-    # Normalize the trailing newline so Set-Content's single appended newline never accumulates
-    # extra blank lines across repeated runs. / 规范结尾换行，避免 Set-Content 追加的换行在
-    # 多次运行后累积出多余空行。
-    $text = (Get-Content $path -Raw).TrimEnd("`r", "`n")
+    # Preserve each file's own BOM state and normalize the trailing newline, so repeated runs are
+    # byte-stable and pwsh (BOM-less UTF8 by default) and Windows PowerShell 5.1 (BOM) behave
+    # identically. / 按各文件自身的 BOM 状态写回并规范结尾换行——重复运行字节级稳定，且 pwsh
+    #（默认无 BOM）与 Windows PowerShell 5.1（带 BOM）行为一致。
+    $bytes = [IO.File]::ReadAllBytes($path)
+    $hadBom = $bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
+    $text = [IO.File]::ReadAllText($path).TrimEnd("`r", "`n")
     $new = & $edit $text
     if ($new -ne $text) {
-        Set-Content -Path $path -Value $new -Encoding UTF8
+        $enc = New-Object System.Text.UTF8Encoding($hadBom)
+        [IO.File]::WriteAllText($path, $new + "`r`n", $enc)
         Write-Host "updated $relPath"
     } else {
         Write-Host "no change in $relPath"

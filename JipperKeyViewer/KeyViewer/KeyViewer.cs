@@ -958,12 +958,22 @@ namespace JipperKeyViewer.KeyViewer
             if (string.IsNullOrWhiteSpace(newName)) return;
             newName = SanitizeFileName(newName.Trim());
             if (oldName == newName) return;
-            // Case-insensitive: on NTFS a case variant names the same file, so the File.Delete below
-            // would remove that other profile before the move. (oldName vs newName stays an exact
-            // compare — a case-only rename is a legitimate way to fix a profile's casing.)
-            // 大小写不敏感：NTFS 上大小写变体指向同一文件，否则下面的 File.Delete 会在移动前删掉
-            // 那个 Profile。（oldName 与 newName 仍精确比较——仅改大小写的重命名是合法操作。）
-            if (Settings.ProfileNames != null && Settings.ProfileNames.Any(p => string.Equals(SanitizeFileName(p), newName, StringComparison.OrdinalIgnoreCase))) return;
+            // Case-insensitive duplicate check against OTHER profiles: on NTFS a case variant names
+            // the same file, so the File.Delete below would remove that other profile before the
+            // move. This profile's own old name is excluded — a case-only rename stays allowed.
+            // 对其它 Profile 做大小写不敏感的重名检查：NTFS 上大小写变体指向同一文件，否则下面
+            // 的 File.Delete 会在移动前删掉那个 Profile。本配置自身的旧名除外——仅改大小写的
+            // 重命名仍然允许。
+            if (Settings.ProfileNames != null)
+            {
+                string oldSan = SanitizeFileName(oldName);
+                foreach (string p in Settings.ProfileNames)
+                {
+                    string ps = SanitizeFileName(p);
+                    if (string.Equals(ps, oldSan, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (string.Equals(ps, newName, StringComparison.OrdinalIgnoreCase)) return;
+                }
+            }
             string oldPath = GetProfilePath(oldName);
             string newPath = GetProfilePath(newName);
             if (oldPath != newPath)
@@ -972,7 +982,12 @@ namespace JipperKeyViewer.KeyViewer
                 {
                     if (File.Exists(oldPath))
                     {
-                        if (File.Exists(newPath))
+                        // Case-only rename: oldPath and newPath name the SAME file on NTFS — deleting
+                        // the target first would delete the source; File.Move alone performs the
+                        // case change. / 仅改大小写：两个路径在 NTFS 上是同一个文件——先删目标
+                        // 等于删源；仅 File.Move 即可完成大小写重命名。
+                        bool sameFile = string.Equals(oldPath, newPath, StringComparison.OrdinalIgnoreCase);
+                        if (!sameFile && File.Exists(newPath))
                             File.Delete(newPath);
                         File.Move(oldPath, newPath);
                     }

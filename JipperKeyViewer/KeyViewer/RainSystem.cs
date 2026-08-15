@@ -172,7 +172,12 @@ namespace JipperKeyViewer.KeyViewer
         {
             if (!rain.fadingOut) return;
             rain.fadeTimer += dtSec;
-            float t = Mathf.Clamp01(rain.fadeTimer / settings.Data.RainFadeDuration);
+            // Zero/negative duration (typed values are unclamped): treat as instant fade — avoids a
+            // 0/0 NaN alpha on the first tick. / 零/负时长（键入值不钳制）：按立即淡出处理——
+            // 避免首帧 0/0 得到 NaN 透明度。
+            float t = settings.Data.RainFadeDuration > 0f
+                ? Mathf.Clamp01(rain.fadeTimer / settings.Data.RainFadeDuration)
+                : 1f;
             rain.alpha = 1f - (t * (2f - t));
             if (t >= 1f)
                 ReturnRawRainAndRemove(rain, key, j);

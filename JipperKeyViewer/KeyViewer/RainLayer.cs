@@ -95,20 +95,31 @@ namespace JipperKeyViewer.KeyViewer
             Key[] keys = System != null ? System.Keys : null;
             if (keys == null) return;
             // Ghost bodies normally render in GhostRainLayer; if the ghost sprite failed to load
-            // (missing bundle asset / PNG), fall back to solid ghost-colored quads here — the old
-            // code's sprite-null path did the same via its plain-init renderer.
+            // (missing bundle asset / PNG), fall back to solid ghost-colored quads here (the old
+            // no-sprite path drew opaque white — ghost color is the deliberate improvement).
             // 鬼雨本体通常画在 GhostRainLayer；鬼雨贴图加载失败（bundle 缺资源 / PNG 缺失）时
-            // 在此退化为鬼雨色纯色四边形——与旧版无贴图时的纯色渲染路径一致。
+            // 在此退化为鬼雨色纯色四边形（旧版无贴图路径画不透明白色——用鬼雨色是有意改进）。
             bool ghostFallback = ghostLayer == null || ghostLayer.Sprite == null;
             for (int i = 0; i < keys.Length; i++)
             {
                 Key key = keys[i];
                 if (key == null || key.rainList.Count == 0) continue;
+                // Old per-key stacking: normals below, ghost quads above (SetSiblingIndex reserved
+                // the +1 slot for ghosts) — two passes reproduce that exactly.
+                // 旧版每键内普通雨在下、鬼雨（含阴影/描边）在上（SetSiblingIndex 为鬼雨保留 +1
+                // 槽位）——两趟绘制精确复现。
                 for (int d = 0; d < key.rainList.Count; d++)
                 {
                     RawRain rain = key.rainList[d];
-                    if (rain.removed || rain.isGhost && !ghostFallback && !rain.shadowEnabled && !rain.outlineEnabled) continue;
-                    DrawDrop(vh, rain, drawMain: !rain.isGhost || ghostFallback);
+                    if (rain.removed || rain.isGhost) continue;
+                    DrawDrop(vh, rain, drawMain: true);
+                }
+                for (int d = 0; d < key.rainList.Count; d++)
+                {
+                    RawRain rain = key.rainList[d];
+                    if (rain.removed || !rain.isGhost) continue;
+                    if (!ghostFallback && !rain.shadowEnabled && !rain.outlineEnabled) continue;
+                    DrawDrop(vh, rain, drawMain: ghostFallback);
                 }
             }
         }
@@ -259,8 +270,14 @@ namespace JipperKeyViewer.KeyViewer
             float oL = tr.x / tw, oR = tr.xMax / tw, oB = tr.y / th, oT = tr.yMax / th;
             float iL = (tr.x + border.x) / tw, iR = (tr.xMax - border.z) / tw;
             float iB = (tr.y + border.y) / th, iT = (tr.yMax - border.w) / th;
-            float tileW = Mathf.Max(1f, tr.width - border.x - border.z);
-            float tileH = Mathf.Max(1f, tr.height - border.y - border.w);
+            // uGUI scales tile size and border by ppu/100 (multipliedPixelsPerUnit = 100/ppu) /
+            // uGUI 按公式 ppu/100 缩放平铺尺寸与边框（multipliedPixelsPerUnit = 100/ppu）
+            float ppuf = Sprite.pixelsPerUnit > 0f ? Sprite.pixelsPerUnit / 100f : 1f;
+            float tileW = (tr.width - border.x - border.z) * ppuf;
+            float tileH = (tr.height - border.y - border.w) * ppuf;
+            // Borders swallowing the whole sprite: uGUI stretches a single tile instead of tiling /
+            // 边框吞掉整张贴图时，uGUI 用单块拉伸而非平铺
+            bool degenerate = hasBorder && (tileW <= 0f || tileH <= 0f);
             bool standalone = !hasBorder && RainLayer.IsStandaloneRect(Sprite);
             for (int i = 0; i < keys.Length; i++)
             {
@@ -274,9 +291,15 @@ namespace JipperKeyViewer.KeyViewer
                     if (r.width <= 0f || r.height <= 0f) continue;
                     Color c = rain.mainColor;
                     c.a *= rain.alpha;
-                    if (hasBorder)
-                        DrawTiledWithBorder(vh, r, c, border.x, border.z, border.y, border.w,
+                    if (hasBorder && !degenerate)
+                    {
+                        DrawTiledWithBorder(vh, r, c, border.x * ppuf, border.z * ppuf, border.y * ppuf, border.w * ppuf,
                             tileW, tileH, oL, iL, iR, oR, oB, iB, iT, oT);
+                    }
+                    else if (hasBorder)
+                    {
+                        RainLayer.AddQuad(vh, r.xMin, r.xMax, r.yMin, r.yMax, oL, oR, oB, oT, c, c);
+                    }
                     else if (standalone)
                     {
                         // UV anchored bottom-left, tiling per tile size — matches the old tiled Image /

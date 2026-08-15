@@ -614,8 +614,8 @@ namespace JipperKeyViewer.KeyViewer
                 if (newStreamer != Settings.Data.StreamerMode)
                 {
                     Settings.Data.StreamerMode = newStreamer;
-                    if (Kps != null) Kps.gameObject.SetActive(!newStreamer);
-                    if (Total != null) Total.gameObject.SetActive(!newStreamer);
+                    SetKeyObjectActive(Kps, !newStreamer);
+                    SetKeyObjectActive(Total, !newStreamer);
                     SaveSettings();
                 }
             }

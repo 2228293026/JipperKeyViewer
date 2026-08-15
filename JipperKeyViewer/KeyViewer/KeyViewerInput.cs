@@ -390,8 +390,9 @@ namespace JipperKeyViewer.KeyViewer
                 var d2 = Settings.Data;
                 bool u = d2.EnableFullKeyboardUnifiedColor;
                 Key k = Keys[i];
-                k.background.color = pressed ? (u ? d2.FullKeyboardBackgroundClicked : d2.BackgroundClicked) : (u ? d2.FullKeyboardBackground : d2.Background);
-                k.outline.color = pressed ? (u ? d2.FullKeyboardOutlineClicked : d2.OutlineClicked) : (u ? d2.FullKeyboardOutline : d2.Outline);
+                SetShapeColors(k,
+                    pressed ? (u ? d2.FullKeyboardBackgroundClicked : d2.BackgroundClicked) : (u ? d2.FullKeyboardBackground : d2.Background),
+                    pressed ? (u ? d2.FullKeyboardOutlineClicked : d2.OutlineClicked) : (u ? d2.FullKeyboardOutline : d2.Outline));
                 k.text.color = pressed ? (u ? d2.FullKeyboardTextClicked : d2.TextClicked) : (u ? d2.FullKeyboardText : d2.Text);
                 if (k.value != null) k.value.color = k.text.color;
                 return;
@@ -402,23 +403,27 @@ namespace JipperKeyViewer.KeyViewer
             if (d == null) d = Settings.Data;
             if (d.EnablePerKeyColors && i < MaxKeySlots)
             {
-                key.background.color = pressed ? d.PerKeyBackgroundClicked[i] : d.PerKeyBackground[i];
-                key.outline.color = pressed ? d.PerKeyOutlineClicked[i] : d.PerKeyOutline[i];
+                SetShapeColors(key,
+                    pressed ? d.PerKeyBackgroundClicked[i] : d.PerKeyBackground[i],
+                    pressed ? d.PerKeyOutlineClicked[i] : d.PerKeyOutline[i]);
                 key.text.color = pressed ? d.PerKeyTextClicked[i] : d.PerKeyText[i];
             }
             else
             {
-                key.background.color = pressed ? d.BackgroundClicked : d.Background;
-                key.outline.color = pressed ? d.OutlineClicked : d.Outline;
+                SetShapeColors(key,
+                    pressed ? d.BackgroundClicked : d.Background,
+                    pressed ? d.OutlineClicked : d.Outline);
                 key.text.color = pressed ? d.TextClicked : d.Text;
             }
             if (key.value != null) key.value.color = key.text.color;
         }
 
         /// <summary>
-        /// Smoothly animate key visuals scale (center-pivot wrapper).
-        /// When EnablePressAnimationOnRain is on, scales full key transform with pivot compensation instead.
-        /// 平滑缩放按键：默认只缩放 Visuals 包裹层（雨滴不动），开启雨滴动画时缩放整个按键+位置补偿
+        /// Smoothly animate key visuals scale (center-pivot text wrapper + merged shape mesh).
+        /// When EnablePressAnimationOnRain is on, scales the full key root (rain included) with pivot
+        /// compensation instead, and mirrors the scale onto texts and the shape mesh.
+        /// 平滑缩放按键：默认缩放文本包裹层与合并形状 mesh（雨滴不动）；开启雨滴动画时缩放整个按键根
+        /// （含雨滴）并做位置补偿，同时把缩放同步到文本与形状 mesh。
         /// </summary>
         private IEnumerator AnimateKeyScale(Key key, float target, float duration)
         {
@@ -436,26 +441,40 @@ namespace JipperKeyViewer.KeyViewer
             }
             else
             {
-                // Scale visuals wrapper only — center-pivot, no compensation needed / 仅缩放视觉层
+                // Scale the text wrapper only — center-pivot, no compensation needed / 仅缩放文本包裹层
                 animTarget = key.visuals;
             }
             float startS = animTarget.localScale.x;
+            int generation = keyShapeLayer != null ? keyShapeLayer.Generation : -1;
             float elapsed = 0f;
             while (elapsed < duration)
             {
-                if (animTarget == null) yield break;
+                if (key == null || animTarget == null) yield break;
+                // Overlay was rebuilt mid-animation — slots were re-indexed, stop writing to them
+                // 动画中途覆盖层被重建——槽位已重新编号，停止写入
+                if (keyShapeLayer == null || keyShapeLayer.Generation != generation) yield break;
                 elapsed += Time.unscaledDeltaTime;
                 float p = Mathf.Min(1f, elapsed / duration);
                 float s = Mathf.Lerp(startS, target, p);
                 animTarget.localScale = new Vector3(s, s, 1);
                 if (affectRain)
+                {
                     (animTarget as RectTransform).anchoredPosition = origPos + new Vector2(width * (startS - s) * 0.5f, 0);
+                    // Texts are no longer children of the key root — mirror the scale explicitly / 文本不再挂在按键根下，需显式同步缩放
+                    if (key.visuals != null) key.visuals.localScale = new Vector3(s, s, 1);
+                }
+                if (key.shapeSlot >= 0) keyShapeLayer.SetScale(key.shapeSlot, s);
                 yield return null;
             }
-            if (animTarget == null) yield break;
+            if (key == null || animTarget == null) yield break;
+            if (keyShapeLayer == null || keyShapeLayer.Generation != generation) yield break;
             animTarget.localScale = new Vector3(target, target, 1);
             if (affectRain)
+            {
                 (animTarget as RectTransform).anchoredPosition = origPos + new Vector2(width * (startS - target) * 0.5f, 0);
+                if (key.visuals != null) key.visuals.localScale = new Vector3(target, target, 1);
+            }
+            if (key.shapeSlot >= 0) keyShapeLayer.SetScale(key.shapeSlot, target);
         }
     }
 }

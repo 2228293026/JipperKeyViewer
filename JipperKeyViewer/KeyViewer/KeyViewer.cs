@@ -190,6 +190,12 @@ namespace JipperKeyViewer.KeyViewer
         GameObject KeyViewerObject;
         /// <summary>Child GameObject that applies the Size scale transform / 应用大小缩放的子 GameObject</summary>
         GameObject KeyViewerSizeObject;
+        /// <summary>Merged background-shape layer (owns slot state) / 合并背景形状层（持有槽位状态）</summary>
+        KeyShapeLayer keyShapeLayer;
+        /// <summary>Merged outline-shape layer (shares state with keyShapeLayer) / 合并描边形状层（与背景层共享状态）</summary>
+        KeyShapeLayer keyOutlineLayer;
+        /// <summary>Sub-canvas holding all key texts (isolates text rebatching from shape layer) / 持有全部按键文本的子画布（文本重批与形状层隔离）</summary>
+        Transform textLayer;
         /// <summary>The overlay canvas (ScreenSpaceOverlay) / 覆盖层画布</summary>
         Canvas Canvas;
         /// <summary>All key instances (index 0-19 main, 20-35 foot) / 所有按键实例（0-19 主键，20-35 脚键）</summary>
@@ -811,8 +817,8 @@ namespace JipperKeyViewer.KeyViewer
             UpdateAllKeyColors();
             if (Settings.Data.StreamerMode && !IsFullKeyboard)
             {
-                if (Kps != null) Kps.gameObject.SetActive(false);
-                if (Total != null) Total.gameObject.SetActive(false);
+                SetKeyObjectActive(Kps, false);
+                SetKeyObjectActive(Total, false);
             }
             SaveSettings();
         }

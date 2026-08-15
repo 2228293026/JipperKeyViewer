@@ -1,27 +1,29 @@
-// Key MonoBehaviour: visual key on canvas / 按键 MonoBehaviour：画布上的可视按键
-// Manages text, background, outline, count display and rain effect queue / 管理文本、背景、轮廓、计数显示和雨滴效果队列
+// Key MonoBehaviour: logical key / 按键 MonoBehaviour：逻辑按键
+// Box geometry lives in the merged KeyShapeLayer; text lives under a per-key wrapper in the text
+// canvas; this component stays on the key root, anchoring the rain container and holding state.
+// 按键框几何在合并的 KeyShapeLayer 中；文本在文本画布的每键包裹层下；本组件保留在按键根节点上，
+// 锚定雨滴容器并持有状态。
 
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace JipperKeyViewer.KeyViewer
 {
     /// <summary>
     /// Represents a single on-screen key / 表示一个屏幕上的按键
-    /// Composed of a text label, background image, outline image, count text, and optional rain container / 由文本标签、背景图、轮廓图、计数文本和可选的雨滴容器组成
+    /// Composed of a text label, count text, a shape slot in the merged layer, and an optional rain container / 由文本标签、计数文本、合并图层中的形状槽位和可选的雨滴容器组成
     /// </summary>
     public class Key : MonoBehaviour
     {
         /// <summary>Key label text (e.g. "Tab", "A") / 按键标签文本（如 "Tab"、"A"）</summary>
         public TextMeshProUGUI text;
-        /// <summary>Background image / 背景图片</summary>
-        public Image background;
-        /// <summary>Outline image / 轮廓图片</summary>
-        public Image outline;
         /// <summary>Press count text / 按键计数文本</summary>
         public TextMeshProUGUI value;
+        /// <summary>Slot index in the merged KeyShapeLayer (-1 = none) / 合并 KeyShapeLayer 中的槽位索引（-1 = 无）</summary>
+        public int shapeSlot = -1;
+        /// <summary>Key box size (width, height) for layer/text positioning / 按键框尺寸（宽，高），用于图层与文本定位</summary>
+        public Vector2 keySize;
         /// <summary>Rain effect container GameObject / 雨滴效果容器 GameObject</summary>
         public GameObject rain;
         /// <summary>Rain color index (0=row1, 1=row2, 3=row3) / 雨滴颜色索引（0=第1排，1=第2排，3=第3排）</summary>
@@ -34,7 +36,7 @@ namespace JipperKeyViewer.KeyViewer
         public bool isPressed;
         /// <summary>Running press-animation coroutine (null if none) / 运行中的按键动画协程（无则为 null）</summary>
         public Coroutine currentAnim;
-        /// <summary>Visuals wrapper — scaled on press so rain outside it stays unaffected / 视觉包裹层，按下时缩放此层，雨滴容器在外面不受影响</summary>
+        /// <summary>Text wrapper in the text canvas — center pivot over the key box, scaled on press / 文本画布中的文本包裹层，轴心在按键框中心，按压时缩放</summary>
         public Transform visuals;
         /// <summary>X offset for rain container alignment (0 for standard keys) / 雨滴容器的 X 偏移（标准按键为 0）</summary>
         public float rainOffsetX;

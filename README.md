@@ -49,6 +49,7 @@ Both build from the same solution (`JipperKeyViewer.slnx`) and share the same fe
 - i18n: English / Chinese / Korean / 中英韩三语
 - Key rebinding & custom text labels / 按键绑定修改和自定义文本标签
 - Object pooling for zero GC allocation on hot path / 对象池，热路径零 GC 分配
+- Merged shape rendering: all key boxes draw into two meshes (background + outline layers) with a dedicated text sub-canvas — no per-key Image hierarchy, canvas rebuilds stay tiny / 合并形状渲染：所有按键框画进两个 mesh（背景+描边层）并配独立文本子画布——无每键 Image 层级，画布重建成本极小
 - Custom font support: place .ttf/.otf in `CustomFont/`, auto-detected / 自定义字体支持
 
 ## Installation / 安装

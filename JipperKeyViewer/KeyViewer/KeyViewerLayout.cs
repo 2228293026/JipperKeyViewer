@@ -43,8 +43,24 @@ namespace JipperKeyViewer.KeyViewer
             rectTransform.anchorMax = Vector2.one;
             rectTransform.pivot = Vector2.zero;
             rectTransform.offsetMin = rectTransform.offsetMax = Vector2.zero;
+            // Merged shape layers: every key box (background + outline) renders into two meshes
+            // instead of per-key Image hierarchies. Texts live on their own sub-canvas so text
+            // updates never re-batch the shape meshes and vice versa. Key roots (rain containers)
+            // are created after both, preserving the old z-order (boxes < texts < rain).
+            // 合并形状层：所有按键框（背景+描边）画进两个 mesh，不再每键一组 Image。
+            // 文本放独立子画布，文本更新不会重批形状 mesh，反之亦然。按键根（雨滴容器）在两者之后创建，
+            // 保持原有层级顺序（框 < 文本 < 雨滴）。
+            keyShapeLayer = CreateFullStretchRect("KeyShapes").gameObject.AddComponent<KeyShapeLayer>();
+            keyOutlineLayer = CreateFullStretchRect("KeyOutlines").gameObject.AddComponent<KeyShapeLayer>();
+            keyShapeLayer.AttachOutlineLayer(keyOutlineLayer);
+            keyShapeLayer.SetSprites(keyBackgroundSprite, keyOutlineSprite);
+            GameObject textGo = CreateFullStretchRect("TextLayer").gameObject;
+            Canvas textCanvas = textGo.AddComponent<Canvas>();
+            textCanvas.additionalShaderChannels = Canvas.additionalShaderChannels; // match TMP input channels of the root canvas / 与根画布的 TMP 通道一致
+            textLayer = textGo.transform;
             // Initialize main keys based on selected layout / 根据选中的布局初始化主按键
             Keys = new Key[GetKeyCount()];
+            keyShapeLayer.Init(Keys.Length + 2); // + KPS/Total slots / 加上 KPS/Total 槽位
             InitializeMainKeys(GetLayout(Settings.Data.KeyViewerStyle));
             // Initialize foot keys based on selected layout (full keyboard has none) / 根据选中的布局初始化脚键（全键盘无脚键）
             if (!IsFullKeyboard)
@@ -57,8 +73,8 @@ namespace JipperKeyViewer.KeyViewer
             // 应用主播模式（隐藏 KPS/Total）——仅普通布局生效；全键盘有专属开关，不与之冲突。
             if (Settings.Data.StreamerMode && !IsFullKeyboard)
             {
-                if (Kps != null) Kps.gameObject.SetActive(false);
-                if (Total != null) Total.gameObject.SetActive(false);
+                SetKeyObjectActive(Kps, false);
+                SetKeyObjectActive(Total, false);
             }
             // Persist the overlay across scene loads / 使覆盖层在场景加载中持久化
             Object.DontDestroyOnLoad(KeyViewerObject);
@@ -86,6 +102,9 @@ namespace JipperKeyViewer.KeyViewer
                 Object.Destroy(mat);
             shadowMaterials.Clear();
             Canvas = null;
+            keyShapeLayer = null;
+            keyOutlineLayer = null;
+            textLayer = null;
             Keys = null;
             PressTimes = null;
             keyPressTimes = null;
@@ -511,8 +530,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 if (Keys[i] == null) continue;
                 bool pressed = Keys[i].isPressed;
-                Keys[i].background.color = pressed ? bgC : bg;
-                Keys[i].outline.color = pressed ? olC : ol;
+                SetShapeColors(Keys[i], pressed ? bgC : bg, pressed ? olC : ol);
                 Keys[i].text.color = pressed ? txC : tx;
                 if (Keys[i].value != null) Keys[i].value.color = pressed ? txC : tx;
             }
@@ -620,7 +638,7 @@ namespace JipperKeyViewer.KeyViewer
             for (int i = 0; i < Keys.Length; i++)
             {
                 if (Keys[i] == null) continue;
-                ((RectTransform)Keys[i].transform).anchoredPosition = _fkHome[i] + new Vector2(dx, dy);
+                SetKeyPosition(i, _fkHome[i].x + dx, _fkHome[i].y + dy);
             }
             // KPS / Total keep their own independent normalized positions (not shifted by the main block).
             // KPS/Total 保持各自独立的归一化位置，不随主键盘自定义位置移动。
@@ -697,6 +715,8 @@ namespace JipperKeyViewer.KeyViewer
             // For stacked mode, use taller container to fit two rows of text without overlap
             // 堆叠模式使用更高的容器，让两行文字不重叠
             float h = sizeY > 0f ? sizeY : (stackedText ? 30f : (slim ? 30f : 50f));
+            // Key root: anchors the rain container and marks the key box position (pivot left-center)
+            // 按键根：锚定雨滴容器，标记按键框位置（轴心左中）
             RectTransform transform = obj.AddComponent<RectTransform>();
             transform.SetParent(KeyViewerSizeObject.transform);
             transform.sizeDelta = new Vector2(sizeX, h);
@@ -706,19 +726,26 @@ namespace JipperKeyViewer.KeyViewer
             transform.localScale = Vector3.one;
             Key key = obj.AddComponent<Key>();
             key.isPressed = false;
-            // Visuals wrapper: center-pivot so scale animation is naturally centered / 视觉包裹层：轴心居中，缩放自动从中心向四周
-            // Rain container stays outside — unaffected by press animation / 雨滴容器在包裹层外，不受缩放影响
-            GameObject visuals = new("Visuals");
+            key.keySize = new Vector2(sizeX, h);
+            // Box goes into the merged shape layer (bottom-left rect coordinates) / 按键框进合并形状层（左下角矩形坐标）
+            key.shapeSlot = KeyIndex(i);
+            if (keyShapeLayer != null && key.shapeSlot >= 0)
+            {
+                keyShapeLayer.SetRect(key.shapeSlot, x, y - h * 0.5f, sizeX, h);
+                keyShapeLayer.SetVisible(key.shapeSlot, true);
+            }
+            // Text wrapper in the text canvas: same rect the old per-key Visuals had (center pivot
+            // over the box), so press scaling stays centered and the text layout math is unchanged.
+            // 文本画布中的文本包裹层：与旧每键 Visuals 同矩形（轴心在框中心），按压缩放保持居中，文本布局算法不变。
+            GameObject visuals = new("TextRoot");
             RectTransform vrt = visuals.AddComponent<RectTransform>();
-            vrt.SetParent(obj.transform);
+            vrt.SetParent(textLayer);
             vrt.sizeDelta = new Vector2(sizeX, h);
-            vrt.anchorMin = vrt.anchorMax = new Vector2(0, 0.5f);
+            vrt.anchorMin = vrt.anchorMax = Vector2.zero;
             vrt.pivot = new Vector2(0.5f, 0.5f);
-            vrt.anchoredPosition = new Vector2(sizeX * 0.5f, 0);
+            vrt.anchoredPosition = new Vector2(x + sizeX * 0.5f, y);
             vrt.localScale = Vector3.one;
             key.visuals = visuals.transform;
-            key.background = CreateImage(visuals, "Background", sizeX, h, keyBackgroundSprite, settings.Data.Background);
-            key.outline = CreateImage(visuals, "Outline", sizeX, h, keyOutlineSprite, settings.Data.Outline);
             // Per-key slot index for text size/spacing overrides: KPS → MaxKeySlots, Total → MaxKeySlots+1 / 每键槽位索引
             int pki = i == -1 ? MaxKeySlots : i == -2 ? MaxKeySlots + 1 : i;
             // For stacked mode, create separate text/value objects; otherwise use single centered text
@@ -752,24 +779,33 @@ namespace JipperKeyViewer.KeyViewer
             return key;
         }
 
-        private static Image CreateImage(GameObject parent, string name, float sizeX, float sizeY, Sprite sprite, Color color)
+        /// <summary>Child GameObject filling the SizeObject rect (bottom-left origin) / 填满 SizeObject 矩形的子物体（左下原点）</summary>
+        private RectTransform CreateFullStretchRect(string name)
         {
-            GameObject go = new(name);
+            GameObject go = new GameObject(name);
             RectTransform rt = go.AddComponent<RectTransform>();
-            rt.SetParent(parent.transform);
-            rt.anchorMin = rt.anchorMax = rt.pivot = Vector2.zero;
-            rt.anchoredPosition = Vector2.zero;
-            rt.sizeDelta = new Vector2(sizeX * 2, sizeY * 2);
-            rt.localScale = new Vector3(0.5f, 0.5f);
-            Image image = go.AddComponent<Image>();
-            image.color = color;
-            if (sprite != null)
-            {
-                image.sprite = sprite;
-                image.type = Image.Type.Sliced;
-            }
-            image.raycastTarget = false;
-            return image;
+            rt.SetParent(KeyViewerSizeObject.transform);
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.pivot = Vector2.zero;
+            rt.offsetMin = rt.offsetMax = Vector2.zero;
+            rt.localScale = Vector3.one;
+            return rt;
+        }
+
+        /// <summary>Write a key's box colors into the merged shape layer / 将按键框颜色写入合并形状层</summary>
+        private void SetShapeColors(Key key, Color background, Color outline)
+        {
+            if (key == null || keyShapeLayer == null || key.shapeSlot < 0) return;
+            keyShapeLayer.SetColors(key.shapeSlot, background, outline);
+        }
+
+        /// <summary>Toggle a KPS/Total box (shape + texts) without touching the key root / 切换 KPS/Total 框（形状+文本）的显示，不动按键根</summary>
+        private void SetKeyObjectActive(Key key, bool active)
+        {
+            if (key == null) return;
+            if (key.visuals != null) key.visuals.gameObject.SetActive(active);
+            if (keyShapeLayer != null && key.shapeSlot >= 0) keyShapeLayer.SetVisible(key.shapeSlot, active);
         }
 
         private TextMeshProUGUI CreateKeyText(GameObject parent, float sizeX, bool slim, bool count, KeyViewerSettings settings, bool centered = false, bool stackedLabel = false, int perKeyIndex = -1, bool isFootKey = false)
@@ -964,8 +1000,7 @@ namespace JipperKeyViewer.KeyViewer
             if (Settings.Data.EnablePerKeyColors)
             {
                 if (pi < 0) return;
-                key.background.color = Settings.Data.PerKeyBackground[pi];
-                key.outline.color = Settings.Data.PerKeyOutline[pi];
+                SetShapeColors(key, Settings.Data.PerKeyBackground[pi], Settings.Data.PerKeyOutline[pi]);
                 key.text.color = Settings.Data.PerKeyText[pi];
                 if (key.value != null) key.value.color = Settings.Data.PerKeyText[pi];
                 key.rainColor = Settings.Data.PerKeyRainColor[pi];
@@ -974,10 +1009,15 @@ namespace JipperKeyViewer.KeyViewer
             if (pi >= Keys.Length)
             {
                 bool isKps = pi == Keys.Length;
-                key.background.color = isKps ? Settings.Data.KpsBackground : Settings.Data.TotalBackground;
-                key.outline.color = isKps ? Settings.Data.KpsOutline : Settings.Data.TotalOutline;
+                SetShapeColors(key,
+                    isKps ? Settings.Data.KpsBackground : Settings.Data.TotalBackground,
+                    isKps ? Settings.Data.KpsOutline : Settings.Data.TotalOutline);
                 key.text.color = isKps ? Settings.Data.KpsText : Settings.Data.TotalText;
                 if (key.value != null) key.value.color = key.text.color;
+            }
+            else
+            {
+                SetShapeColors(key, Settings.Data.Background, Settings.Data.Outline);
             }
             if (raining >= 0)
                 key.rainColor = rainSystem.GetRainColor((byte)raining);
@@ -1217,18 +1257,16 @@ namespace JipperKeyViewer.KeyViewer
 
         private void SetKeyPosition(int keyIndex, float x, float y)
         {
-            if (keyIndex == -1 && Kps != null)
-            {
-                ((RectTransform)Kps.transform).anchoredPosition = new Vector2(x, y);
-            }
-            else if (keyIndex == -2 && Total != null)
-            {
-                ((RectTransform)Total.transform).anchoredPosition = new Vector2(x, y);
-            }
-            else if (keyIndex >= 0 && keyIndex < Keys.Length && Keys[keyIndex] != null)
-            {
-                ((RectTransform)Keys[keyIndex].transform).anchoredPosition = new Vector2(x, y);
-            }
+            Key key = keyIndex == -1 ? Kps
+                : keyIndex == -2 ? Total
+                : (keyIndex >= 0 && keyIndex < Keys.Length ? Keys[keyIndex] : null);
+            if (key == null) return;
+            ((RectTransform)key.transform).anchoredPosition = new Vector2(x, y);
+            // Keep the text wrapper and merged shape rect in sync with the key root / 文本包裹层与合并形状矩形随按键根同步
+            if (key.visuals != null)
+                ((RectTransform)key.visuals).anchoredPosition = new Vector2(x + key.keySize.x * 0.5f, y);
+            if (keyShapeLayer != null && key.shapeSlot >= 0)
+                keyShapeLayer.SetRect(key.shapeSlot, x, y - key.keySize.y * 0.5f, key.keySize.x, key.keySize.y);
         }
 
         /// <summary>Get color setting by numeric index (0-8) for the color picker / 通过数字索引（0-8）获取颜色设置，用于颜色选择器</summary>
@@ -1291,10 +1329,13 @@ namespace JipperKeyViewer.KeyViewer
         private void ApplyColorToKey(Key k, int pi)
         {
             if (k == null) return;
-            if (Settings.Data.EnablePerKeyColors)
+            // Per-key arrays are sized MaxKeySlots+2; on the full keyboard the KPS/Total slots (105/106)
+            // are out of range, so fall through to the dedicated KPS/Total colors instead of crashing.
+            // PerKey 数组长度为 MaxKeySlots+2；全键盘的 KPS/Total 槽位（105/106）越界，
+            // 应落入下方 KPS/Total 专属颜色分支而不是崩溃。
+            if (Settings.Data.EnablePerKeyColors && pi >= 0 && pi < Settings.Data.PerKeyBackground.Length)
             {
-                k.background.color = Settings.Data.PerKeyBackground[pi];
-                k.outline.color = Settings.Data.PerKeyOutline[pi];
+                SetShapeColors(k, Settings.Data.PerKeyBackground[pi], Settings.Data.PerKeyOutline[pi]);
                 k.text.color = Settings.Data.PerKeyText[pi];
                 if (k.value != null) k.value.color = Settings.Data.PerKeyText[pi];
             }
@@ -1302,15 +1343,13 @@ namespace JipperKeyViewer.KeyViewer
             {
                 if (IsFullKeyboard && Settings.Data.EnableFullKeyboardUnifiedColor)
                 {
-                    k.background.color = Settings.Data.FullKeyboardBackground;
-                    k.outline.color = Settings.Data.FullKeyboardOutline;
+                    SetShapeColors(k, Settings.Data.FullKeyboardBackground, Settings.Data.FullKeyboardOutline);
                     k.text.color = Settings.Data.FullKeyboardText;
                     if (k.value != null) k.value.color = Settings.Data.FullKeyboardText;
                 }
                 else
                 {
-                    k.background.color = Settings.Data.KpsBackground;
-                    k.outline.color = Settings.Data.KpsOutline;
+                    SetShapeColors(k, Settings.Data.KpsBackground, Settings.Data.KpsOutline);
                     k.text.color = Settings.Data.KpsText;
                     if (k.value != null) k.value.color = Settings.Data.KpsText;
                 }
@@ -1319,15 +1358,13 @@ namespace JipperKeyViewer.KeyViewer
             {
                 if (IsFullKeyboard && Settings.Data.EnableFullKeyboardUnifiedColor)
                 {
-                    k.background.color = Settings.Data.FullKeyboardBackground;
-                    k.outline.color = Settings.Data.FullKeyboardOutline;
+                    SetShapeColors(k, Settings.Data.FullKeyboardBackground, Settings.Data.FullKeyboardOutline);
                     k.text.color = Settings.Data.FullKeyboardText;
                     if (k.value != null) k.value.color = Settings.Data.FullKeyboardText;
                 }
                 else
                 {
-                    k.background.color = Settings.Data.TotalBackground;
-                    k.outline.color = Settings.Data.TotalOutline;
+                    SetShapeColors(k, Settings.Data.TotalBackground, Settings.Data.TotalOutline);
                     k.text.color = Settings.Data.TotalText;
                     if (k.value != null) k.value.color = Settings.Data.TotalText;
                 }
@@ -1339,8 +1376,7 @@ namespace JipperKeyViewer.KeyViewer
             for (int i = 0; i < Keys.Length; i++)
             {
                 if (Keys[i] == null) continue;
-                Keys[i].background.color = Settings.Data.PerKeyBackground[i];
-                Keys[i].outline.color = Settings.Data.PerKeyOutline[i];
+                SetShapeColors(Keys[i], Settings.Data.PerKeyBackground[i], Settings.Data.PerKeyOutline[i]);
                 Keys[i].text.color = Settings.Data.PerKeyText[i];
                 if (Keys[i].value != null) Keys[i].value.color = Settings.Data.PerKeyText[i];
                 Keys[i].rainColor = Settings.Data.PerKeyRainColor[i];
@@ -1353,8 +1389,7 @@ namespace JipperKeyViewer.KeyViewer
             for (int i = 0; i < keyCodes.Length && i < Keys.Length; i++)
             {
                 if (Keys[i] == null) continue;
-                Keys[i].background.color = Settings.Data.Background;
-                Keys[i].outline.color = Settings.Data.Outline;
+                SetShapeColors(Keys[i], Settings.Data.Background, Settings.Data.Outline);
                 Keys[i].text.color = Settings.Data.Text;
                 if (Keys[i].value != null) Keys[i].value.color = Settings.Data.Text;
                 Keys[i].rainColor = rainSystem?.GetRainColor(Keys[i].color) ?? Settings.Data.RainColor;
@@ -1365,8 +1400,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 int index = i + FootKeyBase;
                 if (index >= Keys.Length || Keys[index] == null) continue;
-                Keys[index].background.color = Settings.Data.Background;
-                Keys[index].outline.color = Settings.Data.Outline;
+                SetShapeColors(Keys[index], Settings.Data.Background, Settings.Data.Outline);
                 Keys[index].text.color = Settings.Data.Text;
                 if (Keys[index].value != null) Keys[index].value.color = Settings.Data.Text;
             }
@@ -1389,17 +1423,30 @@ namespace JipperKeyViewer.KeyViewer
             SelectedKey = -1;
             if (Keys != null)
             {
-                // Destroy EVERY child under the size object (main keys, foot keys, KPS/Total boxes,
-                // any leaks) so no stale key survives a layout switch. Relying on the Keys array length
-                // alone misses foot keys when switching to the full keyboard (different array size).
-                // 销毁 SizeObject 下全部子物体（主键/脚键/KPS/Total/任何残留），
-                // 不依赖数组长度——切到全键盘时数组长度变化会漏掉脚键。
+                // Destroy EVERY key child under the size object (main keys, foot keys, KPS/Total boxes,
+                // any leaks) so no stale key survives a layout switch — but keep the shape/text layer
+                // objects; their slots are reset via Init and their text roots destroyed below.
+                // Relying on the Keys array length alone misses foot keys when switching to the full
+                // keyboard (different array size).
+                // 销毁 SizeObject 下全部按键子物体（主键/脚键/KPS/Total/任何残留），不依赖数组长度——
+                // 切到全键盘时数组长度变化会漏掉脚键。但保留形状/文本层物体：槽位由 Init 重置，文本包裹层在下方销毁。
                 rainSystem.ClearActiveDrops(Keys);
+                Transform shapeT = keyShapeLayer != null ? keyShapeLayer.transform : null;
+                Transform outlineT = keyOutlineLayer != null ? keyOutlineLayer.transform : null;
                 if (KeyViewerSizeObject != null)
                 {
                     var children = KeyViewerSizeObject.transform;
                     for (int c = children.childCount - 1; c >= 0; c--)
-                        Object.Destroy(children.GetChild(c).gameObject);
+                    {
+                        Transform child = children.GetChild(c);
+                        if (child == shapeT || child == outlineT || child == textLayer) continue;
+                        Object.Destroy(child.gameObject);
+                    }
+                }
+                if (textLayer != null)
+                {
+                    for (int c = textLayer.childCount - 1; c >= 0; c--)
+                        Object.Destroy(textLayer.GetChild(c).gameObject);
                 }
                 Total = null;
                 Kps = null;
@@ -1407,6 +1454,7 @@ namespace JipperKeyViewer.KeyViewer
             // Array length must match the target layout (40 standard / 105 full keyboard).
             // 数组长度必须匹配目标布局（标准40/全键盘105）。
             Keys = new Key[GetKeyCount()];
+            if (keyShapeLayer != null) keyShapeLayer.Init(Keys.Length + 2); // resets slots, bumps Generation / 重置槽位并递增 Generation
             Total = null;
             Kps = null;
             rainSystem.ClearPool();
@@ -1417,8 +1465,8 @@ namespace JipperKeyViewer.KeyViewer
             ResetFootKeyViewer();
             if (Settings.Data.StreamerMode && !IsFullKeyboard)
             {
-                if (Kps != null) Kps.gameObject.SetActive(false);
-                if (Total != null) Total.gameObject.SetActive(false);
+                SetKeyObjectActive(Kps, false);
+                SetKeyObjectActive(Total, false);
             }
             if (Settings.Data.CustomPositionEnabled)
                 ResetKeyViewerPosition();
@@ -1455,11 +1503,18 @@ namespace JipperKeyViewer.KeyViewer
                         rainSystem.ReturnRawRain(rain);
                     }
                     key.rainList.Clear();
-                }
-                for (int i = FootKeyBase; i < Keys.Length; i++)
-                {
-                    if (Keys[i] != null && Keys[i].gameObject != null)
-                        Object.Destroy(Keys[i].gameObject);
+                    // Texts live in the text canvas; hide + reset the slot (a leftover press-animation
+                    // scale would render the recreated key's box permanently shrunken) /
+                    // 文本在文本画布中；隐藏并重置槽位（残留的按压缩放会让重建后的按键框永久缩小）
+                    if (key.visuals != null)
+                        Object.Destroy(key.visuals.gameObject);
+                    if (keyShapeLayer != null && key.shapeSlot >= 0)
+                    {
+                        keyShapeLayer.SetVisible(key.shapeSlot, false);
+                        keyShapeLayer.SetScale(key.shapeSlot, 1f);
+                    }
+                    if (key.gameObject != null)
+                        Object.Destroy(key.gameObject);
                 }
             }
             rainSystem.ClearPool();

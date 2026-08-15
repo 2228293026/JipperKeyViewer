@@ -99,6 +99,7 @@
     <Compile Include="KeyViewer\KeyViewerBindingGUI.cs" />
     <Compile Include="KeyViewer\KeyViewerColorGUI.cs" />
     <Compile Include="KeyViewer\KeyViewerInput.cs" />
+    <Compile Include="KeyViewer\KeyShapeLayer.cs" />
     <Compile Include="KeyViewer\KeyViewerLayout.cs" />
     <Compile Include="KeyViewer\KeyViewerResources.cs" />
     <Compile Include="KeyViewer\RainSystem.cs" />

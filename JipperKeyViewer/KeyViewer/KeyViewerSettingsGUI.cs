@@ -17,6 +17,15 @@ namespace JipperKeyViewer.KeyViewer
         string profileRenameBuffer = "";
         string profileSaveAsBuffer = "";
 
+        /// <summary>
+        /// float.TryParse accepts the literals "NaN" / "Infinity" — a NaN would slip past every
+        /// &lt;= 0 guard (NaN comparisons are always false) and poison meshes/text with NaN values,
+        /// so parsed input must be finite. / float.TryParse 接受 "NaN"/"Infinity" 字面量——NaN 会
+        /// 绕过所有 &lt;= 0 守卫（NaN 比较恒 false），把 NaN 值写进 mesh/文本，输入必须为有限值。
+        /// </summary>
+        private static bool IsFiniteFloat(float v)
+            => v == v && v != float.PositiveInfinity && v != float.NegativeInfinity;
+
         private float FloatSliderField(GUIContent label, float value, float min, float max, string format = "F2")
         {
             GUILayout.BeginHorizontal();
@@ -34,7 +43,7 @@ namespace JipperKeyViewer.KeyViewer
             string modelText = slid.ToString(format);
             if (slid != value) textInputBuffer.Remove(ctrl); // slider drag refreshes the field / 拖动滑块时刷新文本框
             string text = TextInputField(ctrl, modelText, FloatFieldWidth(modelText));
-            if (text != modelText && float.TryParse(text, out float parsed))
+            if (text != modelText && float.TryParse(text, out float parsed) && IsFiniteFloat(parsed))
             {
                 // Fully open input (extending v1.6.2's open ceiling, per user decision): typed values
                 // are stored as-is — negatives included, and values beyond either slider end; the

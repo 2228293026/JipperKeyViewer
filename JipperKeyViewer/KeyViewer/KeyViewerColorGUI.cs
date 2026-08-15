@@ -181,7 +181,7 @@ namespace JipperKeyViewer.KeyViewer
                 // Text input keeps Unity's 0-1 scale; use the Hex field below for precise values.
                 // 文本框保持 0-1;要精确取色时用下面的 Hex 输入。
                 string txt = TextInputField(ctrl, channel.ToString("F2"), GUILayout.Width(40));
-                if (float.TryParse(txt, out float val))
+                if (float.TryParse(txt, out float val) && IsFiniteFloat(val))
                     channel = Mathf.Clamp01(val);
                 GUILayout.EndHorizontal();
             }

@@ -21,7 +21,11 @@ param(
 $ErrorActionPreference = 'Stop'
 $Version = $Version.TrimStart('v', 'V')
 if ($Version -notmatch '^\d+(\.\d+)+$') { throw "Invalid version: '$Version' (expected e.g. 1.7.1)" }
-$assemblyVersion = "$Version.0"
+# Assembly versions allow exactly 4 numeric parts — pad shorter inputs to 4 and reject 5+.
+# 程序集版本号只允许 4 段数字——不足补 0，超过 4 段报错。
+$parts = @($Version.Split('.'))
+if ($parts.Count -gt 4) { throw "Version has more than 4 parts: $Version" }
+$assemblyVersion = (@($parts) + @('0') * (4 - $parts.Count)) -join '.'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 
 function Update-File([string]$relPath, [scriptblock]$edit) {

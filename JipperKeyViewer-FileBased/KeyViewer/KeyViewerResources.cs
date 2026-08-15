@@ -224,6 +224,7 @@ namespace JipperKeyViewer.KeyViewer
                 t.font = currentFont;
                 t.fontMaterial = shadowMat;
                 t.fontStyle = style;
+                t.fontSizeMax = Settings.Data.KeyFontSize;
             }
             bool hasPerKey = Settings.Data.EnablePerKeyTextSize;
             void ApplyPerKeyOverride(TMP_Text t, int pi)

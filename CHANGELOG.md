@@ -1,3 +1,18 @@
+## Unreleased
+
+### 🐛 Bug Fixes
+- **Per-row rain toggles did nothing individually**: The released version wired rows 1 and 2 both to the Row-2 toggle, leaving the Row-1 toggle dead. All three rows now toggle independently (keys 0-7 = row 1, 8-15 = row 2, 16+ = row 3), and turning a row off immediately clears that row's in-flight drops.
+- **Ghost rain sprite broke on long holds**: The GhostRain sprite carries an 11px 9-slice border, and the old `Image.Type.Tiled` only tiles the inner region for bordered sprites, repeating the border strips along their own direction. The merged renderer mistakenly tiled the whole texture, so ghost columns past 100px re-drew a border every 100px. Now ported from uGUI's `GenerateTiledSpriteToVertexBuffer` verbatim: center tiles whole, side border columns tile vertically, top/bottom rows tile horizontally, corners once, borders squeeze when the rect is too small.
+- **FileBased: font-size slider didn't update existing texts**: The file-based variant's `UpdateAllFonts` was missing the `fontSizeMax` write the bundle variant has.
+
+### 🔧 Performance
+- **Merged key-box rendering**: All key backgrounds/outlines draw into two self-drawn meshes (background layer + outline layer sharing slot state, 9-sliced) instead of two Image GameObjects per key. The main canvas drops from 500+ Graphics to 2; press color/scale changes rebuild one small mesh instead of re-batching the whole canvas.
+- **Dedicated text sub-canvas**: All key texts moved onto a TextLayer sub-canvas; KPS/count text updates no longer re-batch the shape meshes and vice versa. Press-scale animation drives the text wrapper and shape mesh together (including "rain follows scale" mode).
+- **Merged rain rendering**: The per-key RainLine canvases (~25 nested Canvases) and the whole Rain GameObject pool are gone — every drop draws into two self-drawn meshes (normal / ghost layers). Drops are pooled plain-data records (RawRain); each frame only updates rects and fade params and rewrites vertices: no per-drop RectTransform writes, no SetSiblingIndex. Start-Y and ghost offsets are read live at render time, so sliders act on in-flight drops directly.
+- **Behavior kept**: 9-slice border math (legacy 2x size + 0.5 scale), trail gradient/shadow/outline math, ghost bordered tiling (see fix above), and ghost-above-normal stacking per key. Known difference: when columns from different rows overlap (wide rain / shared columns), the old build interleaved by row while now all ghost rain draws on top. If the ghost sprite fails to load, ghost rain degrades to solid ghost-colored columns (same as the old fallback).
+
+---
+
 ## v1.7.0
 
 ### 🚀 Features

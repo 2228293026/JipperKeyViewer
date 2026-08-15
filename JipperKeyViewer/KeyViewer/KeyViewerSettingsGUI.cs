@@ -36,10 +36,15 @@ namespace JipperKeyViewer.KeyViewer
             string text = TextInputField(ctrl, modelText, FloatFieldWidth(modelText));
             if (text != modelText && float.TryParse(text, out float parsed))
             {
-                // Lower bound only — the text ceiling is deliberately open (v1.6.2): values beyond the
-                // slider max (rain height/speed etc.) stay typeable; the slider thumb just pegs.
-                // 仅钳下限——文本上限有意放开（v1.6.2）：雨高/雨速等可输入超过滑块上限的值，滑块仅顶格。
-                slid = Mathf.Clamp(parsed, min, float.MaxValue);
+                // Fully open input (extending v1.6.2's open ceiling, per user decision): typed values
+                // are stored as-is — negatives included, and values beyond either slider end; the
+                // slider thumb just pegs. Consumers are degenerate-but-safe with such values (a
+                // zero/negative fade duration merely stops the fade; non-positive drop rects are
+                // skipped by the renderer).
+                // 输入完全不钳制（用户决定，v1.6.2 放开上限的延伸）：键入的值原样存储——包括负数与
+                // 超出滑块两端的值，滑块仅顶格。消费端对这类值退化但安全（零/负淡出时长只是不再
+                // 淡出；非正的雨滴矩形被渲染器直接跳过）。
+                slid = parsed;
             }
             GUILayout.EndHorizontal();
             return slid;

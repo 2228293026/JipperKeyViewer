@@ -24,7 +24,7 @@ namespace JipperKeyViewer.KeyViewer
         /// 绕过所有 &lt;= 0 守卫（NaN 比较恒 false），把 NaN 值写进 mesh/文本，输入必须为有限值。
         /// </summary>
         private static bool IsFiniteFloat(float v)
-            => v == v && v != float.PositiveInfinity && v != float.NegativeInfinity;
+            => !float.IsNaN(v) && !float.IsInfinity(v);
 
         private float FloatSliderField(GUIContent label, float value, float min, float max, string format = "F2")
         {

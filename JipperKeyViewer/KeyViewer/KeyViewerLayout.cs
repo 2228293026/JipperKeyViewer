@@ -1227,7 +1227,16 @@ namespace JipperKeyViewer.KeyViewer
             if (KeyViewerObject == null) return;
             if (IsFullKeyboard)
             {
-                RepositionFullKeyboard();
+                // The 108K block's natural slot positions don't depend on the resolution — only the
+                // custom-position offset (and the KPS/Total normalized positions) derive from
+                // CanvasWidth. Calling RepositionFullKeyboard with the toggle off would drag the
+                // whole block to the stored-but-inactive custom offset (e.g. on a startup
+                // windowed→fullscreen resolution change).
+                // 108 键整块的自然槽位与分辨率无关——只有自定义位置偏移（和 KPS/Total 归一化位置）
+                // 依赖 CanvasWidth。开关关闭时调用 RepositionFullKeyboard 会把整块拖到存储的
+                // （未启用的）自定义偏移上（例如启动时窗口→全屏的分辨率变化）。
+                if (Settings.Data.CustomPositionEnabled)
+                    RepositionFullKeyboard();
                 ApplyFullKeyboardKpsTotalPosition();
             }
             else if (Settings.Data.CustomPositionEnabled)

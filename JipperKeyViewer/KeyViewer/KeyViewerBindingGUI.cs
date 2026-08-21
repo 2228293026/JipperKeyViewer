@@ -265,11 +265,20 @@ namespace JipperKeyViewer.KeyViewer
 
         private void DrawBindingSection()
         {
-            // The whole Keys tab is meaningless on the 108-key view (SetupKey ignores it) — say so
-            // instead of showing a blank tab. / 整个按键页对 108 键视图无意义（SetupKey 直接忽略），
-            // 与其显示空白页不如说明。
             if (KeyViewer.IsFullKeyboard)
             {
+                // Key rebinding and per-key text genuinely don't apply here (SetupKey ignores
+                // full-keyboard mode) — but the KPS/Total custom labels DO: the full keyboard's own
+                // KPS/Total boxes read the same KpsLabel/TotalLabel settings. Since this feature
+                // landed (47511c7) the early return hid its editor from 108K users even though the
+                // labels themselves render there.
+                // 改键与每键文本在全键盘下确实不适用（SetupKey 忽略全键盘模式）——但 KPS/Total
+                // 自定义标签生效：全键盘自己的 KPS/Total 框读取同一组 KpsLabel/TotalLabel 设置。
+                // 该功能落地（47511c7）起，这个提前 return 就把编辑入口对 108 键用户藏了起来，
+                // 而标签本身却在正常渲染。
+                kpsTotalTextExpanded = DrawFoldoutButton(I18n.Tr("kps_total_text"), kpsTotalTextExpanded);
+                if (kpsTotalTextExpanded)
+                    DrawKpsTotalTextSection();
                 GUILayout.Space(5);
                 GUILayout.Label("<i>" + I18n.Tr("full_kb_keys_na") + "</i>");
                 return;

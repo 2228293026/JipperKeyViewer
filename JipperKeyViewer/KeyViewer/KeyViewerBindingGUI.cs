@@ -227,34 +227,53 @@ namespace JipperKeyViewer.KeyViewer
 
         private void DrawMainKeyTextField(string[] keyTexts, KeyCode[] keyCodes)
         {
-            string currentText = !string.IsNullOrEmpty(keyTexts[SelectedKey])
-                ? keyTexts[SelectedKey] : KeyToString(keyCodes[SelectedKey]);
-            string newText = GUILayout.TextField(currentText, GUILayout.Width(150));
-            if (keyTexts[SelectedKey] != newText)
+            // Buffered input (TextInputField): clearing the field must not snap it back to the
+            // default key label mid-typing (the stored null maps back to the default), and the
+            // on-screen key label must not flash empty for one event. / 缓冲输入（TextInputField）：
+            // 清空输入框不能中途就跳回默认键名（存储的 null 会映射回默认值），屏幕上的按键文字
+            // 也不能闪一帧空白。
+            string fallback = KeyToString(keyCodes[SelectedKey]);
+            string current = !string.IsNullOrEmpty(keyTexts[SelectedKey]) ? keyTexts[SelectedKey] : fallback;
+            string newText = TextInputField("kte_" + SelectedKey, current, GUILayout.Width(150));
+            if (newText == current && keyTexts[SelectedKey] == null) return;
+            string stored = string.IsNullOrEmpty(newText) || newText == fallback ? null : newText;
+            if (keyTexts[SelectedKey] != stored)
             {
                 if (Keys != null && SelectedKey < Keys.Length && Keys[SelectedKey] != null)
-                    Keys[SelectedKey].text.text = newText;
-                keyTexts[SelectedKey] = string.IsNullOrEmpty(newText) || newText == KeyToString(keyCodes[SelectedKey]) ? null : newText;
+                    Keys[SelectedKey].text.text = stored ?? fallback;
+                keyTexts[SelectedKey] = stored;
             }
         }
 
         private void DrawFootKeyTextField(string[] footKeyTexts, KeyCode[] footKeyCodes)
         {
             int footIndex = SelectedKey - FootKeyBase;
-            string currentText = footKeyTexts != null && !string.IsNullOrEmpty(footKeyTexts[footIndex])
-                ? footKeyTexts[footIndex] : KeyToString(footKeyCodes[footIndex]);
-            string newText = GUILayout.TextField(currentText, GUILayout.Width(150));
-            if (footKeyTexts[footIndex] != newText)
+            // Same buffering rationale as DrawMainKeyTextField. / 与 DrawMainKeyTextField 同样的缓冲理由。
+            string fallback = KeyToString(footKeyCodes[footIndex]);
+            string current = footKeyTexts != null && !string.IsNullOrEmpty(footKeyTexts[footIndex])
+                ? footKeyTexts[footIndex] : fallback;
+            string newText = TextInputField("kfte_" + footIndex, current, GUILayout.Width(150));
+            if (newText == current && footKeyTexts[footIndex] == null) return;
+            string stored = string.IsNullOrEmpty(newText) || newText == fallback ? null : newText;
+            if (footKeyTexts[footIndex] != stored)
             {
                 if (Keys != null && SelectedKey < Keys.Length && Keys[SelectedKey] != null)
-                    Keys[SelectedKey].text.text = newText;
-                footKeyTexts[footIndex] = string.IsNullOrEmpty(newText) || newText == KeyToString(footKeyCodes[footIndex]) ? null : newText;
+                    Keys[SelectedKey].text.text = stored ?? fallback;
+                footKeyTexts[footIndex] = stored;
             }
         }
 
         private void DrawBindingSection()
         {
-            if (KeyViewer.IsFullKeyboard) return;
+            // The whole Keys tab is meaningless on the 108-key view (SetupKey ignores it) — say so
+            // instead of showing a blank tab. / 整个按键页对 108 键视图无意义（SetupKey 直接忽略），
+            // 与其显示空白页不如说明。
+            if (KeyViewer.IsFullKeyboard)
+            {
+                GUILayout.Space(5);
+                GUILayout.Label("<i>" + I18n.Tr("full_kb_keys_na") + "</i>");
+                return;
+            }
             KeyChangeExpanded = DrawFoldoutButton(I18n.Tr("key_change"), KeyChangeExpanded);
             if (KeyChangeExpanded)
                 DrawKeyChangeSection();

@@ -12,6 +12,8 @@
 - **24K key lists ordered 23 before 22**, opposite the on-screen layout (…22, 23 left-to-right). Sequence corrected.
 - **Unknown language highlighted Korean** while I18n rendered English; unknown codes now map to English everywhere.
 - **Profile duplicate checks were case-sensitive**: On NTFS "MyProfile"/"myprofile" are the same file, and renaming could delete the case variant first. The check is now case-insensitive against OTHER profiles; case-only renames stay allowed (the old code path deleted the source file before the move — now a single File.Move performs the case change).
+- **Custom key text couldn't be cleared with backspace**: the moment the last character was deleted, the stored empty value mapped back to the default key label and the field snapped to "A" etc. — only select-all-retype or the reset button worked; the on-screen label also flashed empty for one frame. Both text fields use the input-buffer pattern (same as the sliders / color picker).
+- **Keys tab was fully blank on the 108-key layout**: it now shows an explanatory note (localized in all three languages).
 - **NaN alpha on the first frame when fade duration is 0**: the 0/0 NaN slips past Clamp01; zero/negative durations now behave as an instant fade.
 - **Per-scene font restore was dead logic**: `OnSceneLoaded` reset the flag but `RestoreFontOnce` only ever ran from `Start`. It now runs at the end of each scene load.
 - **Unity fake-null checks**: `UpdateAllFonts` / `ExecuteCountReset` used `?.` on MonoBehaviours (bypasses the destroyed-check) — replaced with explicit nulls; one `ClearActiveDrops` call gained the null guard its siblings have.

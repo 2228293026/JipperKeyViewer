@@ -6,12 +6,14 @@
 #
 # Usage:  ./tools/SetVersion.ps1 -Version 1.7.1
 # The release workflow runs this on the build runner before msbuild, so release artifacts always
-# carry the dispatched/tag version even though the repo files are bumped manually (classic
-# non-SDK csproj ignores msbuild's /p:Version, which is why the sources are patched instead).
+# carry the dispatched/tag version even though the repo files are bumped manually (the projects
+# keep the hand-written AssemblyInfo.cs as the single version source with GenerateAssemblyInfo=
+# false, so msbuild's /p:Version remains ignored and the sources are patched instead).
 #
 # 一键修改所有硬编码版本号：6 个 AssemblyInfo、MelonEntry 的 [MelonInfo] 版本串、两个
 # Info.json、Repository.json（版本字段 + 下载 URL）。发版工作流在 msbuild 之前于构建机上运行
-# 本脚本（经典 csproj 不吃 /p:Version，故直接改源码）；本地发版前也可手动运行。
+# 本脚本（各工程以 GenerateAssemblyInfo=false 保留手写 AssemblyInfo 作为唯一版本来源，
+# /p:Version 依然无效，故直接改源码）；本地发版前也可手动运行。
 
 param(
     [Parameter(Mandatory = $true)]

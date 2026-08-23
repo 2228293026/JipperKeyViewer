@@ -1,108 +1,86 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{8F6E4D2C-1A3B-5C7D-9E0F-2468ACE02468}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <TargetFramework>net481</TargetFramework>
+    <!-- 命名空间沿用核心工程的 JipperKeyViewer（源码全部链接自该工程） /
+         Namespace follows the core project (all shared sources are linked from it). -->
     <RootNamespace>JipperKeyViewer</RootNamespace>
     <AssemblyName>JipperKeyViewer-FileBased</AssemblyName>
-    <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
     <LangVersion>latest</LangVersion>
-    <Deterministic>true</Deterministic>
+    <!-- 手写 Properties\AssemblyInfo.cs 保持为程序集特性与版本号的唯一来源
+         （SetVersion.ps1 继续改它），屏蔽 SDK 的自动生成 /
+         Hand-written Properties\AssemblyInfo.cs stays the single source of assembly
+         attributes and versions (SetVersion.ps1 keeps patching it) — disable SDK generation. -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <!-- CI 直接从 bin\Release\ 拷贝 DLL：保持经典输出路径，不加 TFM 子目录 /
+         CI copies DLLs straight from bin\Release\ — keep the classic output path,
+         no TFM segment appended. -->
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
+
+  <!-- 允许在未安装 .NET Framework 4.8.1 Developer Pack 的机器上编译 /
+       Lets the project compile without a local .NET Framework 4.8.1 Developer Pack. -->
   <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="Microsoft.CSharp" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- 游戏引用 DLL，仅编译期使用，不拷入输出 /
+       Game reference DLLs, compile-time only — never copied to output. -->
+  <ItemGroup>
     <Reference Include="Unity.TextMeshPro">
       <HintPath>..\libs\Unity.TextMeshPro.dll</HintPath>
-      <Private>False</Private>
+      <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine">
       <HintPath>..\libs\UnityEngine.dll</HintPath>
-      <Private>False</Private>
+      <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>..\libs\UnityEngine.CoreModule.dll</HintPath>
-      <Private>False</Private>
+      <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.IMGUIModule">
       <HintPath>..\libs\UnityEngine.IMGUIModule.dll</HintPath>
-      <Private>False</Private>
+      <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.InputLegacyModule">
       <HintPath>..\libs\UnityEngine.InputLegacyModule.dll</HintPath>
-      <Private>False</Private>
+      <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.JSONSerializeModule">
       <HintPath>..\libs\UnityEngine.JSONSerializeModule.dll</HintPath>
-      <Private>False</Private>
+      <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.TextCoreFontEngineModule">
       <HintPath>..\libs\UnityEngine.TextCoreFontEngineModule.dll</HintPath>
-      <Private>False</Private>
+      <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.TextCoreTextEngineModule">
       <HintPath>..\libs\UnityEngine.TextCoreTextEngineModule.dll</HintPath>
-      <Private>False</Private>
+      <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.TextRenderingModule">
       <HintPath>..\libs\UnityEngine.TextRenderingModule.dll</HintPath>
-      <Private>False</Private>
+      <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>..\libs\UnityEngine.UI.dll</HintPath>
-      <Private>False</Private>
+      <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.UIModule">
       <HintPath>..\libs\UnityEngine.UIModule.dll</HintPath>
-      <Private>False</Private>
+      <Private>false</Private>
     </Reference>
   </ItemGroup>
+
+  <!-- 链接核心工程的全部共享源码；仅 KeyViewerResources.cs 例外——本工程在
+       KeyViewer\ 下有自己的文件版实现（通配须显式排除以防类型重复）。
+       Links every shared source from the core project; only KeyViewerResources.cs is
+       excluded — this project carries its own file-based implementation under KeyViewer\
+       (explicit exclude keeps the wildcard from double-defining the type). -->
   <ItemGroup>
-    <Compile Include="..\JipperKeyViewer\KeyViewer\ModLoader.cs" Link="KeyViewer\ModLoader.cs" />
-    <Compile Include="..\JipperKeyViewer\KeyViewer\FootKeyviewerStyle.cs" Link="KeyViewer\FootKeyviewerStyle.cs" />
-    <Compile Include="..\JipperKeyViewer\KeyViewer\I18n.cs" Link="KeyViewer\I18n.cs" />
-    <Compile Include="..\JipperKeyViewer\KeyViewer\Key.cs" Link="KeyViewer\Key.cs" />
-    <Compile Include="..\JipperKeyViewer\KeyViewer\KeyViewer.cs" Link="KeyViewer\KeyViewer.cs" />
-    <Compile Include="..\JipperKeyViewer\KeyViewer\KeyViewerGUI.cs" Link="KeyViewer\KeyViewerGUI.cs" />
-    <Compile Include="..\JipperKeyViewer\KeyViewer\KeyViewerSettingsGUI.cs" Link="KeyViewer\KeyViewerSettingsGUI.cs" />
-    <Compile Include="..\JipperKeyViewer\KeyViewer\KeyViewerRainGUI.cs" Link="KeyViewer\KeyViewerRainGUI.cs" />
-    <Compile Include="..\JipperKeyViewer\KeyViewer\KeyViewerBindingGUI.cs" Link="KeyViewer\KeyViewerBindingGUI.cs" />
-    <Compile Include="..\JipperKeyViewer\KeyViewer\KeyViewerColorGUI.cs" Link="KeyViewer\KeyViewerColorGUI.cs" />
-    <Compile Include="..\JipperKeyViewer\KeyViewer\KeyViewerInput.cs" Link="KeyViewer\KeyViewerInput.cs" />
-    <Compile Include="..\JipperKeyViewer\KeyViewer\KeyShapeLayer.cs" Link="KeyViewer\KeyShapeLayer.cs" />
-    <Compile Include="..\JipperKeyViewer\KeyViewer\KeyViewerLayout.cs" Link="KeyViewer\KeyViewerLayout.cs" />
-    <Compile Include="..\JipperKeyViewer\KeyViewer\RainSystem.cs" Link="KeyViewer\RainSystem.cs" />
-    <Compile Include="..\JipperKeyViewer\KeyViewer\RainLayer.cs" Link="KeyViewer\RainLayer.cs" />
-    <Compile Include="..\JipperKeyViewer\KeyViewer\KeyViewerSettings.cs" Link="KeyViewer\KeyViewerSettings.cs" />
-    <Compile Include="..\JipperKeyViewer\KeyViewer\KeyviewerStyle.cs" Link="KeyViewer\KeyviewerStyle.cs" />
-    <Compile Include="..\JipperKeyViewer\KeyViewer\RawRain.cs" Link="KeyViewer\RawRain.cs" />
+    <Compile Include="..\JipperKeyViewer\KeyViewer\*.cs" Exclude="..\JipperKeyViewer\KeyViewer\KeyViewerResources.cs" Link="KeyViewer\%(FileName)%(Extension)" />
     <Compile Include="..\JipperKeyViewer\Main.cs" Link="Main.cs" />
-    <Compile Include="KeyViewer\KeyViewerResources.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
-  <ItemGroup />
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+
 </Project>

@@ -1,61 +1,48 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{3D7E48A1-C2B4-4F9A-8E5D-12A9B345C678}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <TargetFramework>net481</TargetFramework>
     <RootNamespace>JipperKeyViewer.Loader</RootNamespace>
     <AssemblyName>JipperKeyViewer.Loader.UMM</AssemblyName>
-    <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
     <LangVersion>latest</LangVersion>
-    <Deterministic>true</Deterministic>
+    <!-- 手写 Properties\AssemblyInfo.cs 保持为程序集特性与版本号的唯一来源
+         （SetVersion.ps1 继续改它），屏蔽 SDK 的自动生成 /
+         Hand-written Properties\AssemblyInfo.cs stays the single source of assembly
+         attributes and versions (SetVersion.ps1 keeps patching it) — disable SDK generation. -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <!-- CI 直接从 bin\Release\ 拷贝 DLL：保持经典输出路径，不加 TFM 子目录 /
+         CI copies DLLs straight from bin\Release\ — keep the classic output path,
+         no TFM segment appended. -->
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
+
+  <!-- 允许在未安装 .NET Framework 4.8.1 Developer Pack 的机器上编译 /
+       Lets the project compile without a local .NET Framework 4.8.1 Developer Pack. -->
   <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="Microsoft.CSharp" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- 游戏与加载器引用 DLL，仅编译期使用，不拷入输出 /
+       Game & loader reference DLLs, compile-time only — never copied to output. -->
+  <ItemGroup>
     <Reference Include="UnityEngine">
       <HintPath>..\libs\UnityEngine.dll</HintPath>
-      <Private>False</Private>
+      <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>..\libs\UnityEngine.CoreModule.dll</HintPath>
-      <Private>False</Private>
+      <Private>false</Private>
     </Reference>
     <Reference Include="UnityModManager">
       <HintPath>..\libs\UnityModManager.dll</HintPath>
-      <Private>False</Private>
+      <Private>false</Private>
     </Reference>
   </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\JipperKeyViewer\JipperKeyViewer.csproj">
-      <Private>False</Private>
+      <Private>false</Private>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="UmmEntry.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+
 </Project>

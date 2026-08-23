@@ -65,10 +65,12 @@ jobs:
             "is_prerelease=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           }
 
-      # Patch the version into the sources before building: classic (non-SDK) csproj ignores
-      # msbuild's /p:Version, and the version also lives in Info.json / Repository.json /
-      # [MelonInfo]. The same script can be run locally before tagging a release.
-      # 构建前把版本号打进源码：经典（非 SDK）csproj 不吃 /p:Version，版本号还存在于
+      # Patch the version into the sources before building: the projects deliberately keep the
+      # hand-written AssemblyInfo.cs as the single version source (GenerateAssemblyInfo=false,
+      # msbuild's /p:Version stays ignored), and the version also lives in Info.json /
+      # Repository.json / [MelonInfo]. The same script can be run locally before tagging a release.
+      # 构建前把版本号打进源码：各工程刻意保留手写 AssemblyInfo.cs 作为唯一版本来源
+      #（GenerateAssemblyInfo=false，/p:Version 依然无效），版本号还存在于
       # Info.json / Repository.json / [MelonInfo]。打 tag 发版前本地也可运行同一脚本。
       - name: Apply version to sources
         shell: pwsh

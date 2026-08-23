@@ -229,9 +229,14 @@ namespace JipperKeyViewer.KeyViewer
         public Color FullKeyboardTextClicked = KeyViewer.TextClicked;
         // Optional KPS / Total boxes in full-keyboard mode / 全键盘模式下可选的 KPS/Total 框
         public bool FullKeyboardShowKpsTotal = false;
-        // Custom KPS / Total position (normalized 0-1, applied in full-keyboard mode) / KPS/Total 自定义位置（归一化 0-1，仅全键盘生效）
-        public Vector2 FullKpsPosition = new Vector2(0.62f, 0.12f);
-        public Vector2 FullTotalPosition = new Vector2(0.71f, 0.12f);
+        // Custom KPS / Total position (normalized 0-1, applied in full-keyboard mode). Y uses the
+        // mod-wide convention (0 = top edge, 1 = bottom edge); the 0.88 default renders near the
+        // bottom — the same on-screen spot the historical 0.12 default occupied under the old
+        // inverted convention. / KPS/Total 自定义位置（归一化 0-1，仅全键盘生效）。Y 采用全
+        // Mod 约定（0=贴顶，1=贴底）；0.88 默认值渲染在近底部——与旧反向约定下 0.12 默认值
+        // 的屏幕位置相同。
+        public Vector2 FullKpsPosition = new Vector2(0.62f, 0.88f);
+        public Vector2 FullTotalPosition = new Vector2(0.71f, 0.88f);
         // KPS / Total box size in full-keyboard mode (width & height in px) / 全键盘下 KPS/Total 框的尺寸（宽高，像素）
         public float FullKeyboardKpsTotalSize = 150f;
         // Center the KPS / Total text+value (stacked, centered) instead of left-label / right-number / 居中显示 KPS/Total（上下堆叠居中）而非左文本右数值（仅 slim 布局生效，含全键盘）
@@ -372,7 +377,9 @@ namespace JipperKeyViewer.KeyViewer
     [System.Serializable]
     public class KeyViewerSettings
     {
-        public int Version = 5;
+        // v6: full-keyboard KPS/Total position Y flipped to the mod-wide convention (0=top, 1=bottom).
+        // / v6:全键盘 KPS/Total 位置 Y 翻转为全 Mod 约定(0=顶,1=底)。
+        public int Version = 6;
         public string CurrentProfile = "Default";
         public string[] ProfileNames = new[] { "Default" };
         public string Language = "en";

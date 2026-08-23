@@ -38,21 +38,60 @@ namespace JipperKeyViewer.KeyViewer
     public partial class KeyViewer : MonoBehaviour
     {
         /// <summary>
+        /// Frame number of the last DrawSettingsWindow pass (IMGUI draws several passes per frame).
+        /// Rebind capture only runs while the settings window is being drawn — closing the window
+        /// (or hiding the UMM panel) used to leave the armed state alive, silently eating the next
+        /// keypress (often the very hotkey that closed the window) as a rebind.
+        /// 最近一次 DrawSettingsWindow 的帧号（IMGUI 每帧多个 pass）。改键捕获仅在设置窗口
+        /// 正在绘制时进行——旧代码关窗(或隐藏 UMM 面板)后武装态仍存活,下一次按键(往往正是
+        /// 关窗用的热键)被静默吞成改绑。
+        /// </summary>
+        internal int lastSettingsGuiFrame = -1000;
+
+        /// <summary>
         /// Listen for a key press when the user is rebinding a key / 当用户正在重绑定时监听按键按下
         /// Waits for any key down, then assigns it to the SelectedKey / 等待任意键按下，然后分配给 SelectedKey
         /// </summary>
         private void ProcessKeySelection()
         {
             if (SelectedKey == -1 || changeState == 1 || !Application.isFocused) return;
+            // Loader-reported visibility is authoritative: a closed window (hotkey toggle, UMM
+            // panel hidden) must disarm immediately — the frame heuristic below only catches it
+            // a couple of frames later. / loader 上报的可见性是权威判定:窗口关闭(热键切换、UMM
+            // 面板隐藏)必须立即解除武装——下方帧号启发式要晚数帧才追上。
+            var loader = Loader.Instance;
+            if (loader != null && !loader.IsSettingsWindowVisible) { SelectedKey = -1; changeState = 0; return; }
+            // Only capture while the settings window is alive (drawn within the last couple of
+            // frames) — see lastSettingsGuiFrame above. / 仅当设置窗口存活(最近数帧内绘制过)
+            // 才捕获——见上方 lastSettingsGuiFrame 说明。
+            if (Time.frameCount - lastSettingsGuiFrame > 2) { SelectedKey = -1; changeState = 0; return; }
             if (!Input.anyKeyDown) return;
 
             foreach (KeyCode keyCode in AllKeyCodes)
             {
-                if (Input.GetKeyDown(keyCode))
+                if (!Input.GetKeyDown(keyCode)) continue;
+                // ESC cancels the armed rebind instead of binding Escape into the slot.
+                // ESC 取消武装中的改键,而不是把 Escape 绑进槽位。
+                if (keyCode == KeyCode.Escape)
                 {
-                    SetupKey(keyCode);
+                    SelectedKey = -1;
+                    changeState = 0;
                     return;
                 }
+                // Mouse buttons never bind: a click on ANY settings control in the same frame used
+                // to be captured as the binding (Update runs before OnGUI, so the click's Mouse0
+                // GetKeyDown is already true when the armed Update pass sees it).
+                // 鼠标键不参与绑定:旧代码会把同帧点击任意设置控件捕获为绑定(Update 先于
+                // OnGUI,点击的 Mouse0 GetKeyDown 在武装态的 Update 里已经为 true)。
+                if (keyCode >= KeyCode.Mouse0 && keyCode <= KeyCode.Mouse6) continue;
+                // The loader's settings hotkey never binds: the core's Update can run BEFORE the
+                // loader consumes the hotkey in its own update, so pressing it to close the window
+                // while armed would otherwise bind the hotkey into the slot in that same frame.
+                // 加载器的设置热键不参与绑定:核心 Update 可能先于加载器消费热键运行,武装中
+                // 按它关窗会在同帧把热键绑进槽位。
+                if (loader != null && keyCode == loader.SettingsHotkey) continue;
+                SetupKey(keyCode);
+                return;
             }
         }
 
@@ -61,8 +100,15 @@ namespace JipperKeyViewer.KeyViewer
         /// </summary>
         private void SetupKey(KeyCode keyCode)
         {
-            if (IsFullKeyboard) return;
+            if (IsFullKeyboard) { SelectedKey = -1; changeState = 0; return; }
             if (SelectedKey < 0) return; // -1 means no key is being rebound; never index arrays with it / -1 表示没有正在重绑定的键，禁止用作索引
+            // Absorb the binding press itself: the key is still physically held, so the polling
+            // loop in this same frame would otherwise register a fresh press edge (count+1, KPS,
+            // rain, animation) for the key the user just chose. Syncing isPressed to the physical
+            // state swallows that edge; the eventual release edge is a harmless no-drop release.
+            // 吞掉绑定按键本身:该键物理上仍被按住,否则同帧的轮询会为用户刚选的键注册一次
+            // 全新按下边沿(计数+1、KPS、雨滴、动画)。把 isPressed 同步到物理状态即吞掉该边沿;
+            // 之后的释放边沿是一次无害的空释放。
             if (changeState == 2)
             {
                 KeyCode[] ghostKeyCodes = GetGhostKeyCode();
@@ -70,9 +116,15 @@ namespace JipperKeyViewer.KeyViewer
                 {
                     ghostKeyCodes[SelectedKey] = keyCode;
                     if (SelectedKey < ghostKeyStates.Length)
-                        ghostKeyStates[SelectedKey] = false;
+                        // Sync to the physical state (same swallow as main keys below): the bound
+                        // key is still held, so the ghost poller must not fire a fresh press edge
+                        // (one extra ghost-rain release) for the key the user just chose.
+                        // 同步到物理状态(与下方主键同款吞边沿):绑定键仍被按住,鬼键轮询器
+                        // 不能为用户刚选的键触发全新按下边沿(多放一次鬼雨)。
+                        ghostKeyStates[SelectedKey] = Input.GetKey(keyCode);
                 }
                 SelectedKey = -1;
+                changeState = 0;
                 SaveSettings();
                 return;
             }
@@ -91,6 +143,7 @@ namespace JipperKeyViewer.KeyViewer
             else
             {
                 SelectedKey = -1;
+                changeState = 0;
                 return;
             }
             if (Keys != null && SelectedKey < Keys.Length && Keys[SelectedKey] != null)
@@ -108,8 +161,12 @@ namespace JipperKeyViewer.KeyViewer
                 else
                     displayText = KeyToString(keyCode);
                 Keys[SelectedKey].text.text = displayText;
+                // Absorb the binding press itself (see comment at the top of this method).
+                // 吞掉绑定按键本身的按下边沿(见方法开头注释)。
+                Keys[SelectedKey].isPressed = Input.GetKey(keyCode);
             }
             SelectedKey = -1;
+            changeState = 0;
             SaveSettings();
         }
 
@@ -283,7 +340,12 @@ namespace JipperKeyViewer.KeyViewer
                         }
                         d.TotalCount++;
                         PressTimes.Enqueue(elapsedMs);
-                        if (keyPressTimes != null && idx < keyPressTimes.Length)
+                        // Gate per-key queues on the display toggle: the cleanup loop below is
+                        // also gated, so with the feature off the queues used to grow forever
+                        // (8 bytes/press/key leaked for the whole session — the default config).
+                        // 每键队列受显示开关门控:下方清理循环同样被门控,功能关闭时队列
+                        // 此前只进不出(每键每按压泄漏 8 字节,整场累积——默认配置即中招)。
+                        if (enablePerKeyKps && keyPressTimes != null && idx < keyPressTimes.Length)
                         {
                             keyPressTimes[idx].Enqueue(elapsedMs);
                             _hasKeyPressActivity = true;

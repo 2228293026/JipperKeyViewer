@@ -270,11 +270,15 @@ namespace JipperKeyViewer.KeyViewer
             float oL = tr.x / tw, oR = tr.xMax / tw, oB = tr.y / th, oT = tr.yMax / th;
             float iL = (tr.x + border.x) / tw, iR = (tr.xMax - border.z) / tw;
             float iB = (tr.y + border.y) / th, iT = (tr.yMax - border.w) / th;
-            // uGUI scales tile size and border by ppu/100 (multipliedPixelsPerUnit = 100/ppu) /
-            // uGUI 按公式 ppu/100 缩放平铺尺寸与边框（multipliedPixelsPerUnit = 100/ppu）
-            float ppuf = Sprite.pixelsPerUnit > 0f ? Sprite.pixelsPerUnit / 100f : 1f;
-            float tileW = (tr.width - border.x - border.z) * ppuf;
-            float tileH = (tr.height - border.y - border.w) * ppuf;
+            // uGUI scales tile size and border by 100/ppu (tile = innerRect * referencePixelsPerUnit
+            // / spritePixelsPerUnit): a 200-ppu sprite tiles at half reference size. Inert at ppu
+            // 100 — the factor direction was previously inverted but never mattered because every
+            // shipped sprite is 100 ppu. / uGUI 按 100/ppu 缩放平铺尺寸与边框(tile = 内区 * 参
+            // 考像素单位 / 精灵像素单位):200 ppu 的精灵按参考尺寸的一半平铺。ppu=100 时无变化
+            // ——此前系数方向写反,因随包贴图均为 100 ppu 而未暴露。
+            float ppuScale = Sprite.pixelsPerUnit > 0f ? 100f / Sprite.pixelsPerUnit : 1f;
+            float tileW = (tr.width - border.x - border.z) * ppuScale;
+            float tileH = (tr.height - border.y - border.w) * ppuScale;
             // Borders swallowing the whole sprite: uGUI stretches a single tile instead of tiling /
             // 边框吞掉整张贴图时，uGUI 用单块拉伸而非平铺
             bool degenerate = hasBorder && (tileW <= 0f || tileH <= 0f);
@@ -293,7 +297,7 @@ namespace JipperKeyViewer.KeyViewer
                     c.a *= rain.alpha;
                     if (hasBorder && !degenerate)
                     {
-                        DrawTiledWithBorder(vh, r, c, border.x * ppuf, border.z * ppuf, border.y * ppuf, border.w * ppuf,
+                        DrawTiledWithBorder(vh, r, c, border.x * ppuScale, border.z * ppuScale, border.y * ppuScale, border.w * ppuScale,
                             tileW, tileH, oL, iL, iR, oR, oB, iB, iT, oT);
                     }
                     else if (hasBorder)

@@ -56,7 +56,16 @@ namespace JipperKeyViewer.KeyViewer
         {
             if (keyBackgroundSprite != null) return true;
 
+            // Destroy the previous dynamically-created assets before dropping the references —
+            // TMP_FontAssets carry atlas textures/materials; without this, every loader-level
+            // toggle (UMM off→on) or failed-bundle retry leaked the whole set.
+            // 清空前先销毁旧的动态创建资产——TMP_FontAsset 持有图集纹理/材质;否则每次加载器级
+            // 开关(UMM 关→开)或 bundle 失败重试都会泄漏一整套。
+            foreach (var e in fontList)
+                if (e.font != null) Destroy(e.font);
             fontList.Clear();
+            foreach (var m in shadowMaterials.Values)
+                if (m != null) Destroy(m);
             shadowMaterials.Clear();
 
             string modPath = Loader.ModPath;
@@ -77,9 +86,21 @@ namespace JipperKeyViewer.KeyViewer
                 if (mapleOTF != null)
                 {
                     mapleFont = TMP_FontAsset.CreateFontAsset(mapleOTF);
-                    var entry = new FontEntry("MapleStory", mapleFont);
-                    entry.sourceFontName = "MAPLESTORY_OTF_BOLD";
-                    fontList.Add(entry);
+                    // CreateFontAsset can return null (unreadable/unsupported font) — a null entry
+                    // here would render as an empty row in the font list. ScanCustomFonts already
+                    // null-checks; these two paths now match it.
+                    // CreateFontAsset 可能返回 null(不可读/不支持的字体)——null 条目会在字体列表
+                    // 中渲染成空行。ScanCustomFonts 已判空;这两处现在对齐。
+                    if (mapleFont != null)
+                    {
+                        var entry = new FontEntry("MapleStory", mapleFont);
+                        entry.sourceFontName = "MAPLESTORY_OTF_BOLD";
+                        fontList.Add(entry);
+                    }
+                    else
+                    {
+                        Loader.Error("KeyViewer: TMP_FontAsset.CreateFontAsset failed for MAPLESTORY_OTF_BOLD");
+                    }
                 }
                 else
                 {
@@ -90,9 +111,21 @@ namespace JipperKeyViewer.KeyViewer
                 if (cjkOTF != null)
                 {
                     var cjkFont = TMP_FontAsset.CreateFontAsset(cjkOTF);
-                    var entry = new FontEntry("CJK (Default)", cjkFont);
-                    entry.sourceFontName = "cjkFonts-regular-normalized";
-                    fontList.Insert(0, entry);
+                    // Null CJK font breaks the whole fallback chain (CJK labels render as boxes);
+                    // don't insert the entry when creation failed — insert(0) would occupy the
+                    // default slot with a dead font.
+                    // CJK 字体为 null 会破坏整条后备链(中文渲染成方块);创建失败时不要插入条目
+                    // ——Insert(0) 会把默认槽位让给死字体。
+                    if (cjkFont != null)
+                    {
+                        var entry = new FontEntry("CJK (Default)", cjkFont);
+                        entry.sourceFontName = "cjkFonts-regular-normalized";
+                        fontList.Insert(0, entry);
+                    }
+                    else
+                    {
+                        Loader.Error("KeyViewer: TMP_FontAsset.CreateFontAsset failed for cjkFonts-regular-normalized (CJK labels render as boxes)");
+                    }
                 }
                 else
                 {
@@ -168,8 +201,13 @@ namespace JipperKeyViewer.KeyViewer
                     int pi = i;
                     UpdateText(Keys[i].text);
                     ApplyPerKeyOverride(Keys[i].text, pi);
-                    ApplyPerKeyOverride(Keys[i].value, pi);
+                    // value: reset FIRST, then override — the old order let UpdateText's
+                    // unconditional fontSizeMax write clobber the per-key size (the Kps/Total
+                    // blocks below already had the correct order).
+                    // value:先重置后覆盖——旧顺序会让 UpdateText 的无条件 fontSizeMax 写入
+                    // 抹掉每键字号(下方 Kps/Total 段原本顺序就正确)。
                     UpdateText(Keys[i].value);
+                    ApplyPerKeyOverride(Keys[i].value, pi);
                 }
             }
             int kpsPi = MaxKeySlots;

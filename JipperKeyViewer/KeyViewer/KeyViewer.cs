@@ -397,6 +397,16 @@ namespace JipperKeyViewer.KeyViewer
             SaveSettings();
             for (int i = fontList.Count - 1; i >= 0; i--)
                 if (fontList[i].font == null) fontList.RemoveAt(i);
+            // Pruning shifts every later entry — rebuild the name→index map, or RestoreFontOnce
+            // would resolve the stored FontName against stale indices and silently switch (and
+            // persist) the wrong font. / 剔除会让后续条目全部前移——重建名称→索引映射,否则
+            // RestoreFontOnce 会拿过期索引解析存储的 FontName,静默切到(并持久化)错误字体。
+            if (fontNameIndex != null)
+            {
+                fontNameIndex.Clear();
+                for (int i = 0; i < fontList.Count; i++)
+                    fontNameIndex[fontList[i].name] = i;
+            }
             if (fontList.Count == 0 || Settings.Data.FontIndex >= fontList.Count)
                 Settings.Data.FontIndex = 0;
             fontRestored = false;
@@ -422,6 +432,11 @@ namespace JipperKeyViewer.KeyViewer
         /// </summary>
         void Update()
         {
+            // Flush debounced GUI saves regardless of the focus/enable gates below — a pending
+            // save must not be lost just because the window lost focus or the overlay is off.
+            // 无条件落盘挂起的 GUI 去抖保存——不能因失焦或覆盖层关闭而丢失待写变更。
+            FlushGuiSaveIfNeeded();
+
             // Skip all processing when game window is not focused / 窗口未激活时跳过所有处理
             if (!Application.isFocused) return;
 
@@ -484,11 +499,19 @@ namespace JipperKeyViewer.KeyViewer
                 // now they live in ProfileData. Overwrite Data from the flat JSON to preserve them.
                 JsonUtility.FromJsonOverwrite(json, Settings.Data);
 
+                // Meta version as stored on disk, before any migration bumps it. v5→v6 uses it to
+                // decide whether profile files predate the full-keyboard KPS/Total feature (fields
+                // absent → ctor defaults, must not be flipped).
+                // 磁盘上的原始 meta 版本号,先于任何迁移提升。v5→v6 据此判断 Profile 文件是否
+                // 早于全键盘 KPS/Total 功能(字段缺失 → 构造默认值,不可翻转)。
+                int metaVersionOnDisk = Settings.Version;
+
                 if (Settings.Version < 2) MigrateV1toV2();
                 if (Settings.Version < 3) MigrateV2toV3();
                 LoadProfileFromMeta();
                 if (Settings.Version < 4) MigrateV3toV4();
                 if (Settings.Version < 5) MigrateV4toV5();
+                if (Settings.Version < 6) MigrateV5toV6(metaVersionOnDisk);
 
                 EnsureSettingsArrays();
                 SyncProfilesWithDisk();
@@ -527,12 +550,26 @@ namespace JipperKeyViewer.KeyViewer
         {
             const float refW = 1920f, refH = 1080f;
             float Clamp01(float v) => v < 0 ? 0 : (v > 1 ? 1 : v);
-            Settings.Data.MainKeyViewerPosition = new Vector2(
-                Clamp01(Settings.Data.MainKeyViewerPosition.x / refW),
-                1f - Clamp01(Settings.Data.MainKeyViewerPosition.y / refH));
-            Settings.Data.FootKeyViewerPosition = new Vector2(
-                Clamp01(Settings.Data.FootKeyViewerPosition.x / refW),
-                1f - Clamp01(Settings.Data.FootKeyViewerPosition.y / refH));
+            // Idempotence guard: if the meta's Version field was ever lost/reset while the stored
+            // positions were already normalized, dividing again would collapse everything to the
+            // top-left corner. v1 positions were raw pixels (0..1920/0..1080) — values already
+            // inside [0,1] on both axes are normalized v2 data, skip the rescale.
+            // 幂等守卫:若 meta 的 Version 曾丢失/重置而存量坐标已是归一化值,再除一次会把
+            // 所有位置压到左上角。v1 坐标是原始像素(0..1920/0..1080)——两轴都落在 [0,1] 内
+            // 即为已归一化的 v2 数据,跳过缩放。
+            var p1 = Settings.Data.MainKeyViewerPosition;
+            var p2 = Settings.Data.FootKeyViewerPosition;
+            bool alreadyNormalized = p1.x >= 0f && p1.x <= 1f && p1.y >= 0f && p1.y <= 1f
+                && p2.x >= 0f && p2.x <= 1f && p2.y >= 0f && p2.y <= 1f;
+            if (!alreadyNormalized)
+            {
+                Settings.Data.MainKeyViewerPosition = new Vector2(
+                    Clamp01(p1.x / refW),
+                    1f - Clamp01(p1.y / refH));
+                Settings.Data.FootKeyViewerPosition = new Vector2(
+                    Clamp01(p2.x / refW),
+                    1f - Clamp01(p2.y / refH));
+            }
             Settings.Version = 2;
         }
 
@@ -557,7 +594,15 @@ namespace JipperKeyViewer.KeyViewer
 
             if (d.KeyViewerStyle == KeyviewerStyle.Key24)
             {
+                // The current profile needs no shift, but the OTHER profile files still do — the
+                // early return used to skip MigrateAllProfileFiles entirely, and since the meta
+                // Version gate never re-runs the migration, their foot-key counts stayed on the
+                // old 20-base slots forever (permanently zeroed foot counters after the switch).
+                // 当前配置无需平移,但其余 Profile 文件仍需要——早退曾整体跳过
+                // MigrateAllProfileFiles,而 meta Version 门控不会再补跑,它们的脚键计数
+                // 永远留在旧的 20 基线槽位(切换后脚键计数永久为零)。
                 SaveCurrentProfile();
+                MigrateAllProfileFiles();
                 SaveMetaOnly();
                 return;
             }
@@ -589,12 +634,20 @@ namespace JipperKeyViewer.KeyViewer
                     if (to + i < arr.Length)
                         arr[to + i] = from + i < arr.Length ? arr[from + i] : default;
                 }
-                for (int i = 0; i < count && from + i < arr.Length; i++)
+                // Clear only the GAP between the old and new base — clearing the full old range
+                // would overlap the just-written destination when count > (to - from) and wipe
+                // freshly migrated entries (footSize 8 used to zero 4 of them).
+                // 只清除新旧基线之间的间隙——清除整个旧区间会在 count > (to - from) 时与刚
+                // 写入的目标区间重叠,抹掉刚迁入的条目(footSize 为 8 时会清掉其中 4 个)。
+                int clearLen = Math.Min(count, to - from);
+                for (int i = 0; i < clearLen && from + i < arr.Length; i++)
                     arr[from + i] = default;
             }
 
             Array.Copy(d.Count, oldFootBase, d.Count, FootKeyBase, footSize);
-            Array.Clear(d.Count, oldFootBase, footSize);
+            // Same gap-only clear as ShiftColorArray (full-range clear overlapped the copy).
+            // 与 ShiftColorArray 同款"仅清间隙"(全区间清除会与复制重叠)。
+            Array.Clear(d.Count, oldFootBase, Math.Min(footSize, FootKeyBase - oldFootBase));
             ShiftColorArray(d.PerKeyBackground, oldFootBase, FootKeyBase, footSize);
             ShiftColorArray(d.PerKeyBackgroundClicked, oldFootBase, FootKeyBase, footSize);
             ShiftColorArray(d.PerKeyOutline, oldFootBase, FootKeyBase, footSize);
@@ -618,6 +671,79 @@ namespace JipperKeyViewer.KeyViewer
             SaveCurrentProfile();
             SaveMetaOnly();
             Loader.Log("Migration v4→v5 complete");
+        }
+
+        /// <summary>Flip a normalized position to the mod-wide Y convention (0=top, 1=bottom). / 将归一化位置翻转为全 Mod 的 Y 约定(0=顶,1=底)。</summary>
+        private static Vector2 FlipYConvention(Vector2 v) => new Vector2(v.x, Mathf.Clamp01(1f - v.y));
+
+        private void MigrateV5toV6(int metaVersionOnDisk)
+        {
+            // The full-keyboard KPS/Total boxes were the ONLY place using Y=1=top; they now follow
+            // the mod-wide convention (0=top, 1=bottom) like the main/foot position sliders. Stored
+            // values are flipped once so existing placements keep their on-screen position.
+            //
+            // Which profiles carry the field is decided by the ON-DISK meta version COMBINED with
+            // per-file content: FullKpsPosition shipped with the v5-era full-keyboard feature, so
+            // profiles written by v5 binaries always contain it (JsonUtility serializes every
+            // field), while v4-and-older profiles never do. Two traps a version-only gate misses:
+            // (1) a DORMANT secondary profile that a v4 user never re-saved after upgrading to a
+            //     v5 binary is still v4-form on disk (field absent → ctor default would be flipped);
+            // (2) earlier migrations in this same load (V3→V4/V4→V5) rewrite files with the field
+            //     present at its ctor default — which is exactly why the content check alone is
+            //     not enough either and the version gate must stay.
+            // The current profile additionally requires a fully successful disk load: a meta=5
+            // user whose file was just REBUILT with defaults (LoadProfileFromMeta's recovery
+            // branch) must not have those fresh defaults flipped.
+            //
+            // 哪些 Profile 带有该字段由"磁盘上的 meta 版本 + 逐文件内容"联合决定:
+            // FullKpsPosition 随 v5 时代的全键盘功能发布,v5 二进制写入的 Profile 必然含它
+            //(JsonUtility 序列化所有字段),v4 及更早必然不含。仅按版本判断会漏两个坑:
+            //(1)休眠的次要 Profile——v4 用户升级到 v5 二进制后从未保存过的那个文件在磁盘上
+            //    仍是 v4 形态(字段缺失 → 构造默认值会被错误翻转);
+            //(2)本次加载中更早的迁移(V3→V4/V4→V5)会以"字段存在但为构造默认值"重写文件——
+            //    这正是仅按内容判断也不够、版本门必须保留的原因。
+            // 当前 Profile 额外要求"完全成功地从磁盘加载":meta=5 但文件刚被恢复分支用默认值
+            // 重建(LoadProfileFromMeta)时,不能翻转这些新鲜默认值。
+            Loader.Log("Migrating settings v5 → v6: full-keyboard KPS/Total Y convention flip");
+            Settings.Version = 6;
+            if (metaVersionOnDisk >= 5 && curProfileHasFullKpsPos)
+            {
+                Settings.Data.FullKpsPosition = FlipYConvention(Settings.Data.FullKpsPosition);
+                Settings.Data.FullTotalPosition = FlipYConvention(Settings.Data.FullTotalPosition);
+            }
+            SaveCurrentProfile();
+
+            // Batch-flip the other profile files the same way — the meta Version gate never
+            // re-runs this migration, so switching to them later must not resurrect old-convention
+            // Y values. Each file is content-checked (a v4-form dormant file is skipped).
+            // / 同法批量翻转其余 Profile 文件——meta 版本门控不会重跑本迁移,之后切到它们时
+            // 不能让旧约定的 Y 值复活。逐文件检查内容(v4 形态的休眠文件跳过)。
+            if (metaVersionOnDisk >= 5 && Settings.ProfileNames != null)
+            {
+                string savedProfile = Settings.CurrentProfile;
+                foreach (string name in Settings.ProfileNames)
+                {
+                    if (name == savedProfile) continue;
+                    try
+                    {
+                        string path = GetProfilePath(name);
+                        if (!File.Exists(path)) continue;
+                        string raw = File.ReadAllText(path);
+                        if (!raw.Contains("FullKpsPosition")) continue; // dormant v4-form file / 休眠的 v4 形态文件
+                        var pd = new ProfileData();
+                        JsonUtility.FromJsonOverwrite(raw, pd);
+                        pd.FullKpsPosition = FlipYConvention(pd.FullKpsPosition);
+                        pd.FullTotalPosition = FlipYConvention(pd.FullTotalPosition);
+                        WriteAllTextSafe(path, JsonUtility.ToJson(pd, true));
+                    }
+                    catch (Exception e)
+                    {
+                        Loader.Warning($"Failed to migrate profile '{name}' to v6: {e.Message}");
+                    }
+                }
+            }
+            SaveMetaOnly();
+            Loader.Log("Migration v5→v6 complete");
         }
 
         private void MigrateAllProfileFiles()
@@ -663,7 +789,11 @@ namespace JipperKeyViewer.KeyViewer
                         pd.Count = c;
                     }
                     Array.Copy(pd.Count, oldBase, pd.Count, FootKeyBase, fs);
-                    Array.Clear(pd.Count, oldBase, fs);
+                    // Gap-only clear — the full-range clear overlapped the just-copied entries
+                    // when fs > (FootKeyBase - oldBase). Mirror of the live-migration fix above.
+                    // 仅清间隙——fs > (FootKeyBase - oldBase) 时全区间清除会重叠刚复制的条目。
+                    // 与上方在线迁移的修复互为镜像。
+                    Array.Clear(pd.Count, oldBase, Math.Min(fs, FootKeyBase - oldBase));
                     static void Shift(Color[] a, int from, int to, int n)
                     {
                         if (a == null) return;
@@ -672,7 +802,8 @@ namespace JipperKeyViewer.KeyViewer
                             if (to + i < a.Length)
                                 a[to + i] = from + i < a.Length ? a[from + i] : default;
                         }
-                        for (int i = 0; i < n && from + i < a.Length; i++)
+                        int clearLen = Math.Min(n, to - from);
+                        for (int i = 0; i < clearLen && from + i < a.Length; i++)
                             a[from + i] = default;
                     }
                     Shift(pd.PerKeyBackground, oldBase, FootKeyBase, fs);
@@ -697,9 +828,23 @@ namespace JipperKeyViewer.KeyViewer
                 ? Settings.CurrentProfile : "Default";
             if (File.Exists(GetProfilePath(profileName)))
             {
-                LoadProfile(profileName);
-                Settings.CurrentProfile = profileName;
-                EnsureSettingsArrays();
+                // LoadProfile reports IO/validation failures (it backs the file up as *.corrupt);
+                // ignoring that return value used to let constructor defaults masquerade as the
+                // profile and get saved over it on the next high-frequency SaveSettings.
+                // LoadProfile 会报告 IO/校验失败(并备份为 *.corrupt);旧代码无视返回值,构造
+                // 函数默认值会冒充该配置内容,并在下一次高频 SaveSettings 时覆盖写回文件。
+                if (LoadProfile(profileName))
+                {
+                    Settings.CurrentProfile = profileName;
+                    EnsureSettingsArrays();
+                }
+                else
+                {
+                    Loader.Warning($"Profile '{profileName}' unreadable, recreating with defaults (original saved as .corrupt)");
+                    Settings.CurrentProfile = profileName;
+                    EnsureSettingsArrays();
+                    SaveCurrentProfile();
+                }
             }
             else
             {
@@ -721,16 +866,82 @@ namespace JipperKeyViewer.KeyViewer
             return result;
         }
 
+        /// <summary>Null- AND length-checked KeyCode array; wrong length falls back to defaults / 空值与长度双检的 KeyCode 数组，长度不符回退默认</summary>
+        private static KeyCode[] EnsureKeyCodeArray(KeyCode[] arr, KeyCode[] defaults)
+        {
+            if (arr != null && arr.Length == defaults.Length) return arr;
+            return (KeyCode[])defaults.Clone();
+        }
+
+        /// <summary>Null- AND length-checked string array (keeps existing entries on resize) / 空值与长度双检的字符串数组（重定长度时保留已有条目）</summary>
+        private static string[] EnsureStringArray(string[] arr, int n)
+        {
+            if (arr != null && arr.Length == n) return arr;
+            string[] result = new string[n];
+            if (arr != null)
+                for (int i = 0; i < n && i < arr.Length; i++)
+                    result[i] = arr[i];
+            return result;
+        }
+
         /// <summary>Ensure all settings arrays are initialized / 确保所有设置数组已初始化</summary>
         private static void EnsureSettingsArrays()
         {
-            Settings.Data.key8Text = Settings.Data.key8Text ?? new string[8];
-            Settings.Data.key10Text = Settings.Data.key10Text ?? new string[10];
-            Settings.Data.key12Text = Settings.Data.key12Text ?? new string[12];
-            Settings.Data.key14Text = Settings.Data.key14Text ?? new string[14];
-            Settings.Data.key16Text = Settings.Data.key16Text ?? new string[16];
-            Settings.Data.key20Text = Settings.Data.key20Text ?? new string[20];
-            Settings.Data.key24Text = Settings.Data.key24Text ?? new string[24];
+            // Clamp deserialized enums to their legal ranges: JsonUtility accepts any integer for an
+            // enum field, and an out-of-range style reaches GetLayout's throw → EnableKeyViewer dies
+            // half-initialized AND the settings window (KpsTotalIsSlim → GetLayout) can no longer
+            // render, leaving the user unable to switch back to a valid layout from the GUI.
+            // 将反序列化的枚举钳制到合法范围：JsonUtility 接受任意整数,越界样式会走到 GetLayout
+            // 的 throw——EnableKeyViewer 半初始化死亡,设置窗口(KpsTotalIsSlim → GetLayout)也画
+            // 不出来,用户无法从界面切回合法布局。
+            if (!System.Enum.IsDefined(typeof(KeyviewerStyle), Settings.Data.KeyViewerStyle))
+            {
+                Loader.Warning($"KeyViewer: invalid KeyViewerStyle {(int)Settings.Data.KeyViewerStyle}, falling back to Key16");
+                Settings.Data.KeyViewerStyle = KeyviewerStyle.Key16;
+            }
+            if (!System.Enum.IsDefined(typeof(FootKeyviewerStyle), Settings.Data.FootKeyViewerStyle))
+            {
+                Loader.Warning($"KeyViewer: invalid FootKeyViewerStyle {(int)Settings.Data.FootKeyViewerStyle}, falling back to None");
+                Settings.Data.FootKeyViewerStyle = FootKeyviewerStyle.None;
+            }
+
+            // Truncated binding arrays (hand-edited / partially written profiles) are the same gap
+            // class as Count below: FromJsonOverwrite restores whatever length the JSON carries and
+            // the binding tab indexes key8[key12 slots] unguarded. A wrong-length array is replaced
+            // with the field initializer defaults from a fresh ProfileData.
+            // 截断的绑定数组(手改/写坏一半的 Profile)与下方 Count 属同类缺口:FromJsonOverwrite
+            // 按 JSON 自带长度还原,而按键页会无守卫地索引 key8[第 12 槽]。长度不对时直接换回
+            // 全新 ProfileData 的字段初始化默认值。
+            ProfileData defaults = new ProfileData();
+            Settings.Data.key8 = EnsureKeyCodeArray(Settings.Data.key8, defaults.key8);
+            Settings.Data.key10 = EnsureKeyCodeArray(Settings.Data.key10, defaults.key10);
+            Settings.Data.key12 = EnsureKeyCodeArray(Settings.Data.key12, defaults.key12);
+            Settings.Data.key14 = EnsureKeyCodeArray(Settings.Data.key14, defaults.key14);
+            Settings.Data.key16 = EnsureKeyCodeArray(Settings.Data.key16, defaults.key16);
+            Settings.Data.key20 = EnsureKeyCodeArray(Settings.Data.key20, defaults.key20);
+            Settings.Data.key24 = EnsureKeyCodeArray(Settings.Data.key24, defaults.key24);
+            Settings.Data.footkey2 = EnsureKeyCodeArray(Settings.Data.footkey2, defaults.footkey2);
+            Settings.Data.footkey4 = EnsureKeyCodeArray(Settings.Data.footkey4, defaults.footkey4);
+            Settings.Data.footkey6 = EnsureKeyCodeArray(Settings.Data.footkey6, defaults.footkey6);
+            Settings.Data.footkey8 = EnsureKeyCodeArray(Settings.Data.footkey8, defaults.footkey8);
+            Settings.Data.footkey10 = EnsureKeyCodeArray(Settings.Data.footkey10, defaults.footkey10);
+            Settings.Data.footkey12 = EnsureKeyCodeArray(Settings.Data.footkey12, defaults.footkey12);
+            Settings.Data.footkey14 = EnsureKeyCodeArray(Settings.Data.footkey14, defaults.footkey14);
+            Settings.Data.footkey16 = EnsureKeyCodeArray(Settings.Data.footkey16, defaults.footkey16);
+            Settings.Data.GhostKey8 = EnsureKeyCodeArray(Settings.Data.GhostKey8, defaults.GhostKey8);
+            Settings.Data.GhostKey10 = EnsureKeyCodeArray(Settings.Data.GhostKey10, defaults.GhostKey10);
+            Settings.Data.GhostKey12 = EnsureKeyCodeArray(Settings.Data.GhostKey12, defaults.GhostKey12);
+            Settings.Data.GhostKey14 = EnsureKeyCodeArray(Settings.Data.GhostKey14, defaults.GhostKey14);
+            Settings.Data.GhostKey16 = EnsureKeyCodeArray(Settings.Data.GhostKey16, defaults.GhostKey16);
+            Settings.Data.GhostKey20 = EnsureKeyCodeArray(Settings.Data.GhostKey20, defaults.GhostKey20);
+            Settings.Data.GhostKey24 = EnsureKeyCodeArray(Settings.Data.GhostKey24, defaults.GhostKey24);
+            Settings.Data.key8Text = EnsureStringArray(Settings.Data.key8Text, 8);
+            Settings.Data.key10Text = EnsureStringArray(Settings.Data.key10Text, 10);
+            Settings.Data.key12Text = EnsureStringArray(Settings.Data.key12Text, 12);
+            Settings.Data.key14Text = EnsureStringArray(Settings.Data.key14Text, 14);
+            Settings.Data.key16Text = EnsureStringArray(Settings.Data.key16Text, 16);
+            Settings.Data.key20Text = EnsureStringArray(Settings.Data.key20Text, 20);
+            Settings.Data.key24Text = EnsureStringArray(Settings.Data.key24Text, 24);
             // A truncated key108 (hand-edited profile) would crash InitializeFullKeyboard's fixed
             // 105-slot table; the array isn't user-rebindable (SetupKey ignores full-keyboard mode),
             // so a wrong-length array is simply replaced with the default.
@@ -738,14 +949,14 @@ namespace JipperKeyViewer.KeyViewer
             // 该数组不支持用户重绑（SetupKey 在全键盘模式下直接返回），长度不对时直接换回默认值。
             if (Settings.Data.key108 == null || Settings.Data.key108.Length != 105)
                 Settings.Data.key108 = BuildDefaultKey108();
-            Settings.Data.footkey2Text = Settings.Data.footkey2Text ?? new string[2];
-            Settings.Data.footkey4Text = Settings.Data.footkey4Text ?? new string[4];
-            Settings.Data.footkey6Text = Settings.Data.footkey6Text ?? new string[6];
-            Settings.Data.footkey8Text = Settings.Data.footkey8Text ?? new string[8];
-            Settings.Data.footkey10Text = Settings.Data.footkey10Text ?? new string[10];
-            Settings.Data.footkey12Text = Settings.Data.footkey12Text ?? new string[12];
-            Settings.Data.footkey14Text = Settings.Data.footkey14Text ?? new string[14];
-            Settings.Data.footkey16Text = Settings.Data.footkey16Text ?? new string[16];
+            Settings.Data.footkey2Text = EnsureStringArray(Settings.Data.footkey2Text, 2);
+            Settings.Data.footkey4Text = EnsureStringArray(Settings.Data.footkey4Text, 4);
+            Settings.Data.footkey6Text = EnsureStringArray(Settings.Data.footkey6Text, 6);
+            Settings.Data.footkey8Text = EnsureStringArray(Settings.Data.footkey8Text, 8);
+            Settings.Data.footkey10Text = EnsureStringArray(Settings.Data.footkey10Text, 10);
+            Settings.Data.footkey12Text = EnsureStringArray(Settings.Data.footkey12Text, 12);
+            Settings.Data.footkey14Text = EnsureStringArray(Settings.Data.footkey14Text, 14);
+            Settings.Data.footkey16Text = EnsureStringArray(Settings.Data.footkey16Text, 16);
             Settings.Data.Count = Settings.Data.Count ?? new int[MaxKeySlots];
             // FromJsonOverwrite restores whatever array length the profile JSON carries — builds
             // between the profile refactor and MaxKeySlots=40 wrote Count[36]. A short array made
@@ -814,6 +1025,49 @@ namespace JipperKeyViewer.KeyViewer
             }
         }
 
+        // ---- Debounced saving for high-frequency GUI changes / 高频 GUI 变更的去抖保存 ----
+        // Dragging a slider or a color channel fired SaveSettings on every IMGUI change event
+        // (~120 full-profile JSON + meta writes per second while dragging). GUI handlers now call
+        // SaveSettingsFromGui() instead: the first change after a quiet spell still saves at once,
+        // rapid successive changes coalesce and flush from Update on mouse-up or after 0.5s.
+        // Critical paths (window close, disable, scene load, profile ops) keep calling SaveSettings
+        // directly and always write immediately.
+        // 拖动滑块/颜色通道时每次 IMGUI 变更事件都会触发 SaveSettings(拖动期间每秒约 120 次
+        // 全量 profile JSON + meta 写盘)。GUI 处理器改调 SaveSettingsFromGui():静默期后的首次
+        // 变更仍然立即保存,快速连续变更合并,由 Update 在松开鼠标或 0.5 秒后统一落盘。
+        // 关键路径(关窗/禁用/场景加载/Profile 操作)仍直接调 SaveSettings,恒为立即写。
+        private bool guiSaveDirty;
+        private float lastGuiSaveTime = -999f;
+
+        /// <summary>Debounced save for GUI change handlers / GUI 变更处理器用的去抖保存</summary>
+        private void SaveSettingsFromGui()
+        {
+            float now = Time.unscaledTime;
+            if (now - lastGuiSaveTime >= 0.5f)
+            {
+                lastGuiSaveTime = now;
+                guiSaveDirty = false;
+                SaveSettings();
+            }
+            else
+            {
+                guiSaveDirty = true;
+            }
+        }
+
+        /// <summary>Flush a pending debounced save (mouse-up or 0.5s timeout). Called from Update. / 落盘挂起的去抖保存(松开鼠标或 0.5 秒超时),由 Update 调用。</summary>
+        private void FlushGuiSaveIfNeeded()
+        {
+            if (!guiSaveDirty) return;
+            float now = Time.unscaledTime;
+            if (Input.GetMouseButtonUp(0) || now - lastGuiSaveTime >= 0.5f)
+            {
+                lastGuiSaveTime = now;
+                guiSaveDirty = false;
+                SaveSettings();
+            }
+        }
+
         /// <summary>
         /// Save only the meta file (settings.json) — Version, CurrentProfile, ProfileNames, Language / 仅保存元数据文件（settings.json）
         /// </summary>
@@ -860,10 +1114,18 @@ namespace JipperKeyViewer.KeyViewer
         /// <summary>
         /// Load a named profile into Settings.Data / 加载指定配置到 Settings.Data
         /// </summary>
+        /// <remarks>On a fully successful load, records whether the disk JSON carried the
+        /// full-keyboard position fields (v5→v6 needs this: only genuinely stored values may be
+        /// flipped; ctor defaults must stay untouched).</remarks>
+        /// <remarks>完全成功加载时记录磁盘 JSON 是否带全键盘位置字段(v5→v6 需要:只有真实
+        /// 存储的值才可翻转;构造默认值必须保持不动)。</remarks>
+        private bool curProfileHasFullKpsPos;
+
         private bool LoadProfile(string name)
         {
             string profilePath = GetProfilePath(name);
-            if (!File.Exists(profilePath)) return false;
+            if (!File.Exists(profilePath)) { curProfileHasFullKpsPos = false; return false; }
+            curProfileHasFullKpsPos = false;
             try
             {
                 string json = File.ReadAllText(profilePath);
@@ -873,27 +1135,63 @@ namespace JipperKeyViewer.KeyViewer
                 // instance guarantees no stale data survives a profile switch.
                 // 先替换实例：FromJsonOverwrite 只写入 JSON 中存在的字段，会保留上一套配置残留的
                 // 字段/数组项，这些残留随后会被保存并覆盖新配置。用全新默认实例可杜绝跨配置污染。
-                Settings.Data = new ProfileData();
-                JsonUtility.FromJsonOverwrite(json, Settings.Data);
+                // Sanity gate: a truncated/corrupt-but-parseable JSON makes FromJsonOverwrite silently
+                // stop mid-way, returning true with a half-default Data that the next SaveSettings
+                // would write over the user's file. IMPORTANT: builds between the profile refactor
+                // and MaxKeySlots=40 legally wrote Count[36] — a short-but-present Count is resized
+                // in place (same as EnsureSettingsArrays / MigrateAllProfileFiles), NOT rejected:
+                // rejecting it made LoadProfileFromMeta fall back to defaults and overwrite the
+                // original file, defeating the V3→V4 migration that runs later in LoadSettings.
+                // Only a null or over-long Count can't come from a complete write of any version.
+                // 健全性闸门：截断/损坏但可解析的 JSON 会让 FromJsonOverwrite 中途静默停止,返回
+                // true 的同时留下半默认的 Data,下一次 SaveSettings 就会把它覆盖写回用户文件。
+                // 重要:profile 重构到 MaxKeySlots=40 之间的版本合法写入过 Count[36]——"短但
+                // 存在"的 Count 就地重定长度(与 EnsureSettingsArrays/MigrateAllProfileFiles 同
+                // 法),而不是拒绝:拒绝会让 LoadProfileFromMeta 回退默认数据并覆盖原文件,
+                // 摧毁稍后在 LoadSettings 运行的 V3→V4 迁移。只有 null 或超长的 Count 才不可
+                // 能出自任何版本的完整写入。
+                ProfileData pd = new ProfileData();
+                JsonUtility.FromJsonOverwrite(json, pd);
+                if (pd.Count == null || pd.Count.Length > MaxKeySlots)
+                {
+                    Loader.Error($"Profile '{name}' failed validation (Count length {(pd.Count?.Length.ToString() ?? "null")}), backing up and falling back to defaults");
+                    try { File.Copy(profilePath, profilePath + ".corrupt", true); } catch { }
+                    return false;
+                }
+                if (pd.Count.Length != MaxKeySlots)
+                {
+                    int[] c = new int[MaxKeySlots];
+                    Array.Copy(pd.Count, c, Math.Min(pd.Count.Length, MaxKeySlots));
+                    pd.Count = c;
+                }
+                Settings.Data = pd;
+                // Record field presence ONLY on the fully-successful path — the v5→v6 flip may
+                // touch stored values, never rebuild/ctor defaults. / 仅在完全成功路径记录字段
+                // 存在性——v5→v6 翻转只可作用于存储值,绝不可作用于重建/构造默认值。
+                curProfileHasFullKpsPos = json.Contains("FullKpsPosition");
                 return true;
             }
             catch (Exception e)
             {
                 Loader.Error($"Failed to load profile '{name}': {e.Message}");
+                // Same backup as the settings.json path: without it, the caller's recovery save
+                // would overwrite the file and the original content would be gone for good.
+                // 与 settings.json 同款备份:否则调用方的恢复性保存会覆盖原文件,内容永久丢失。
+                try { File.Copy(profilePath, profilePath + ".corrupt", true); } catch { }
                 return false;
             }
         }
 
-        private void SwitchProfile(string newName)
+        private bool SwitchProfile(string newName)
         {
-            if (newName == Settings.CurrentProfile) return;
+            if (newName == Settings.CurrentProfile) return true;
             string oldName = Settings.CurrentProfile;
             SaveCurrentProfile();
             if (!LoadProfile(newName))
             {
                 Loader.Warning($"Failed to switch to profile '{newName}', staying on '{oldName}'");
                 LoadProfile(oldName);
-                return;
+                return false;
             }
             Settings.CurrentProfile = newName;
             EnsureSettingsArrays();
@@ -917,6 +1215,7 @@ namespace JipperKeyViewer.KeyViewer
                 SetKeyObjectActive(Total, false);
             }
             SaveSettings();
+            return true;
         }
 
         /// <summary>
@@ -925,13 +1224,17 @@ namespace JipperKeyViewer.KeyViewer
         private void DeleteProfile(string name)
         {
             if (Settings.ProfileNames == null || Settings.ProfileNames.Length <= 1) return;
-            // If deleting the current profile, switch to first available first / 如果删除的是当前配置，先切走
+            // If deleting the current profile, switch to first available first. Abort when the
+            // switch fails (target file missing/corrupt): the old code deleted the in-use profile
+            // anyway and left meta pointing at a deleted name until memory state re-created it.
+            // 删除当前配置时先切到第一个可用项。切换失败则中止：旧代码照删正在使用的配置,
+            // meta 会指向已删除的名字,直到内存状态把它重建出来为止。
             bool wasCurrent = Settings.CurrentProfile == name;
             if (wasCurrent)
             {
                 var others = new List<string>(Settings.ProfileNames);
                 others.Remove(name);
-                SwitchProfile(others[0]);
+                if (!SwitchProfile(others[0])) return;
             }
             // Now delete the file and remove from list / 然后删文件和列表
             try
@@ -1059,7 +1362,7 @@ namespace JipperKeyViewer.KeyViewer
         [System.Serializable]
         private class SettingsMeta
         {
-            public int Version = 5;
+            public int Version = 6;
             public string CurrentProfile = "Default";
             public string[] ProfileNames = new[] { "Default" };
             public string Language = "en";

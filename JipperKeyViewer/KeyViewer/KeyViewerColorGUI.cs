@@ -41,7 +41,7 @@ namespace JipperKeyViewer.KeyViewer
                     {
                         SetColorByIndex(i, newColor);
                         UpdateAllKeyColors();
-                        SaveSettings();
+                        SaveSettingsFromGui();
                     }
                     GUILayout.EndHorizontal();
                     GUILayout.EndVertical();
@@ -102,7 +102,7 @@ namespace JipperKeyViewer.KeyViewer
                 {
                     SetKpsTotalColor(pi, t, newColor);
                     UpdateAllKeyColors();
-                    SaveSettings();
+                    SaveSettingsFromGui();
                 }
                 GUILayout.EndHorizontal();
                 GUILayout.EndVertical();
@@ -120,11 +120,54 @@ namespace JipperKeyViewer.KeyViewer
         // name. Persists across frames so a focused field isn't reset to the model value while its
         // value is being typed. / 命名文本框(颜色选择器、滑块文本框)的进行中输入(按控件名缓存),
         // 跨帧保留,避免输入过程中被模型值重置。
+        //
+        // Control names are POSITIONAL ("cpi_N"/"fsf_N" counters), so a buffer entry surviving the
+        // disappearance of its control (foldout collapsed, tab switched) would attach to whatever
+        // field inherits the sequence number next — showing stale half-typed text and COMMITTING it
+        // to the wrong setting on the very first click. The per-pass set below garbage-collects
+        // entries whose control wasn't drawn this pass, making stale reuse impossible.
+        // 控件名是位置序号("cpi_N"/"fsf_N"计数器),缓冲条目若在控件消失(折叠/切标签)后存活,
+        // 会附着到下一个继承该序号的字段上——点击的瞬间回显陈旧半输入文本并提交到错误的设置。
+        // 下方的逐 pass 集合会回收"本 pass 未绘制"的条目,杜绝陈旧复用。
         private readonly Dictionary<string, string> textInputBuffer = new Dictionary<string, string>();
+        private readonly HashSet<string> textCtrlsDrawnThisPass = new HashSet<string>();
+        private readonly List<string> staleTextCtrlScratch = new List<string>();
+
+        /// <summary>Start a GUI pass: reset the drawn-controls set (called from DrawSettingsWindow). / 开始一个 GUI pass:重置本 pass 已绘制控件集合(由 DrawSettingsWindow 调用)。</summary>
+        private void BeginTextInputPass()
+        {
+            textCtrlsDrawnThisPass.Clear();
+        }
+
+        /// <summary>
+        /// End a GUI pass: drop buffer entries whose control was not drawn this pass (folded away,
+        /// tab switched, section hidden) — they must not leak into a different field that reuses
+        /// the same positional name later.
+        /// 结束一个 GUI pass:丢弃本 pass 未绘制其控件的缓冲条目(被折叠/切标签/隐藏)——
+        /// 它们绝不能泄漏进之后复用同一位置序号的另一字段。
+        /// </summary>
+        private void EndTextInputPass()
+        {
+            if (textInputBuffer.Count == 0) return;
+            // The focused field's entry survives explicitly (its control is normally drawn this
+            // pass, but a future early-return could skip the field while focus lingers).
+            // 焦点字段条目显式存活(其控件通常本 pass 在绘制,但未来提前 return 可能在焦点
+            // 未移走时跳过字段绘制)。
+            string focused = GUI.GetNameOfFocusedControl();
+            staleTextCtrlScratch.Clear();
+            foreach (var key in textInputBuffer.Keys)
+            {
+                if (textCtrlsDrawnThisPass.Contains(key) || key == focused) continue;
+                staleTextCtrlScratch.Add(key);
+            }
+            for (int i = 0; i < staleTextCtrlScratch.Count; i++)
+                textInputBuffer.Remove(staleTextCtrlScratch[i]);
+        }
 
         private string TextInputField(string ctrlName, string modelText, params GUILayoutOption[] options)
         {
             GUI.SetNextControlName(ctrlName);
+            textCtrlsDrawnThisPass.Add(ctrlName);
             bool focused = GUI.GetNameOfFocusedControl() == ctrlName;
             string display = focused && textInputBuffer.TryGetValue(ctrlName, out string pending)
                 ? pending : modelText;
@@ -270,7 +313,7 @@ namespace JipperKeyViewer.KeyViewer
                 DrawPerKeyColorEditor(perKeyColorSelected);
 
             if (GUILayout.Button(I18n.Tr("per_key_color_reset")))
-            { Settings.Data.InitPerKeyColors(); UpdateAllKeyColors(); SaveSettings(); }
+            { Settings.Data.InitPerKeyColors(); UpdateAllKeyColors(); SaveSettingsFromGui(); }
             if (GUILayout.Button(I18n.Tr("auto_rainbow")))
                 AutoAssignRainbowColors();
 
@@ -365,7 +408,7 @@ namespace JipperKeyViewer.KeyViewer
                 {
                     SetPerKeyColor(s, t, newColor);
                     UpdateAllKeyColors();
-                    SaveSettings();
+                    SaveSettingsFromGui();
                 }
                 GUILayout.EndVertical();
                 GUILayout.EndHorizontal();
@@ -404,7 +447,7 @@ namespace JipperKeyViewer.KeyViewer
                     lastPerKeyKps[s] = 0;
                 if (Keys != null && s < Keys.Length && Keys[s]?.value != null)
                     Keys[s].value.text = "0";
-                SaveSettings();
+                SaveSettingsFromGui();
             }
         }
 
@@ -436,7 +479,7 @@ namespace JipperKeyViewer.KeyViewer
                 Settings.Data.EnablePerKeyColors = pk;
                 ResetKeyViewer();
                 UpdateAllKeyColors();
-                SaveSettings();
+                SaveSettingsFromGui();
             }
             if (Settings.Data.EnablePerKeyColors)
                 DrawPerKeyColorSettings();
@@ -454,7 +497,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 Settings.Data.EnableFullKeyboardUnifiedColor = unified;
                 UpdateAllKeyColors();
-                SaveSettings();
+                SaveSettingsFromGui();
             }
 
             string[] names = {
@@ -474,7 +517,7 @@ namespace JipperKeyViewer.KeyViewer
                 {
                     SetFullKeyboardColor(i, newColor);
                     UpdateAllKeyColors();
-                    SaveSettings();
+                    SaveSettingsFromGui();
                 }
                 GUILayout.EndHorizontal();
             }

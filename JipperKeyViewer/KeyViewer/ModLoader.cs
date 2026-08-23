@@ -3,6 +3,7 @@
 // 将 Mod 核心与 UnityModManager / MelonLoader 等解耦
 
 using System;
+using UnityEngine;
 
 namespace JipperKeyViewer
 {
@@ -15,6 +16,24 @@ namespace JipperKeyViewer
     {
         /// <summary>Mod installation directory path / Mod 安装目录路径</summary>
         string ModPath { get; }
+
+        /// <summary>
+        /// Whether the settings window is currently shown. Used to gate the rebind capture:
+        /// an armed capture must not survive a closed window (the closing hotkey would
+        /// otherwise bind itself into the slot).
+        /// 设置窗口当前是否显示。用于门控改键捕获:武装中的捕获不得在窗口关闭后存活
+        /// (否则关窗热键会把自己绑进槽位)。
+        /// </summary>
+        bool IsSettingsWindowVisible { get; }
+
+        /// <summary>
+        /// The loader's settings hotkey (KeyCode.None when unknown). Same-frame protection:
+        /// the core's Update may run before the loader consumes the hotkey, so capture must
+        /// skip this key explicitly.
+        /// 加载器的设置热键(未知时为 KeyCode.None)。同帧保护:核心 Update 可能先于加载器
+        /// 消费热键运行,捕获必须显式跳过该键。
+        /// </summary>
+        KeyCode SettingsHotkey { get; }
 
         /// <summary>Log an informational message / 记录信息日志</summary>
         void Log(string message);

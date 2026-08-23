@@ -237,6 +237,7 @@ Settings are saved to `config/settings.json` and can be edited via:
 - Rain fade-out on key release: configurable duration, EaseOutQuad tween / 雨滴松开淡出：可配置时长
 - CJK fallback font chain: CJK characters display correctly with any font / CJK 后备字体链：任何字体下中文字符正确显示
 - **MelonLoader**: Settings hotkey configurable in `UserData/MelonPreferences.cfg` (`[JipperKeyViewer]` section) / 设置热键可在配置文件中修改
+- **Input polling limitation**: key detection samples `Input.GetKey` once per frame — a complete press+release inside a single frame (very low FPS / long hitches) can be missed by the counter / KPS / rain / 按键检测每帧采样一次 `Input.GetKey`——极低帧率下同一帧内完整的按下+松开可能不被计数（Legacy Input 的固有行为）
 
 ## Acknowledgements / 鸣谢
 - Key layout and visual style references [JipperResourcePack](https://github.com/Jongye0l/JipperResourcePack).

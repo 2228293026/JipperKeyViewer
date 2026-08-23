@@ -207,7 +207,7 @@ namespace JipperKeyViewer.KeyViewer
                 langIdx = (langIdx + 1) % 3;
                 Settings.Language = langIdx == 0 ? "en" : langIdx == 1 ? "zh" : "ko";
                 I18n.Lang = Settings.Language;
-                SaveSettings();
+                SaveSettingsFromGui();
             }
             GUILayout.EndHorizontal();
         }
@@ -222,7 +222,7 @@ namespace JipperKeyViewer.KeyViewer
             if (newFormatting != Settings.Data.EnableCountFormatting)
             {
                 Settings.Data.EnableCountFormatting = newFormatting;
-                SaveSettings();
+                SaveSettingsFromGui();
                 RefreshAllCountDisplay();
             }
             GUILayout.EndHorizontal();
@@ -241,7 +241,7 @@ namespace JipperKeyViewer.KeyViewer
                         Keys[i].value.text = "0";
             if (Kps != null) SetKpsTotalDisplay(Kps, "KPS", "0");
             if (Total != null) SetKpsTotalDisplay(Total, "Total", "0");
-            SaveSettings();
+            SaveSettingsFromGui();
         }
 
         private static readonly (int flag, string label)[] FontStyleFlagLabels =
@@ -283,7 +283,7 @@ namespace JipperKeyViewer.KeyViewer
                         Settings.Data.FontName = fontList[newIdx].name;
                         fontRestored = false;
                         UpdateAllFonts();
-                        SaveSettings();
+                        SaveSettingsFromGui();
                     }
                 }
                 else
@@ -325,7 +325,7 @@ namespace JipperKeyViewer.KeyViewer
                 if (changed)
                 {
                     UpdateAllFonts();
-                    SaveSettings();
+                    SaveSettingsFromGui();
                 }
             }
         }
@@ -352,9 +352,10 @@ namespace JipperKeyViewer.KeyViewer
             if (newDownLocation != Settings.Data.DownLocation)
             {
                 Settings.Data.DownLocation = newDownLocation;
+                // ResetKeyViewer recreates foot keys internally — no outer ResetFootKeyViewer.
+                // ResetKeyViewer 内部已重建脚键——无需外层 ResetFootKeyViewer。
                 ResetKeyViewer();
-                ResetFootKeyViewer();
-                SaveSettings();
+                SaveSettingsFromGui();
             }
         }
 
@@ -369,7 +370,7 @@ namespace JipperKeyViewer.KeyViewer
             if (newEnabled != Settings.Data.CustomPositionEnabled)
             {
                 Settings.Data.CustomPositionEnabled = newEnabled;
-                SaveSettings();
+                SaveSettingsFromGui();
                 if (newEnabled)
                 {
                     ResetKeyViewerPosition();
@@ -377,8 +378,9 @@ namespace JipperKeyViewer.KeyViewer
                 }
                 else
                 {
+                    // ResetKeyViewer recreates foot keys internally — no outer ResetFootKeyViewer.
+                    // ResetKeyViewer 内部已重建脚键——无需外层 ResetFootKeyViewer。
                     ResetKeyViewer();
-                    ResetFootKeyViewer();
                 }
             }
 
@@ -397,13 +399,13 @@ namespace JipperKeyViewer.KeyViewer
                     {
                         Settings.Data.MainKeyViewerPosition = tempMainPos;
                         ResetKeyViewerPosition();
-                        SaveSettings();
+                        SaveSettingsFromGui();
                     }
                     if (GUILayout.Button(I18n.Tr("reset_pos")))
                     {
                         Settings.Data.MainKeyViewerPosition = new Vector2(0, 1);
                         ResetKeyViewerPosition();
-                        SaveSettings();
+                        SaveSettingsFromGui();
                     }
                 }
                 else
@@ -430,7 +432,7 @@ namespace JipperKeyViewer.KeyViewer
                         Settings.Data.FootKeyViewerPosition = tempFootPos;
                         ResetKeyViewerPosition();
                         ResetFootKeyViewerPosition();
-                        SaveSettings();
+                        SaveSettingsFromGui();
                     }
 
                     if (GUILayout.Button(I18n.Tr("reset_pos")))
@@ -439,7 +441,7 @@ namespace JipperKeyViewer.KeyViewer
                         Settings.Data.FootKeyViewerPosition = new Vector2(0.24f, 1f);
                         ResetKeyViewerPosition();
                         ResetFootKeyViewerPosition();
-                        SaveSettings();
+                        SaveSettingsFromGui();
                     }
                 }
             }
@@ -454,7 +456,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 Settings.Data.KeyViewerStyle = newStyle;
                 ChangeKeyViewer();
-                SaveSettings();
+                SaveSettingsFromGui();
             }
 
             if (!KeyViewer.IsFullKeyboard)
@@ -473,7 +475,7 @@ namespace JipperKeyViewer.KeyViewer
                     {
                         Settings.Data.StandardKeyWidth = newStdWidth;
                         ChangeKeyViewer();
-                        SaveSettings();
+                        SaveSettingsFromGui();
                     }
                 }
 
@@ -483,7 +485,7 @@ namespace JipperKeyViewer.KeyViewer
                 {
                     Settings.Data.FootKeyViewerStyle = newFootStyle;
                     ResetFootKeyViewer();
-                    SaveSettings();
+                    SaveSettingsFromGui();
                 }
             }
 
@@ -493,7 +495,7 @@ namespace JipperKeyViewer.KeyViewer
                 Settings.Data.Size = newSettingsSize;
                 if (KeyViewerSizeObject != null)
                     KeyViewerSizeObject.transform.localScale = new Vector3(Settings.Data.Size, Settings.Data.Size, 1);
-                SaveSettings();
+                SaveSettingsFromGui();
             }
         }
 
@@ -523,7 +525,7 @@ namespace JipperKeyViewer.KeyViewer
                             Settings.Data.PerKeyFontSize[i] = 0f;
                 }
                 UpdateAllFonts();
-                SaveSettings();
+                SaveSettingsFromGui();
             }
 
             if (Settings.Data.EnablePerKeyTextSize)
@@ -587,7 +589,7 @@ namespace JipperKeyViewer.KeyViewer
                         for (int i = 0; i < n && i < Settings.Data.PerKeyFontSize.Length; i++)
                             Settings.Data.PerKeyFontSize[i] = 0f;
                     UpdateAllFonts();
-                    SaveSettings();
+                    SaveSettingsFromGui();
                 }
 
                 GUILayout.EndVertical();
@@ -621,7 +623,7 @@ namespace JipperKeyViewer.KeyViewer
                 {
                     Settings.Data.PerKeyFontSize[s] = Mathf.Round(newSize);
                     UpdateAllFonts();
-                    SaveSettings();
+                    SaveSettingsFromGui();
                 }
             }
         }
@@ -637,7 +639,7 @@ namespace JipperKeyViewer.KeyViewer
                 {
                     Settings.Data.HideMainKeyCount = newHideCount;
                     ResetKeyViewer();
-                    SaveSettings();
+                    SaveSettingsFromGui();
                 }
 
                 if (!Settings.Data.HideMainKeyCount)
@@ -647,7 +649,14 @@ namespace JipperKeyViewer.KeyViewer
                     {
                         Settings.Data.EnablePerKeyKps = newPerKeyKps;
                         RefreshAllCountDisplay();
-                        SaveSettings();
+                        // Clear the change-detection cache: with stale lastPerKeyKps values, a quick
+                        // off→on toggle within 1s kept showing the old count (equal kps skipped the
+                        // SetText) until the queues drained. / 清变化检测缓存:lastPerKeyKps 残留
+                        // 时,1 秒内快速关→开会一直显示旧计数(相等的 kps 跳过 SetText)直到队列排空。
+                        if (lastPerKeyKps != null)
+                            for (int i = 0; i < lastPerKeyKps.Length; i++)
+                                lastPerKeyKps[i] = 0;
+                        SaveSettingsFromGui();
                     }
                 }
             }
@@ -663,7 +672,7 @@ namespace JipperKeyViewer.KeyViewer
                     Settings.Data.StreamerMode = newStreamer;
                     SetKeyObjectActive(Kps, !newStreamer);
                     SetKeyObjectActive(Total, !newStreamer);
-                    SaveSettings();
+                    SaveSettingsFromGui();
                 }
             }
 
@@ -677,7 +686,7 @@ namespace JipperKeyViewer.KeyViewer
                 {
                     Settings.Data.HideKpsTotalLabel = newHideLabel;
                     ChangeKeyViewer();
-                    SaveSettings();
+                    SaveSettingsFromGui();
                 }
             }
 
@@ -686,7 +695,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 Settings.Data.KeyFontSize = newFontSize;
                 UpdateAllFonts();
-                SaveSettings();
+                SaveSettingsFromGui();
             }
 
             // Per-key text size / spacing section / 每键字号/字间距 区块
@@ -701,7 +710,7 @@ namespace JipperKeyViewer.KeyViewer
                 {
                     Settings.Data.KpsTotalCentered = newCenterKt;
                     ChangeKeyViewer();
-                    SaveSettings();
+                    SaveSettingsFromGui();
                 }
                 // Stack KPS/Total text vertically — only available when centered is enabled
                 // KPS/Total 上下堆叠 — 仅在居中开启时可用
@@ -712,7 +721,7 @@ namespace JipperKeyViewer.KeyViewer
                     {
                         Settings.Data.KpsTotalStackedWhenCentered = newStacked;
                         ChangeKeyViewer();
-                        SaveSettings();
+                        SaveSettingsFromGui();
                     }
                 }
             }
@@ -725,7 +734,7 @@ namespace JipperKeyViewer.KeyViewer
                 // this toggle) — reset scales so no key stays stuck shrunken. / 按住途中关闭动画
                 // 会跳过释放过渡（受本开关门控）——重置缩放，避免按键卡在缩小状态。
                 if (!newPressAnim) ResetAllPressScales();
-                SaveSettings();
+                SaveSettingsFromGui();
             }
 
             if (Settings.Data.EnablePressAnimation)
@@ -734,14 +743,14 @@ namespace JipperKeyViewer.KeyViewer
                 if (newScale != Settings.Data.PressAnimationScale)
                 {
                     Settings.Data.PressAnimationScale = newScale;
-                    SaveSettings();
+                    SaveSettingsFromGui();
                 }
 
                 bool newRainAnim = GUILayout.Toggle(Settings.Data.EnablePressAnimationOnRain, I18n.Tr("press_anim_rain"));
                 if (newRainAnim != Settings.Data.EnablePressAnimationOnRain)
                 {
                     Settings.Data.EnablePressAnimationOnRain = newRainAnim;
-                    SaveSettings();
+                    SaveSettingsFromGui();
                 }
             }
         }
@@ -761,7 +770,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 Settings.Data.FullKeyboardShowKpsTotal = showKt;
                 ChangeKeyViewer();
-                SaveSettings();
+                SaveSettingsFromGui();
             }
             // KPS / Total box size (px) — layout property, kept here not in the color section. / KPS/Total 框尺寸（像素），属布局属性，置于此而非颜色栏目。
             float newKtSize = FloatSliderField(I18n.Tr("fk_kps_total_size"), Settings.Data.FullKeyboardKpsTotalSize, 40f, 400f, "F0");
@@ -769,7 +778,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 Settings.Data.FullKeyboardKpsTotalSize = newKtSize;
                 ChangeKeyViewer();
-                SaveSettings();
+                SaveSettingsFromGui();
             }
             if (Settings.Data.FullKeyboardShowKpsTotal)
             {
@@ -783,7 +792,7 @@ namespace JipperKeyViewer.KeyViewer
                 {
                     Settings.Data.FullKpsPosition = new Vector2(kpsX, kpsY);
                     ApplyFullKeyboardKpsTotalPosition();
-                    SaveSettings();
+                    SaveSettingsFromGui();
                 }
                 GUILayout.Label(I18n.Tr("fk_total_pos") + ":");
                 Vector2 totalPos = Settings.Data.FullTotalPosition;
@@ -793,7 +802,7 @@ namespace JipperKeyViewer.KeyViewer
                 {
                     Settings.Data.FullTotalPosition = new Vector2(totalX, totalY);
                     ApplyFullKeyboardKpsTotalPosition();
-                    SaveSettings();
+                    SaveSettingsFromGui();
                 }
             }
             GUILayout.EndVertical();

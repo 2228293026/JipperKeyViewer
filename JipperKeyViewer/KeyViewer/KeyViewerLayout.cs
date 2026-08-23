@@ -104,6 +104,12 @@ namespace JipperKeyViewer.KeyViewer
         private void DisableKeyViewer()
         {
             if (KeyViewerObject == null) return;
+            // Explicitly clear active rain state before dropping the Keys reference — the active
+            // set only stayed valid by the implicit "rain indices < 24 < any array length"
+            // invariant; clearing makes correctness independent of it.
+            // 显式清空活跃雨滴状态再丢弃 Keys 引用——活跃集此前仅靠"雨滴索引 <24 < 任意
+            // 数组长度"的隐式不变量保持正确;清空让正确性不再依赖它。
+            rainSystem.ClearActiveDrops(Keys);
             Object.Destroy(KeyViewerObject);
             KeyViewerObject = null;
             KeyViewerSizeObject = null;
@@ -303,7 +309,14 @@ namespace JipperKeyViewer.KeyViewer
                         new() { index = -2, x = 216, y = 221, w = 212, rainRow = -1, slim = true },
                     }
                 },
-                _ => throw new System.ArgumentOutOfRangeException(nameof(style), style, null)
+                // Defensive fallback instead of throw: EnsureSettingsArrays clamps deserialized
+                // enums, but any future path that slips an unknown value through must not take down
+                // EnableKeyViewer (half-initialized overlay + per-frame NRE) AND the settings window
+                // (KpsTotalIsSlim → GetLayout) — the user couldn't recover from the GUI.
+                // 防御性回落而非 throw:EnsureSettingsArrays 会钳制反序列化枚举,但任何未来路径
+                // 若漏进未知值,不能拖垮 EnableKeyViewer(半初始化覆盖层+逐帧 NRE)和设置窗口
+                //(KpsTotalIsSlim → GetLayout)——否则用户无法从界面自救。
+                _ => GetLayout(KeyviewerStyle.Key16)
             };
         }
 
@@ -520,8 +533,13 @@ namespace JipperKeyViewer.KeyViewer
             if (Settings.Data.FullKeyboardShowKpsTotal)
             {
                 float ktSize = Settings.Data.FullKeyboardKpsTotalSize;
-                Kps = CreateKey(-1, Settings.Data.FullKpsPosition.x * CanvasWidth, Settings.Data.FullKpsPosition.y * 1080f, ktSize, -1, true, true);
-                Total = CreateKey(-2, Settings.Data.FullTotalPosition.x * CanvasWidth, Settings.Data.FullTotalPosition.y * 1080f, ktSize, -1, true, true);
+                // Y follows the mod-wide convention (0 = top edge, 1 = bottom edge) — these boxes
+                // used to be the only place where 1 meant top, contradicting the main/foot
+                // position sliders shown in the same panel.
+                // Y 遵循全 Mod 约定(0=贴顶,1=贴底)——这两个框曾是唯一"1=贴顶"的地方,与同一
+                // 面板中主键盘/脚键位置滑块的语义相反。
+                Kps = CreateKey(-1, Settings.Data.FullKpsPosition.x * CanvasWidth, (1f - Settings.Data.FullKpsPosition.y) * 1080f, ktSize, -1, true, true);
+                Total = CreateKey(-2, Settings.Data.FullTotalPosition.x * CanvasWidth, (1f - Settings.Data.FullTotalPosition.y) * 1080f, ktSize, -1, true, true);
             }
             ApplyFullKeyboardKpsTotalPosition();
             ApplyFullKeyboardColors();
@@ -564,10 +582,11 @@ namespace JipperKeyViewer.KeyViewer
         /// <summary>Apply user-set normalized positions to the KPS / Total boxes (full keyboard only) / 将用户设置的归一化位置套用到 KPS/Total 框（仅全键盘）</summary>
         private void ApplyFullKeyboardKpsTotalPosition()
         {
+            // Same mod-wide Y convention as creation above (0 = top, 1 = bottom). / 与上方创建时相同的全 Mod Y 约定(0=顶,1=底)。
             if (Kps != null)
-                SetKeyPosition(-1, Settings.Data.FullKpsPosition.x * CanvasWidth, Settings.Data.FullKpsPosition.y * 1080f);
+                SetKeyPosition(-1, Settings.Data.FullKpsPosition.x * CanvasWidth, (1f - Settings.Data.FullKpsPosition.y) * 1080f);
             if (Total != null)
-                SetKeyPosition(-2, Settings.Data.FullTotalPosition.x * CanvasWidth, Settings.Data.FullTotalPosition.y * 1080f);
+                SetKeyPosition(-2, Settings.Data.FullTotalPosition.x * CanvasWidth, (1f - Settings.Data.FullTotalPosition.y) * 1080f);
         }
 
         /// <summary>Redirect back-row rain to front-row columns for layouts with non-standard key widths.
@@ -644,10 +663,12 @@ namespace JipperKeyViewer.KeyViewer
             }
             // Edge-pinned normalized placement (Y grows upward; 1080 = top, 0 = bottom).
             // norm.x=0 -> left edge at screen left;  norm.x=1 -> right edge at screen right.
-            // norm.y=0 -> bottom edge at screen bottom; norm.y=1 -> top edge at screen top.
+            // norm.y=0 -> top edge at screen top;    norm.y=1 -> bottom edge at screen bottom
+            // (matches the mod-wide custom-position convention; see the Lerp below).
             // DownLocation is already baked into the captured home positions, so no extra shift here.
             // 归一化贴边定位（Y 向上，1080=顶，0=底）。norm.x=0 左缘贴左，=1 右缘贴右；
-            // norm.y=0 底缘贴底，=1 顶缘贴顶。DownLocation 已含在 home 中，不再额外偏移。
+            // norm.y=0 顶缘贴顶，=1 底缘贴底（与全 Mod 自定义位置约定一致，见下方 Lerp）。
+            // DownLocation 已含在 home 中，不再额外偏移。
             float dxLeft = -minX;
             float dxRight = CanvasWidth - maxX;
             float dx = Mathf.Lerp(dxLeft, dxRight, norm.x);
@@ -1037,10 +1058,16 @@ namespace JipperKeyViewer.KeyViewer
         /// <summary>Refresh only the label text (called after user changes KPS/Total custom label) / 仅刷新标签文本（用户修改 KPS/Total 自定义标签后调用）</summary>
         private void RefreshKpsTotalLabels()
         {
+            // Use the live KPS value, not a hardcoded "0": ProcessKpsInUpdate only rewrites the
+            // text when the count CHANGES, so while the user holds a steady rate the box would
+            // otherwise show a wrong 0 indefinitely. lastKps = -1 also forces a rewrite next frame.
+            // 用实时 KPS 值而非硬编码 "0":ProcessKpsInUpdate 只在计数变化时重写文本,匀速游玩时
+            // 数值框会无限期显示错误的 0。lastKps = -1 同时强制下帧重写。
             if (Kps != null)
-                SetKpsTotalDisplay(Kps, "KPS", "0");
+                SetKpsTotalDisplay(Kps, "KPS", (PressTimes?.Count ?? 0).ToString());
             if (Total != null)
                 SetKpsTotalDisplay(Total, "Total", FormatCount(Settings.Data.TotalCount));
+            lastKps = -1;
         }
 
         /// <summary>
@@ -1717,8 +1744,10 @@ namespace JipperKeyViewer.KeyViewer
             for (int i = 0; i < footCount; i++) AssignSlot(FootKeyBase + i);
             AssignSlot(MaxKeySlots);
             AssignSlot(MaxKeySlots + 1);
+            // ResetKeyViewer recreates foot keys internally — no outer ResetFootKeyViewer
+            // (it would only destroy and recreate them a second time).
+            // ResetKeyViewer 内部已重建脚键——无需外层 ResetFootKeyViewer(只会二次销毁重建)。
             ResetKeyViewer();
-            ResetFootKeyViewer();
             SaveSettings();
         }
     }

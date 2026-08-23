@@ -24,8 +24,12 @@ namespace JipperKeyViewer.KeyViewer
         /// </summary>
         public void DrawSettingsWindow()
         {
+            // Mark the window alive for the rebind capture gate (ProcessKeySelection).
+            // 为改键捕获的存活门控标记窗口存活(见 ProcessKeySelection)。
+            lastSettingsGuiFrame = Time.frameCount;
             colorPickerFieldSeq = 0;
             sliderFieldSeq = 0;
+            BeginTextInputPass();
             GUILayout.BeginVertical();
             DrawHeaderBar();
             DrawTabBar();
@@ -59,6 +63,7 @@ namespace JipperKeyViewer.KeyViewer
                     break;
             }
             GUILayout.EndVertical();
+            EndTextInputPass();
         }
 
         /// <summary>
@@ -77,7 +82,7 @@ namespace JipperKeyViewer.KeyViewer
             if (newEnabled != Settings.Data.Enabled)
             {
                 Settings.Data.Enabled = newEnabled;
-                SaveSettings();
+                SaveSettingsFromGui();
             }
             GUILayout.FlexibleSpace();
             GUILayout.Label(I18n.Tr("profile") + ": " + Settings.CurrentProfile);
@@ -107,6 +112,11 @@ namespace JipperKeyViewer.KeyViewer
             int newTab = GUILayout.SelectionGrid(settingsGuiTab, labels, 3);
             if (newTab != settingsGuiTab)
             {
+                // Cancel an armed rebind when leaving the Keys tab — the capture gate alone
+                // wouldn't stop typing in other tabs' text fields from being eaten as bindings.
+                // 离开关键页时取消武装中的改键——仅靠存活门控挡不住在其它标签页文本框打字被吞成绑定。
+                SelectedKey = -1;
+                changeState = 0;
                 settingsGuiTab = newTab;
                 Settings.UiTab = newTab;
                 SaveMetaOnly();

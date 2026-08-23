@@ -31,7 +31,12 @@ namespace JipperKeyViewer.KeyViewer
             labelFunc ??= (i, kc) => KeyToString(kc);
             GUILayout.Label(row1Label + ":");
             GUILayout.BeginHorizontal();
-            for (int i = 0; i < 8; i++)
+            // Row-1 loop guards length like the back-row loops below — truncated arrays (hand-edited
+            // profiles) used to throw here every GUI event. EnsureSettingsArrays now rebuilds them,
+            // the guard is belt-and-suspenders. / 第一排与下方后排循环同样做长度守卫——截断数组
+            // (手改 Profile)此前每个 GUI 事件都在此抛异常。EnsureSettingsArrays 现已重建,此守卫
+            // 为双保险。
+            for (int i = 0; i < 8 && i < keyCodes.Length; i++)
                 if (GUILayout.Button(labelFunc(i, keyCodes[i])))
                     onKeyClick(i, keyCodes[i]);
             GUILayout.EndHorizontal();
@@ -107,7 +112,11 @@ namespace JipperKeyViewer.KeyViewer
 
             GUILayout.Label(I18n.Tr("row1_keys") + ":");
             GUILayout.BeginHorizontal();
-            for (int i = 0; i < 8; i++)
+            // Bounds guards mirror DrawMainKeyRows (row2/row3 below): EnsureSettingsArrays
+            // rebuilds wrong-length arrays, but the drawing loops stay defensive anyway.
+            // 边界守卫与 DrawMainKeyRows 对齐(见下方 row2/row3):EnsureSettingsArrays 会重建
+            // 长度不符的数组,但绘制循环仍保持防御。
+            for (int i = 0; i < 8 && i < ghostKeyCodes.Length; i++)
                 DrawGhostKeyButton(i, ghostKeyCodes);
             GUILayout.EndHorizontal();
 
@@ -117,7 +126,10 @@ namespace JipperKeyViewer.KeyViewer
                 GUILayout.Label(I18n.Tr("row2_keys") + ":");
                 GUILayout.BeginHorizontal();
                 for (int i = 0; i < backSequence.Length && i < 8; i++)
+                {
+                    if (backSequence[i] >= ghostKeyCodes.Length) continue;
                     DrawGhostKeyButton(backSequence[i], ghostKeyCodes);
+                }
                 GUILayout.EndHorizontal();
             }
 
@@ -125,7 +137,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 GUILayout.Label(I18n.Tr("row3_keys") + ":");
                 GUILayout.BeginHorizontal();
-                for (int i = 8; i < backSequence.Length; i++)
+                for (int i = 8; i < backSequence.Length && backSequence[i] < ghostKeyCodes.Length; i++)
                     DrawGhostKeyButton(backSequence[i], ghostKeyCodes);
                 GUILayout.EndHorizontal();
             }
@@ -146,7 +158,7 @@ namespace JipperKeyViewer.KeyViewer
                 {
                     ghostKeyCodes[i] = KeyCode.None;
                     SelectedKey = -1;
-                    SaveSettings();
+                    SaveSettingsFromGui();
                 }
                 else
                 {
@@ -215,12 +227,12 @@ namespace JipperKeyViewer.KeyViewer
                         Keys[SelectedKey].text.text = KeyToString(footKeyCodes[footIndex]);
                 }
                 SelectedKey = -1;
-                SaveSettings();
+                SaveSettingsFromGui();
             }
             if (GUILayout.Button(I18n.Tr("save_btn")))
             {
                 SelectedKey = -1;
-                SaveSettings();
+                SaveSettingsFromGui();
             }
             GUILayout.EndHorizontal();
         }
@@ -323,7 +335,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 Settings.Data.KpsLabel = "KPS";
                 RefreshKpsTotalLabels();
-                SaveSettings();
+                SaveSettingsFromGui();
             }
             GUILayout.EndHorizontal();
 
@@ -340,7 +352,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 Settings.Data.TotalLabel = "Total";
                 RefreshKpsTotalLabels();
-                SaveSettings();
+                SaveSettingsFromGui();
             }
             GUILayout.EndHorizontal();
 

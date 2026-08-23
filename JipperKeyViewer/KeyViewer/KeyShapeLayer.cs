@@ -151,6 +151,13 @@ namespace JipperKeyViewer.KeyViewer
                 {
                     float cx = r.center.x, cy = r.center.y;
                     r = new Rect(cx - r.width * s * 0.5f, cy - r.height * s * 0.5f, r.width * s, r.height * s);
+                    // Re-check AFTER scaling: the visible-rect guard above runs on the unscaled
+                    // rect, and a negative press-animation scale (typed values are unclamped)
+                    // would produce negative width/height — mirrored overlapping garbage slices.
+                    // Also rejects NaN produced by any future bad scale math.
+                    // 缩放后复查:上方可见矩形守卫跑在未缩放矩形上,负的按压缩放(键入值不
+                    // 钳制)会产生负宽高——镜像交叠的垃圾切片。同时拦截未来坏缩放数学产生的 NaN。
+                    if (float.IsNaN(r.width) || float.IsNaN(r.height) || r.width <= 0f || r.height <= 0f) continue;
                 }
                 DrawSliced(vh, r, colors[i], Sprite);
             }
@@ -185,19 +192,27 @@ namespace JipperKeyViewer.KeyViewer
             Texture tex = sprite.texture;
             float tw = tex.width, th = tex.height;
             Rect o = new Rect(tr.x / tw, tr.y / th, tr.width / tw, tr.height / th);
-            // uGUI scales the on-screen border by ppu/100 (border / multipliedPixelsPerUnit); UV
-            // splits stay raw texture fractions. Inert at ppu 100 — guards non-default imports.
-            // uGUI 按公式 ppu/100 缩放屏幕边框（border / multipliedPixelsPerUnit）；UV 分割仍为
-            // 纹理像素比例。ppu=100 时无变化——防御非默认导入设置。
-            float ppuf = sprite.pixelsPerUnit > 0f ? sprite.pixelsPerUnit / 100f : 1f;
-            Vector4 spriteBorder = sprite.border * ppuf;
+            // uGUI scales the ON-SCREEN border by 100/ppu (border * referencePixelsPerUnit /
+            // spritePixelsPerUnit): a 200-ppu sprite renders at half reference size, so its 11px
+            // border occupies 5.5px on screen. The UV splits stay RAW texture fractions (uGUI's
+            // inner UV comes from the unmodified texel border). Inert at ppu 100 — guards
+            // non-default imports. (The factor used to be inverted; it never mattered because
+            // every shipped sprite is 100 ppu.)
+            // uGUI 按 100/ppu 缩放"屏幕上"的边框(border * referencePixelsPerUnit /
+            // spritePixelsPerUnit):200 ppu 的精灵按参考尺寸的一半渲染,11px 边框在屏幕上占
+            // 5.5px。UV 切分保持原始纹理比例(uGUI 的内圈 UV 来自未缩放的 texel 边框)。
+            // ppu=100 时无变化——防御非默认导入。(此前的系数方向写反;因所有随包贴图均为
+            // 100 ppu 而从未暴露。)
+            float ppuScale = sprite.pixelsPerUnit > 0f ? 100f / sprite.pixelsPerUnit : 1f;
+            Vector4 spriteBorder = sprite.border * ppuScale;
             if (sprite.border == Vector4.zero)
             {
                 AddQuad(vh, r.xMin, r.xMax, r.yMin, r.yMax, o.xMin, o.xMax, o.yMin, o.yMax, color);
                 return;
             }
-            Rect n = new Rect((tr.x + spriteBorder.x) / tw, (tr.y + spriteBorder.y) / th,
-                (tr.width - spriteBorder.x - spriteBorder.z) / tw, (tr.height - spriteBorder.y - spriteBorder.w) / th);
+            // Inner UV from the RAW texel border — not the ppu-scaled one. / 内圈 UV 用原始 texel 边框计算,而非 ppu 缩放后的。
+            Rect n = new Rect((tr.x + sprite.border.x) / tw, (tr.y + sprite.border.y) / th,
+                (tr.width - sprite.border.x - sprite.border.z) / tw, (tr.height - sprite.border.y - sprite.border.w) / th);
             Vector4 border = spriteBorder * BorderScale;
             if (r.width < border.x + border.z)
             {

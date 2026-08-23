@@ -21,6 +21,13 @@ namespace JipperKeyViewer.LoaderMelon
         private static MelonPreferences_Entry<string> _hotkeyEntry;
         private bool _capturingHotkey;
 
+        /// <summary>Window visibility for the rebind-capture gate (IModLoader). / 供改键捕获门控查询的窗口可见性(IModLoader)。</summary>
+        internal bool IsSettingsWindowVisible => _settingsWindowVisible;
+
+        /// <summary>Currently configured settings hotkey (None when unset/unparseable). / 当前配置的设置热键(未设置/不可解析时为 None)。</summary>
+        internal KeyCode CurrentHotkey =>
+            Enum.TryParse(_hotkeyEntry?.Value, true, out KeyCode k) ? k : KeyCode.None;
+
         public override void OnInitializeMelon()
         {
             _prefs = MelonPreferences.CreateCategory("JipperKeyViewer", "Jipper Key Viewer");
@@ -147,6 +154,10 @@ namespace JipperKeyViewer.LoaderMelon
         readonly JipperMelonMod _mod;
 
         public string ModPath => _modPath;
+
+        public bool IsSettingsWindowVisible => _mod.IsSettingsWindowVisible;
+
+        public KeyCode SettingsHotkey => _mod.CurrentHotkey;
 
         public event Action<float> OnUpdate { add { } remove { } }
         public event Action<bool> OnToggle { add { } remove { } }

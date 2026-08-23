@@ -53,12 +53,20 @@ namespace JipperKeyViewer.KeyViewer
             float y = elapsedMs * speedFactor;
             float dropY = startY + y;
             if (updateSize || FinalSize == default)
-                FinalSize = new Vector2(color switch
+            {
+                // Width floor mirrors the speed/height floors in RainSystem: typed widths are
+                // stored unclamped, and a zero/negative width drop is skipped by the renderers
+                // but would otherwise never be recycled — floor keeps it recyclable and sane.
+                // 宽度下限与 RainSystem 的速度/高度下限同理:键入宽度不钳制,零/负宽度雨滴
+                // 被渲染器跳过但若不设下限将永不回收——下限保证可回收且尺寸正常。
+                float w = Mathf.Max(color switch
                 {
                     0 => isGhost ? KeyViewer.Settings.Data.GhostRainWidthRow1 : KeyViewer.Settings.Data.RainWidthRow1,
                     3 => isGhost ? KeyViewer.Settings.Data.GhostRainWidthRow3 : KeyViewer.Settings.Data.RainWidthRow3,
                     _ => isGhost ? KeyViewer.Settings.Data.GhostRainWidthRow2 : KeyViewer.Settings.Data.RainWidthRow2
-                }, y);
+                }, 1f);
+                FinalSize = new Vector2(w, y);
+            }
             if (dropY > height)
             {
                 float sizeY = FinalSize.y - dropY + height;

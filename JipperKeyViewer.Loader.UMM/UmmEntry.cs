@@ -2,6 +2,7 @@ using JipperKeyViewer;
 using System;
 using System.IO;
 using UnityModManagerNet;
+using UnityEngine;
 
 namespace JipperKeyViewer.Loader
 {
@@ -25,8 +26,18 @@ namespace JipperKeyViewer.Loader
     class UmmHandler : IModLoader
     {
         readonly UnityModManager.ModEntry _entry;
+        // UMM only invokes OnGUI while its panel is shown — remember the last drawn frame and
+        // treat "drawn recently" as visible. / UMM 仅在面板显示时调用 OnGUI——记录最近绘制帧,
+        // 以"近期绘制过"作为可见判定。
+        int _lastGuiFrame = -1000;
 
         public string ModPath => Path.GetDirectoryName(_entry.Path);
+
+        public bool IsSettingsWindowVisible => Time.frameCount - _lastGuiFrame <= 2;
+
+        // UMM's show/hide hotkey lives in UMM's own config and isn't exposed via ModEntry.
+        // / UMM 的显隐热键存于 UMM 自身配置,ModEntry 未暴露。
+        public KeyCode SettingsHotkey => KeyCode.None;
 
         public event Action<float> OnUpdate;
         public event Action<bool> OnToggle;
@@ -40,7 +51,7 @@ namespace JipperKeyViewer.Loader
             _entry = entry;
             _entry.OnUpdate = (UnityModManager.ModEntry e, float dt) => OnUpdate?.Invoke(dt);
             _entry.OnToggle = (UnityModManager.ModEntry e, bool v) => { OnToggle?.Invoke(v); return true; };
-            _entry.OnGUI = (UnityModManager.ModEntry e) => OnGUI?.Invoke();
+            _entry.OnGUI = (UnityModManager.ModEntry e) => { _lastGuiFrame = Time.frameCount; OnGUI?.Invoke(); };
             _entry.OnSaveGUI = (UnityModManager.ModEntry e) => OnSaveGUI?.Invoke();
             _entry.OnHideGUI = (UnityModManager.ModEntry e) => OnSaveGUI?.Invoke();
         }

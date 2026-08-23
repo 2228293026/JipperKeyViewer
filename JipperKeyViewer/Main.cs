@@ -14,6 +14,8 @@ namespace JipperKeyViewer
     {
         /// <summary>The persistent GameObject hosting the KeyViewer component / 持有 KeyViewer 组件的持久化 GameObject</summary>
         static GameObject KeyViewerGO;
+        /// <summary>Init guard — a second Init call would double-subscribe every loader event. / Init 防护——二次调用会让每个加载器事件被重复订阅。</summary>
+        static bool initialized;
 
         /// <summary>
         /// Initialise the mod with the given loader implementation / 使用指定的加载器实现初始化 Mod
@@ -22,6 +24,13 @@ namespace JipperKeyViewer
         /// </summary>
         public static void Init(IModLoader loader)
         {
+            // Defensive: both shipped loaders call Init exactly once, but a double call would
+            // double-subscribe OnToggle/OnGUI/OnSaveGUI (duplicate overlay toggling, double saves).
+            // 防御性:两个加载器都只调一次 Init,但重复调用会双重订阅 OnToggle/OnGUI/OnSaveGUI
+            //(覆盖层重复开关、双重保存)。
+            if (initialized) return;
+            initialized = true;
+
             Loader.Instance = loader;
 
             loader.OnToggle += (enabled) =>

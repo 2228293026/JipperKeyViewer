@@ -109,18 +109,32 @@ namespace JipperKeyViewer.KeyViewer
                 cachedStartY3 == settings.Data.RainStartYRow3 && cachedGhostStartY1 == settings.Data.GhostRainStartYRow1 &&
                 cachedGhostStartY2 == settings.Data.GhostRainStartYRow2 && cachedGhostStartY3 == settings.Data.GhostRainStartYRow3)
                 return;
-            rowSpeeds[0] = settings.Data.RainSpeedRow1 / 300f;
-            rowSpeeds[1] = settings.Data.RainSpeedRow2 / 300f;
-            rowSpeeds[2] = settings.Data.RainSpeedRow3 / 300f;
-            rowHeights[0] = settings.Data.RainHeightRow1;
-            rowHeights[1] = settings.Data.RainHeightRow2;
-            rowHeights[2] = settings.Data.RainHeightRow3;
-            ghostRowSpeeds[0] = settings.Data.GhostRainSpeedRow1 / 300f;
-            ghostRowSpeeds[1] = settings.Data.GhostRainSpeedRow2 / 300f;
-            ghostRowSpeeds[2] = settings.Data.GhostRainSpeedRow3 / 300f;
-            ghostRowHeights[0] = settings.Data.GhostRainHeightRow1;
-            ghostRowHeights[1] = settings.Data.GhostRainHeightRow2;
-            ghostRowHeights[2] = settings.Data.GhostRainHeightRow3;
+            // Floor speeds and heights: typed values are stored unclamped, and a zero/negative
+            // speed never lifts the drop past the track top (y stays <= height forever) — with
+            // fade disabled the drop is then NEVER recycled and rainList grows without bound
+            // (invisible but a steady per-frame/memory leak). A tiny positive speed keeps the
+            // "nearly frozen" look while guaranteeing eventual off-track recycling; heights are
+            // floored at 1 so the off-track branch math stays well-defined. The floor is 1px/s
+            // (1e-3 px/ms): a zero-speed drop recycles within minutes at typical heights instead
+            // of the hours a smaller floor implied.
+            // 速度与高度取下限:键入值不钳制存储,零/负速度永远无法把雨滴抬出轨道顶
+            //(y 恒 <= height)——若淡出关闭,该雨滴永不回收,rainList 无界增长(不可见但
+            // 内存与逐帧遍历成本持续泄漏)。极小正速度保留"近乎冻结"的观感,同时保证最终
+            // 落出轨道被回收;高度下限 1 保证离轨分支数学良定义。下限取 1px/s(1e-3 px/ms):
+            // 零速雨滴在典型高度下数分钟内回收,而不是更小下限意味着的小时级。
+            const float minSpeedFactor = 1e-3f;
+            rowSpeeds[0] = Mathf.Max(settings.Data.RainSpeedRow1 / 300f, minSpeedFactor);
+            rowSpeeds[1] = Mathf.Max(settings.Data.RainSpeedRow2 / 300f, minSpeedFactor);
+            rowSpeeds[2] = Mathf.Max(settings.Data.RainSpeedRow3 / 300f, minSpeedFactor);
+            rowHeights[0] = Mathf.Max(settings.Data.RainHeightRow1, 1f);
+            rowHeights[1] = Mathf.Max(settings.Data.RainHeightRow2, 1f);
+            rowHeights[2] = Mathf.Max(settings.Data.RainHeightRow3, 1f);
+            ghostRowSpeeds[0] = Mathf.Max(settings.Data.GhostRainSpeedRow1 / 300f, minSpeedFactor);
+            ghostRowSpeeds[1] = Mathf.Max(settings.Data.GhostRainSpeedRow2 / 300f, minSpeedFactor);
+            ghostRowSpeeds[2] = Mathf.Max(settings.Data.GhostRainSpeedRow3 / 300f, minSpeedFactor);
+            ghostRowHeights[0] = Mathf.Max(settings.Data.GhostRainHeightRow1, 1f);
+            ghostRowHeights[1] = Mathf.Max(settings.Data.GhostRainHeightRow2, 1f);
+            ghostRowHeights[2] = Mathf.Max(settings.Data.GhostRainHeightRow3, 1f);
             rowStartYs[0] = settings.Data.RainStartYRow1;
             rowStartYs[1] = settings.Data.RainStartYRow2;
             rowStartYs[2] = settings.Data.RainStartYRow3;
@@ -338,7 +352,11 @@ namespace JipperKeyViewer.KeyViewer
                 r.fadeTimer = 0f;
                 r.dNear = r.dFar = r.trackHeight = r.fadePx = 0f;
                 r.shadowEnabled = false;
+                r.shadowColor = default;
+                r.shadowOffsetX = r.shadowOffsetY = 0f;
                 r.outlineEnabled = false;
+                r.outlineColor = default;
+                r.outlineWidth = 0f;
             }
             else
             {

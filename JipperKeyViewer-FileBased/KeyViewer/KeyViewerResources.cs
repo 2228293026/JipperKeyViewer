@@ -54,7 +54,16 @@ namespace JipperKeyViewer.KeyViewer
         {
             if (keyBackgroundSprite != null) return true;
 
+            // Destroy the previous dynamically-created assets before dropping the references —
+            // TMP_FontAssets carry atlas textures/materials; without this, every loader-level
+            // toggle (UMM off→on) leaked the whole set.
+            // 清空前先销毁旧的动态创建资产——TMP_FontAsset 持有图集纹理/材质;否则每次加载器级
+            // 开关(UMM 关→开)都会泄漏一整套。
+            foreach (var e in fontList)
+                if (e.font != null) Destroy(e.font);
             fontList.Clear();
+            foreach (var m in shadowMaterials.Values)
+                if (m != null) Destroy(m);
             shadowMaterials.Clear();
 
             string modPath = Loader.ModPath;
@@ -106,9 +115,13 @@ namespace JipperKeyViewer.KeyViewer
         private static Sprite LoadSpriteFromFile(string path)
         {
             if (!File.Exists(path)) return null;
+            // Allocated outside the try so the catch can release it — every failure path below
+            // used to leak one texture per attempt. / 提到 try 外声明,catch 可释放——此前每条
+            // 失败路径每次尝试泄漏一张纹理。
+            Texture2D tex = null;
             try
             {
-                var tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+                tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
                 byte[] bytes = File.ReadAllBytes(path);
                 if (!_loadImageCached)
                 {
@@ -141,10 +154,35 @@ namespace JipperKeyViewer.KeyViewer
                 }
                 if (_cachedLoadImage != null)
                 {
-                    if (_loadImageParamCount == 2)
-                        _cachedLoadImage.Invoke(null, new object[] { tex, bytes });
-                    else
-                        _cachedLoadImage.Invoke(null, new object[] { tex, bytes, false });
+                    // LoadImage returns false for corrupt data but still leaves a 2x2 garbage
+                    // texture — honoring the return value prevents a noise sprite wearing an 11px
+                    // 9-slice border (silently rendered stretched garbage).
+                    // LoadImage 对损坏数据返回 false 但留下 2x2 垃圾纹理——检查返回值,
+                    // 防止噪点精灵套上 11px 九宫格边框(静默渲染拉伸噪点)。
+                    object result = _loadImageParamCount == 2
+                        ? _cachedLoadImage.Invoke(null, new object[] { tex, bytes })
+                        : _cachedLoadImage.Invoke(null, new object[] { tex, bytes, false });
+                    if (result is bool ok && !ok)
+                    {
+                        Destroy(tex);
+                        Loader.Error($"KeyViewer: PNG data corrupt, cannot decode '{path}'");
+                        return null;
+                    }
+                }
+                else
+                {
+                    // No LoadImage available — destroy the stub texture instead of returning a
+                    // blank sprite. / 无 LoadImage 可用——销毁占位纹理而非返回空白精灵。
+                    Destroy(tex);
+                    return null;
+                }
+                // A decoded image smaller than the combined 11px borders can't carry the 9-slice
+                // frame; treat as corrupt. / 解码尺寸小于 11px 双边框和的图承载不了九宫格,按损坏处理。
+                if (tex.width < 22 || tex.height < 22)
+                {
+                    Destroy(tex);
+                    Loader.Error($"KeyViewer: sprite '{path}' too small ({tex.width}x{tex.height}) for the 11px 9-slice border");
+                    return null;
                 }
                 tex.filterMode = FilterMode.Bilinear;
                 tex.wrapMode = TextureWrapMode.Clamp;
@@ -152,6 +190,9 @@ namespace JipperKeyViewer.KeyViewer
             }
             catch (Exception e)
             {
+                // The texture may already be allocated when anything below throws — release it.
+                // 下方任意一步抛异常时纹理可能已分配——必须释放。
+                if (tex != null) Destroy(tex);
                 Loader.Error($"KeyViewer: Failed to load sprite from '{path}': {e.Message}");
                 return null;
             }
@@ -173,9 +214,20 @@ namespace JipperKeyViewer.KeyViewer
                 if (font != null)
                 {
                     target = TMP_FontAsset.CreateFontAsset(font);
-                    var entry = new FontEntry(entryName, target);
-                    entry.sourceFontName = Path.GetFileNameWithoutExtension(fileName);
-                    fontList.Add(entry);
+                    // CreateFontAsset can return null (unreadable font) — a null entry would render
+                    // as an empty row in the font list; skip it like ScanCustomFonts does.
+                    // CreateFontAsset 可能返回 null(不可读字体)——null 条目会在字体列表中渲染成
+                    // 空行;与 ScanCustomFonts 一致地跳过。
+                    if (target != null)
+                    {
+                        var entry = new FontEntry(entryName, target);
+                        entry.sourceFontName = Path.GetFileNameWithoutExtension(fileName);
+                        fontList.Add(entry);
+                    }
+                    else
+                    {
+                        Loader.Error($"KeyViewer: TMP_FontAsset.CreateFontAsset failed for '{fileName}'");
+                    }
                 }
             }
             catch (Exception e)
@@ -200,9 +252,20 @@ namespace JipperKeyViewer.KeyViewer
                 if (font != null)
                 {
                     var cjkFont = TMP_FontAsset.CreateFontAsset(font);
-                    var entry = new FontEntry(entryName, cjkFont);
-                    entry.sourceFontName = Path.GetFileNameWithoutExtension(fileName);
-                    fontList.Insert(0, entry);
+                    // Null CJK font breaks the whole fallback chain; don't insert the entry when
+                    // creation failed — Insert(0) would occupy the default slot with a dead font.
+                    // CJK 字体为 null 会破坏整条后备链;创建失败时不要插入条目——Insert(0) 会把
+                    // 默认槽位让给死字体。
+                    if (cjkFont != null)
+                    {
+                        var entry = new FontEntry(entryName, cjkFont);
+                        entry.sourceFontName = Path.GetFileNameWithoutExtension(fileName);
+                        fontList.Insert(0, entry);
+                    }
+                    else
+                    {
+                        Loader.Error($"KeyViewer: TMP_FontAsset.CreateFontAsset failed for CJK font '{fileName}' (CJK labels render as boxes)");
+                    }
                 }
             }
             catch (Exception e)
@@ -252,8 +315,13 @@ namespace JipperKeyViewer.KeyViewer
                     int pi = i;
                     UpdateText(Keys[i].text);
                     ApplyPerKeyOverride(Keys[i].text, pi);
-                    ApplyPerKeyOverride(Keys[i].value, pi);
+                    // value: reset FIRST, then override — the old order let UpdateText's
+                    // unconditional fontSizeMax write clobber the per-key size (the Kps/Total
+                    // blocks below already had the correct order).
+                    // value:先重置后覆盖——旧顺序会让 UpdateText 的无条件 fontSizeMax 写入
+                    // 抹掉每键字号(下方 Kps/Total 段原本顺序就正确)。
                     UpdateText(Keys[i].value);
+                    ApplyPerKeyOverride(Keys[i].value, pi);
                 }
             }
             int kpsPi = MaxKeySlots;

@@ -477,6 +477,17 @@ namespace JipperKeyViewer.KeyViewer
             n.GhostRainOffsetY = n.RainOffsetY;
         }
 
+        /// <summary>Seed a node's trail-top fade + release fade from the current global toggles. /
+        /// 用当前全局设置为节点的顶部渐隐与松开淡出做种子。</summary>
+        private static void SeedRainFadeFromGlobals(KvNode n)
+        {
+            ProfileData d = Settings.Data;
+            n.TrailFadeEnabled = d.EnableRainGradient;
+            n.TrailFadePx = d.RainFadePx;
+            n.ReleaseFadeEnabled = d.EnableRainFade;
+            n.ReleaseFadeDuration = d.RainFadeDuration;
+        }
+
         private void EditorAddNode(int type)
         {
             if (type == 1 && Settings.Data.CustomNodes.Any(n => n != null && n.NodeType == 1)) return;
@@ -2026,6 +2037,33 @@ namespace JipperKeyViewer.KeyViewer
                     foreach (KvNode n in editorSelection) n.RainOffsetY = Mathf.Clamp(v, -2000f, 2000f);
                     EditorPropertyChanged();
                 });
+                // Per-node trail-top fade + release fade (the Rain tab's 顶部渐隐/松开淡出 sunk
+                // to the node). / 节点级顶部渐隐与松开淡出（雨线页对应设置下沉到节点）。
+                bool useRainFade = GUILayout.Toggle(first.UseCustomRainFade, I18n.Tr("fm_rain_fade_custom"));
+                if (useRainFade != first.UseCustomRainFade)
+                {
+                    foreach (KvNode n in editorSelection)
+                    {
+                        n.UseCustomRainFade = useRainFade;
+                        if (useRainFade) SeedRainFadeFromGlobals(n);
+                    }
+                    EditorPropertyChanged();
+                }
+                if (first.UseCustomRainFade)
+                {
+                    DrawEditorToggle(I18n.Tr("rain_gradient"), first.TrailFadeEnabled, v => { foreach (KvNode n in editorSelection) n.TrailFadeEnabled = v; });
+                    DrawEditorFloatField(I18n.Tr("gradient_percent"), "fme_tfp_" + first.Id, n => n.TrailFadePx, v =>
+                    {
+                        foreach (KvNode n in editorSelection) n.TrailFadePx = Mathf.Clamp(v, 0f, 500f);
+                        EditorPropertyChanged();
+                    });
+                    DrawEditorToggle(I18n.Tr("rain_fade"), first.ReleaseFadeEnabled, v => { foreach (KvNode n in editorSelection) n.ReleaseFadeEnabled = v; });
+                    DrawEditorFloatField(I18n.Tr("fade_duration"), "fme_rfd_" + first.Id, n => n.ReleaseFadeDuration, v =>
+                    {
+                        foreach (KvNode n in editorSelection) n.ReleaseFadeDuration = Mathf.Clamp(v, 0f, 5f);
+                        EditorPropertyChanged();
+                    });
+                }
                 // Per-node shadow/outline overrides (the Rain tab's shadow/outline rows sunk to
                 // the node; off → follow the selected row). / 节点级阴影/描边覆盖（雨线页的
                 // 阴影/描边设置下沉到节点；关闭 → 跟随所选排）。

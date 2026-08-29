@@ -189,8 +189,13 @@ namespace JipperKeyViewer.KeyViewer
             // Zero/negative duration (typed values are unclamped): treat as instant fade — avoids a
             // 0/0 NaN alpha on the first tick. / 零/负时长（键入值不钳制）：按立即淡出处理——
             // 避免首帧 0/0 得到 NaN 透明度。
-            float t = settings.Data.RainFadeDuration > 0f
-                ? Mathf.Clamp01(rain.fadeTimer / settings.Data.RainFadeDuration)
+            // Per-node release-fade duration override (UseCustomRainFade). /
+            // 节点级松开淡出时长覆盖（UseCustomRainFade）。
+            float fadeDur = key != null && key.CustomNode != null && key.CustomNode.UseCustomRainFade
+                ? key.CustomNode.ReleaseFadeDuration
+                : settings.Data.RainFadeDuration;
+            float t = fadeDur > 0f
+                ? Mathf.Clamp01(rain.fadeTimer / fadeDur)
                 : 1f;
             rain.alpha = 1f - (t * (2f - t));
             if (t >= 1f)
@@ -213,7 +218,13 @@ namespace JipperKeyViewer.KeyViewer
             rain.dFar = Mathf.Min(trailEdgeDist, height);
             rain.dNear = rain.dFar - drawH;
             rain.trackHeight = height;
-            rain.fadePx = settings.Data.EnableRainGradient && !rain.isGhost ? settings.Data.RainFadePx : 0f;
+            // Trail-top fade px: per-node override (UseCustomRainFade), ghost stays hard-edged
+            // like the global behavior. / 顶部渐隐像素：节点级覆盖（UseCustomRainFade），鬼雨
+            // 与全局行为一致保持硬边。
+            rain.fadePx = rain.isGhost ? 0f
+                : key.CustomNode != null && key.CustomNode.UseCustomRainFade
+                    ? (key.CustomNode.TrailFadeEnabled ? key.CustomNode.TrailFadePx : 0f)
+                    : (settings.Data.EnableRainGradient ? settings.Data.RainFadePx : 0f);
 
             float w = rain.sizeDelta?.x ?? rain.FinalSize.x;
             float h = rain.sizeDelta?.y ?? rain.FinalSize.y;
@@ -277,7 +288,12 @@ namespace JipperKeyViewer.KeyViewer
             {
                 if (key.rainList[i].isGhost) continue;
                 key.rainList[i].growing = false;
-                if (settings.Data.EnableRainFade)
+                // Per-node release-fade enable override (UseCustomRainFade). /
+                // 节点级松开淡出开关覆盖（UseCustomRainFade）。
+                bool fadeOn = key.CustomNode != null && key.CustomNode.UseCustomRainFade
+                    ? key.CustomNode.ReleaseFadeEnabled
+                    : settings.Data.EnableRainFade;
+                if (fadeOn)
                 {
                     key.rainList[i].fadingOut = true;
                     key.rainList[i].fadeTimer = 0f;

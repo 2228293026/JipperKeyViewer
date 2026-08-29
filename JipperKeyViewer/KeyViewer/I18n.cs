@@ -133,6 +133,7 @@ namespace JipperKeyViewer.KeyViewer
             ["tab_colors"] = "Colors",
 
             ["fm_open_editor"] = "Open FreeMake Editor",
+            ["fm_rain_fade_custom"] = "Custom Rain Fade",
             ["fm_ghost_rain_params_custom"] = "Custom Ghost Rain",
             ["fm_ghost_rain_shadow_custom"] = "Custom Ghost Shadow",
             ["fm_ghost_rain_outline_custom"] = "Custom Ghost Outline",
@@ -333,6 +334,7 @@ namespace JipperKeyViewer.KeyViewer
             ["tab_colors"] = "颜色",
 
             ["fm_open_editor"] = "打开 FreeMake 编辑器",
+            ["fm_rain_fade_custom"] = "自定义雨滴渐变",
             ["fm_ghost_rain_params_custom"] = "自定义鬼雨参数",
             ["fm_ghost_rain_shadow_custom"] = "自定义鬼雨阴影",
             ["fm_ghost_rain_outline_custom"] = "自定义鬼雨描边",
@@ -533,6 +535,7 @@ namespace JipperKeyViewer.KeyViewer
             ["tab_colors"] = "색상",
 
             ["fm_open_editor"] = "FreeMake 편집기 열기",
+            ["fm_rain_fade_custom"] = "사용자 지정 빗줄기 페이드",
             ["fm_ghost_rain_params_custom"] = "사용자 지정 고스트 빗줄기",
             ["fm_ghost_rain_shadow_custom"] = "사용자 지정 고스트 그림자",
             ["fm_ghost_rain_outline_custom"] = "사용자 지정 고스트 아웃라인",

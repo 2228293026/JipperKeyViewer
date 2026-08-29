@@ -694,6 +694,14 @@ namespace JipperKeyViewer.KeyViewer
         public float GhostRainSpeed;
         public float GhostRainOffsetX;
         public float GhostRainOffsetY;
+        // Per-node trail-top fade + release fade (the Rain tab's 顶部渐隐/松开淡出 sunk to the
+        // node; off → the global toggles). / 节点级顶部渐隐与松开淡出（雨线页对应设置下沉到
+        // 节点；关闭 → 跟随全局开关）。
+        public bool UseCustomRainFade;
+        public bool TrailFadeEnabled = true;
+        public float TrailFadePx = 50f;
+        public bool ReleaseFadeEnabled;
+        public float ReleaseFadeDuration = 0.5f;
         public float CounterAnimDurationMs = 300f;
         public float[] CounterAnimBezier = new float[] { 0.25f, 0.46f, 0.45f, 0.94f };
         // Layer group id ("" = ungrouped); groups carry a name and a visibility toggle. /

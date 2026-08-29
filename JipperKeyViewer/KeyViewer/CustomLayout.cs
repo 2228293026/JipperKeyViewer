@@ -169,6 +169,8 @@ namespace JipperKeyViewer.KeyViewer
                 node.GhostRainSpeed = float.IsNaN(node.GhostRainSpeed) ? 0f : Mathf.Clamp(node.GhostRainSpeed, 0f, 5000f);
                 node.GhostRainOffsetX = float.IsNaN(node.GhostRainOffsetX) ? 0f : Mathf.Clamp(node.GhostRainOffsetX, -2000f, 2000f);
                 node.GhostRainOffsetY = float.IsNaN(node.GhostRainOffsetY) ? 0f : Mathf.Clamp(node.GhostRainOffsetY, -2000f, 2000f);
+                node.TrailFadePx = float.IsNaN(node.TrailFadePx) ? 50f : Mathf.Clamp(node.TrailFadePx, 0f, 500f);
+                node.ReleaseFadeDuration = float.IsNaN(node.ReleaseFadeDuration) ? 0.5f : Mathf.Clamp(node.ReleaseFadeDuration, 0f, 5f);
             }
             // Enforce caps: at most one KPS + one Total panel, limited key and image nodes. /
             // 强制上限：KPS/Total 各最多一个，按键与图片节点限量。

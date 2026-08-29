@@ -229,7 +229,8 @@ namespace JipperKeyViewer.KeyViewer
                 ? rain.TrackBaseY + rain.StartOffsetY
                 : (rain.isGhost ? ghostRowStartYs[ri] : rowStartYs[ri]) + rain.StartOffsetY;
             float travel = rain.anchoredPosition.Value.y - rain.startY;
-            float cx = keyPos.x + key.rainOffsetX + key.rainWidth * 0.5f;
+            float ox = rain.HasOffsetX ? rain.OffsetXOverride : key.rainOffsetX;
+            float cx = keyPos.x + ox + key.rainWidth * 0.5f;
             float topY = keyPos.y - key.keySize.y * 0.5f + baseStart + RainContainerHeight + travel;
 
             float s = Layer != null ? Layer.GetKeyScale(keyIndex) : 1f;
@@ -367,6 +368,8 @@ namespace JipperKeyViewer.KeyViewer
                 r.StartOffsetY = 0f;
                 r.HasTrackBase = false;
                 r.TrackBaseY = 0f;
+                r.HasOffsetX = false;
+                r.OffsetXOverride = 0f;
                 r.NodeWidth = 0f;
                 r.NodeHeight = 0f;
                 r.NodeSpeed = 0f;
@@ -541,6 +544,19 @@ namespace JipperKeyViewer.KeyViewer
                 if (key.CustomNode.RainWidth > 0f) rawRain.NodeWidth = key.CustomNode.RainWidth;
                 if (key.CustomNode.RainHeight > 0f) rawRain.NodeHeight = key.CustomNode.RainHeight;
                 if (key.CustomNode.RainSpeed > 0f) rawRain.NodeSpeed = key.CustomNode.RainSpeed;
+            }
+
+            // Ghost rain with independent params: shape/offset overrides of its own, layered on
+            // top of the shared ones. / 独立参数的鬼雨：自有的形状/偏移覆盖，叠加在共享覆盖之上。
+            if (isGhost && key.CustomNode != null && key.CustomNode.UseCustomGhostRainParams)
+            {
+                KvNode g = key.CustomNode;
+                if (g.GhostRainWidth > 0f) rawRain.NodeWidth = g.GhostRainWidth;
+                if (g.GhostRainHeight > 0f) rawRain.NodeHeight = g.GhostRainHeight;
+                if (g.GhostRainSpeed > 0f) rawRain.NodeSpeed = g.GhostRainSpeed;
+                rawRain.StartOffsetY = g.GhostRainOffsetY;
+                rawRain.HasOffsetX = true;
+                rawRain.OffsetXOverride = g.GhostRainOffsetX;
             }
 
             rawRain.isGhost = isGhost;

@@ -46,6 +46,11 @@ namespace JipperKeyViewer.KeyViewer
         /// 50px 键调校的，较高的节点会让轨迹从按键内部冒出来。</summary>
         public bool HasTrackBase;
         public float TrackBaseY;
+        /// <summary>Per-drop X offset override (ghost rain with independent params); when unset
+        /// the key's shared rainOffsetX applies. / 逐滴 X 偏移覆盖（独立参数的鬼雨）；未设时
+        /// 用按键共享的 rainOffsetX。</summary>
+        public bool HasOffsetX;
+        public float OffsetXOverride;
         /// <summary>Fade-out alpha (1 = opaque) / 淡出透明度（1 = 不透明）</summary>
         public float alpha = 1f;
         /// <summary>Per-key press scale applied when this rect was computed (scales shadow/outline offsets at emit) / 计算此矩形时的每键按压缩放（发射时缩放阴影/描边偏移）</summary>

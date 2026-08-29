@@ -685,6 +685,15 @@ namespace JipperKeyViewer.KeyViewer
         public bool GhostRainOutlineEnabled;
         public float[] GhostRainOutlineColor;
         public float GhostRainOutlineWidth = 2f;
+        // Per-node GHOST rain shape/offset params: off → ghost shares the node's normal rain
+        // overrides (and the ghost row fallbacks); on → fully independent. /
+        // 节点级鬼雨形状/偏移参数：关闭 → 鬼雨共用节点的普通雨覆盖（及鬼雨排回退）；开启 → 完全独立。
+        public bool UseCustomGhostRainParams;
+        public float GhostRainWidth;
+        public float GhostRainHeight;
+        public float GhostRainSpeed;
+        public float GhostRainOffsetX;
+        public float GhostRainOffsetY;
         public float CounterAnimDurationMs = 300f;
         public float[] CounterAnimBezier = new float[] { 0.25f, 0.46f, 0.45f, 0.94f };
         // Layer group id ("" = ungrouped); groups carry a name and a visibility toggle. /

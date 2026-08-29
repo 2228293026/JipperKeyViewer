@@ -459,6 +459,24 @@ namespace JipperKeyViewer.KeyViewer
             n.GhostRainOutlineWidth = row == 1 ? d.GhostRainOutlineWidthRow1 : row == 2 ? d.GhostRainOutlineWidthRow2 : d.GhostRainOutlineWidthRow3;
         }
 
+        /// <summary>Seed a node's ghost rain shape/offset params from the current effective
+        /// values (node normal-rain overrides when set, else the ghost row; offsets from the
+        /// node's normal rain offsets). / 用当前生效值为鬼雨形状/偏移参数做种子（节点普通雨覆
+        /// 盖优先，否则鬼雨排；偏移取节点普通雨偏移）。</summary>
+        private static void SeedGhostRainParams(KvNode n)
+        {
+            ProfileData d = Settings.Data;
+            int row = Mathf.Clamp(n.RainRow, 0, 2) + 1; // 1..3
+            n.GhostRainWidth = n.RainWidth > 0f ? n.RainWidth
+                : row == 1 ? d.GhostRainWidthRow1 : row == 2 ? d.GhostRainWidthRow2 : d.GhostRainWidthRow3;
+            n.GhostRainHeight = n.RainHeight > 0f ? n.RainHeight
+                : row == 1 ? d.GhostRainHeightRow1 : row == 2 ? d.GhostRainHeightRow2 : d.GhostRainHeightRow3;
+            n.GhostRainSpeed = n.RainSpeed > 0f ? n.RainSpeed
+                : row == 1 ? d.GhostRainSpeedRow1 : row == 2 ? d.GhostRainSpeedRow2 : d.GhostRainSpeedRow3;
+            n.GhostRainOffsetX = n.RainOffsetX;
+            n.GhostRainOffsetY = n.RainOffsetY;
+        }
+
         private void EditorAddNode(int type)
         {
             if (type == 1 && Settings.Data.CustomNodes.Any(n => n != null && n.NodeType == 1)) return;
@@ -2065,6 +2083,44 @@ namespace JipperKeyViewer.KeyViewer
                 // 节点级鬼雨阴影/描边——仅在绑定了鬼键时有意义。
                 if (!string.IsNullOrWhiteSpace(first.GhostKey))
                 {
+                    bool useGhostParams = GUILayout.Toggle(first.UseCustomGhostRainParams, I18n.Tr("fm_ghost_rain_params_custom"));
+                    if (useGhostParams != first.UseCustomGhostRainParams)
+                    {
+                        foreach (KvNode n in editorSelection)
+                        {
+                            n.UseCustomGhostRainParams = useGhostParams;
+                            if (useGhostParams) SeedGhostRainParams(n);
+                        }
+                        EditorPropertyChanged();
+                    }
+                    if (first.UseCustomGhostRainParams)
+                    {
+                        DrawEditorFloatField(I18n.Tr("rain_width"), "fme_grw_" + first.Id, n => n.GhostRainWidth, v =>
+                        {
+                            foreach (KvNode n in editorSelection) n.GhostRainWidth = Mathf.Max(0f, v);
+                            EditorPropertyChanged();
+                        });
+                        DrawEditorFloatField(I18n.Tr("rain_height"), "fme_grh_" + first.Id, n => n.GhostRainHeight, v =>
+                        {
+                            foreach (KvNode n in editorSelection) n.GhostRainHeight = Mathf.Max(0f, v);
+                            EditorPropertyChanged();
+                        });
+                        DrawEditorFloatField(I18n.Tr("rain_speed"), "fme_grs_" + first.Id, n => n.GhostRainSpeed, v =>
+                        {
+                            foreach (KvNode n in editorSelection) n.GhostRainSpeed = Mathf.Max(0f, v);
+                            EditorPropertyChanged();
+                        });
+                        DrawEditorFloatField(I18n.Tr("fm_rain_offset_x"), "fme_grox_" + first.Id, n => n.GhostRainOffsetX, v =>
+                        {
+                            foreach (KvNode n in editorSelection) n.GhostRainOffsetX = Mathf.Clamp(v, -2000f, 2000f);
+                            EditorPropertyChanged();
+                        });
+                        DrawEditorFloatField(I18n.Tr("fm_rain_offset_y"), "fme_groy_" + first.Id, n => n.GhostRainOffsetY, v =>
+                        {
+                            foreach (KvNode n in editorSelection) n.GhostRainOffsetY = Mathf.Clamp(v, -2000f, 2000f);
+                            EditorPropertyChanged();
+                        });
+                    }
                     bool useGhostShadow = GUILayout.Toggle(first.UseCustomGhostRainShadow, I18n.Tr("fm_ghost_rain_shadow_custom"));
                     if (useGhostShadow != first.UseCustomGhostRainShadow)
                     {

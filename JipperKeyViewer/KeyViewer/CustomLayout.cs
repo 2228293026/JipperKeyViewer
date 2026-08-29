@@ -164,6 +164,11 @@ namespace JipperKeyViewer.KeyViewer
                 node.GhostRainShadowOffsetX = float.IsNaN(node.GhostRainShadowOffsetX) ? 3f : Mathf.Clamp(node.GhostRainShadowOffsetX, -50f, 50f);
                 node.GhostRainShadowOffsetY = float.IsNaN(node.GhostRainShadowOffsetY) ? -3f : Mathf.Clamp(node.GhostRainShadowOffsetY, -50f, 50f);
                 node.GhostRainOutlineWidth = float.IsNaN(node.GhostRainOutlineWidth) ? 2f : Mathf.Clamp(node.GhostRainOutlineWidth, 0f, 50f);
+                node.GhostRainWidth = float.IsNaN(node.GhostRainWidth) ? 0f : Mathf.Clamp(node.GhostRainWidth, 0f, 2000f);
+                node.GhostRainHeight = float.IsNaN(node.GhostRainHeight) ? 0f : Mathf.Clamp(node.GhostRainHeight, 0f, 2000f);
+                node.GhostRainSpeed = float.IsNaN(node.GhostRainSpeed) ? 0f : Mathf.Clamp(node.GhostRainSpeed, 0f, 5000f);
+                node.GhostRainOffsetX = float.IsNaN(node.GhostRainOffsetX) ? 0f : Mathf.Clamp(node.GhostRainOffsetX, -2000f, 2000f);
+                node.GhostRainOffsetY = float.IsNaN(node.GhostRainOffsetY) ? 0f : Mathf.Clamp(node.GhostRainOffsetY, -2000f, 2000f);
             }
             // Enforce caps: at most one KPS + one Total panel, limited key and image nodes. /
             // 强制上限：KPS/Total 各最多一个，按键与图片节点限量。

@@ -1911,7 +1911,13 @@ namespace JipperKeyViewer.KeyViewer
             // 剥掉混合标记，直接在"—"后输入也能解析（见 DrawEditorFloatField）。
             if (int.TryParse(depthText.Replace("—", "").Trim(), out int parsedDepth)) newDepth = Mathf.Clamp(parsedDepth, 0, 60);
             GUILayout.EndHorizontal();
-            if (newDepth != first.Depth && (!depthMixed || int.TryParse(depthText.Replace("—", "").Trim(), out _)))
+            // A slider drag is deliberate intent on its own — it must NOT require the text box to
+            // parse first (mixed "—" used to block dragging until the dash was deleted). Untouched
+            // mixed selections stay safe: the slider sits at the active node's value → equal → no
+            // apply. / 拖动滑杆本身就是明确意图——不应要求文本框先可解析（此前混合"—"会把滑杆
+            // 堵到先删横线为止）。未触碰的混合选区仍然安全：滑杆停在活动节点的值上 → 相等 →
+            // 不应用。
+            if (newDepth != first.Depth)
             {
                 foreach (KvNode n in editorSelection) n.Depth = newDepth;
                 EditorPropertyChanged();
@@ -2436,7 +2442,10 @@ namespace JipperKeyViewer.KeyViewer
             if (int.TryParse(text.Replace("—", "").Trim(), out int parsed)) size = Mathf.Clamp(parsed, 0, 72);
             GUILayout.Label(size <= 0 ? I18n.Tr("fm_font_global") : size + "px", GUILayout.Width(48f));
             GUILayout.EndHorizontal();
-            if (!Mathf.Approximately(size, first.FontSize) && (!mixed || int.TryParse(text.Replace("—", "").Trim(), out _)))
+            // Same as depth: a slider drag applies on its own; untouched mixed selections keep the
+            // slider at the active node's value → no accidental apply. / 与深度同理：拖滑杆即应
+            // 用；未触碰的混合选区滑杆停在活动节点值上——不会误应用。
+            if (!Mathf.Approximately(size, first.FontSize))
             {
                 foreach (KvNode n in editorSelection) n.FontSize = size;
                 EditorPropertyChanged();

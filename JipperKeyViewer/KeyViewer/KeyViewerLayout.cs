@@ -413,13 +413,13 @@ namespace JipperKeyViewer.KeyViewer
         /// Keys are created from Settings.Data.key108 (index-aligned with BuildDefaultKey108). / 按键来自 key108 数组（下标与 BuildDefaultKey108 对齐）
         /// No foot keys, no per-key colors, no ghost keys. / 无脚键、无每键配色、无鬼键。
         /// </summary>
-        private void InitializeFullKeyboard()
+        /// <summary>Shared 108-key slot table (index, x, width-units) used by both the fixed layout
+        /// builder and the FreeMake preset generator. / 108 键槽位表（索引, x, y, 宽度单位），
+        /// 固定布局构建与 FreeMake 预设生成共用。</summary>
+        private static System.Collections.Generic.List<(int idx, double x, double y, double w)> Full108SlotTable()
         {
             const float U = 50f; // base key unit / 基准键宽
-            // y values are absolute px in the standard-layout visual band (top row ~350, bottom ~42).
-            // DownLocation shifts the whole block down. / y 为标准布局可见视觉带内的绝对像素，DownLocation 整体下移。
-            float yShift = Settings.Data.DownLocation ? 200f : 0f;
-            System.Collections.Generic.List<(int idx, double x, double y, double w)> slots = new()
+            return new System.Collections.Generic.List<(int idx, double x, double y, double w)>
             {
                 (0, 0*U, 580, 1*U),
                 (1, 2*U, 580, 1*U),
@@ -527,6 +527,15 @@ namespace JipperKeyViewer.KeyViewer
                 (103, 24*U, 300, 1*U),
                 (104, 25*U, 300, 1*U)
             };
+        }
+
+        private void InitializeFullKeyboard()
+        {
+            const float U = 50f; // base key unit / 基准键宽
+            // y values are absolute px in the standard-layout visual band (top row ~350, bottom ~42).
+            // DownLocation shifts the whole block down. / y 为标准布局可见视觉带内的绝对像素，DownLocation 整体下移。
+            float yShift = Settings.Data.DownLocation ? 200f : 0f;
+            var slots = Full108SlotTable();
 
             // Uniform 6px horizontal gap (matching the 6px vertical row gap): scale every key's x and
             // width from the 50px unit to a 56px column step, then trim 6px off each width. Because the
@@ -1017,6 +1026,13 @@ namespace JipperKeyViewer.KeyViewer
         {
             int pi = KeyIndex(i);
             if (IsFullKeyboard) return; // colors set by ApplyFullKeyboardColors after creation
+            // Custom layouts: colors are node-owned (ApplyCustomKeyColors overwrites right after
+            // CreateKey returns) and the per-key arrays are sized MaxKeySlots+2 — custom slots can
+            // exceed that (the 108K preset fills 105 slots), so indexing here would go out of
+            // bounds. / 自定义布局：颜色归节点所有（CreateKey 返回后立即被
+            // ApplyCustomKeyColors 覆盖），且每键数组按 MaxKeySlots+2 定长——自定义槽位可超出
+            // （108K 预设占满 105 槽），此处索引会越界。
+            if (IsCustomLayout) return;
             if (Settings.Data.EnablePerKeyColors)
             {
                 if (pi < 0) return;

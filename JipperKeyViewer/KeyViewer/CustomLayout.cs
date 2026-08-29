@@ -98,7 +98,10 @@ namespace JipperKeyViewer.KeyViewer
             return 3f * inv * inv * p1 + 6f * inv * s * (p2 - p1) + 3f * s * s * (1f - p2);
         }
 
-        internal static int CustomKeyNodeCap => MaxKeySlots; // 40 key/stat nodes / 40 个按键类节点
+        // 108 keys (the full-keyboard preset) + KPS/Total panels + a little headroom. The old
+        // MaxKeySlots(40) tie couldn't hold a 108K preset. / 108 键（全键盘预设）+ KPS/Total
+        // 面板 + 少量余量。此前与 MaxKeySlots(40) 绑定的上限装不下 108K 预设。
+        internal static int CustomKeyNodeCap => 112;
 
         /// <summary>Whether a node takes a runtime Key slot: everything except an unbound image. /
         /// 节点是否占用运行时 Key 槽位：除未绑定按键的图片节点外全部占用。</summary>

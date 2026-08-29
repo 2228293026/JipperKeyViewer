@@ -183,7 +183,7 @@ namespace JipperKeyViewer.KeyViewer
             // 预设条：一键把内置布局生成为可编辑节点。
             if (fmPresetStripOpen)
             {
-                string[] names = new string[KeyLayoutNames.Length - 2]; // skip 108K (node cap) and Custom / 跳过 108K（节点上限）与自定义
+                string[] names = new string[KeyLayoutNames.Length - 1]; // skip only Custom / 仅跳过「自定义」
                 Array.Copy(KeyLayoutNames, names, names.Length);
                 int picked = GUILayout.SelectionGrid(-1, names, names.Length, GUILayout.Height(22f));
                 if (picked >= 0)
@@ -203,7 +203,7 @@ namespace JipperKeyViewer.KeyViewer
         /// 过去——当前布局原封不动。</summary>
         private void EditorApplyPreset(int styleIndex)
         {
-            if (styleIndex < 0 || styleIndex >= 7) return; // 0-6 = 12K/16K/20K/10K/8K/14K/24K
+            if (styleIndex < 0 || styleIndex >= 8) return; // 0-7 = 12K/16K/20K/10K/8K/14K/24K/108K
             KeyviewerStyle style = (KeyviewerStyle)styleIndex;
             List<KvNode> nodes = BuildPresetNodes(style, out int nextId);
             // Flush the CURRENT layout to its file before switching. / 切换前先把当前布局落盘。
@@ -250,8 +250,10 @@ namespace JipperKeyViewer.KeyViewer
                 case KeyviewerStyle.Key10: binds = Settings.Data.key10; texts = Settings.Data.key10Text; break;
                 case KeyviewerStyle.Key12: binds = Settings.Data.key12; texts = Settings.Data.key12Text; break;
                 case KeyviewerStyle.Key14: binds = Settings.Data.key14; texts = Settings.Data.key14Text; break;
+                case KeyviewerStyle.Key16: binds = Settings.Data.key16; texts = Settings.Data.key16Text; break;
                 case KeyviewerStyle.Key20: binds = Settings.Data.key20; texts = Settings.Data.key20Text; break;
                 case KeyviewerStyle.Key24: binds = Settings.Data.key24; texts = Settings.Data.key24Text; break;
+                case KeyviewerStyle.Full108: binds = Settings.Data.key108; texts = null; break; // no per-key texts on 108K / 108K 无每键文本
                 default: binds = Settings.Data.key16; texts = Settings.Data.key16Text; break;
             }
             int id = Settings.Data.CustomNodeNextId;
@@ -264,10 +266,59 @@ namespace JipperKeyViewer.KeyViewer
                 Width = w,
                 Height = h,
             };
+            int[] counts = Settings.Data.Count;
+            // 108K full keyboard: the shared slot table + the same 56px column-step/6px gap
+            // math the fixed layout uses; tall keys (+/Enter) span two rows. The fixed keyboard
+            // never rains, so preset nodes start with rain off. / 108K 全键盘：共享槽位表 +
+            // 与固定布局相同的 56px 列步进/6px 间隙换算；竖长键（+/回车）跨两行。固定全键盘
+            // 从不下雨，预设节点雨滴默认关闭。
+            if (style == KeyviewerStyle.Full108)
+            {
+                const float U = 50f;
+                const float colStep = 56f;
+                const float gap = 6f;
+                const float rightClusterShift = 4f * colStep;
+                const float rowStep = 56f;
+                foreach (var s in Full108SlotTable())
+                {
+                    float x = (float)s.x * colStep / U - (s.idx >= 78 ? rightClusterShift : 0f);
+                    float w, h, cy;
+                    if (s.idx == 95 || s.idx == 104)
+                    {
+                        w = colStep - gap;
+                        h = rowStep + 50f;
+                        cy = (s.idx == 95 ? (468f + 412f) : (300f + 356f)) * 0.5f;
+                    }
+                    else
+                    {
+                        w = (float)s.w * colStep / U - gap;
+                        h = 50f;
+                        cy = (float)s.y;
+                    }
+                    KvNode n = NewNode(0, x, cy, w, h);
+                    KeyCode kc = s.idx < binds.Length ? binds[s.idx] : KeyCode.None;
+                    if (kc != KeyCode.None) n.KeyBind = kc.ToString();
+                    if (s.idx < counts.Length) n.Count = counts[s.idx];
+                    nodes.Add(n);
+                }
+                if (Settings.Data.FullKeyboardShowKpsTotal)
+                {
+                    float ktW = Settings.Data.FullKeyboardKpsTotalSize;
+                    KvNode kps = NewNode(1, Settings.Data.FullKpsPosition.x * CanvasWidth,
+                        (1f - Settings.Data.FullKpsPosition.y) * 1080f, ktW, 30f);
+                    kps.CustomText = Settings.Data.KpsLabel;
+                    nodes.Add(kps);
+                    KvNode total = NewNode(2, Settings.Data.FullTotalPosition.x * CanvasWidth,
+                        (1f - Settings.Data.FullTotalPosition.y) * 1080f, ktW, 30f);
+                    total.CustomText = Settings.Data.TotalLabel;
+                    nodes.Add(total);
+                }
+                nextId = id;
+                return nodes;
+            }
             // Front row: 8 keys at the fixed layout's front-Y. Counts and custom texts carry over
             // from the source profile's per-slot arrays. / 前排：固定布局前排 Y 上的 8 键。
             // 计数与自定义文本按槽位从源配置的数组继承。
-            int[] counts = Settings.Data.Count;
             for (int i = 0; i < 8 && i < binds.Length; i++)
             {
                 KvNode n = NewNode(0, 54f * i, layout.frontY, 50f, 50f);

@@ -627,9 +627,9 @@ namespace JipperKeyViewer.KeyViewer
         public float RainWidth;
         public float RainHeight;
         public float RainSpeed;
-        // Per-node rain gradient (DM Note semantic: top/bottom colors). UseCustomRainColor
+        // Per-node rain gradient (top/bottom colors). UseCustomRainColor
         // switches both; when off the node follows its rain row's global color. /
-        // 节点级雨滴渐变（DM Note 语义：顶/底双色）。UseCustomRainColor 同时切换两色；关闭时
+        // 节点级雨滴渐变（顶/底双色渐变）。UseCustomRainColor 同时切换两色；关闭时
         // 跟随所在雨滴排的全局颜色。
         public bool UseCustomRainColor;
         public float[] RainColorTop;
@@ -639,10 +639,10 @@ namespace JipperKeyViewer.KeyViewer
         public float RainOffsetX;
         public float RainOffsetY;
         // ===== counter bounce / 计数器弹跳 =====
-        // DM Note's keyCounterAnimation: bezier ease, scale peak, duration. The bezier is a
+        // counter bounce animation: bezier ease, scale peak, duration. The bezier is a
         // float[4] (NOT Vector4 — Vector4's computed 'normalized' property sends Newtonsoft
         // into a self-referencing loop that threw on EVERY save). /
-        // DM Note 的 keyCounterAnimation：贝塞尔缓动、峰值缩放、时长。贝塞尔用 float[4]（不用
+        // 计数器弹跳动画：贝塞尔缓动、峰值缩放、时长。贝塞尔用 float[4]（不用
         // Vector4——其计算属性 normalized 会让 Newtonsoft 陷入自引用循环，导致每次保存都抛异常）。
         public bool CounterAnimEnabled = true;
         public float CounterAnimScale = 1.1f;
@@ -678,8 +678,8 @@ namespace JipperKeyViewer.KeyViewer
         // Layer group id ("" = ungrouped); groups carry a name and a visibility toggle. /
         // 图层组 id（"" = 未分组）；组带名称与可见性开关。
         public string GroupId = "";
-        // Image keys: swap to this image while pressed (DM Note semantic). /
-        // 图片按键：按下时切换到该图片（DM Note 语义）。
+        // Image keys: swap to this image while pressed. /
+        // 图片按键：按下时切换到该图片（按压语义）。
         public string ImagePathPressed = "";
         public bool HideLabel;
         // Per-node count hiding (independent of the global HideMainKeyCount). /
@@ -707,8 +707,8 @@ namespace JipperKeyViewer.KeyViewer
         }
     }
 
-    /// <summary>A named, visibility-toggled group of custom nodes (DM Note layerGroups). /
-    /// 自定义节点的命名可见性分组（DM Note 的 layerGroups）。</summary>
+    /// <summary>A named, visibility-toggled group of custom nodes (named visibility groups). /
+    /// 自定义节点的命名可见性分组（命名可见性分组）。</summary>
     [System.Serializable]
     [JsonObject(MemberSerialization.Fields)]
     public class KvLayerGroup

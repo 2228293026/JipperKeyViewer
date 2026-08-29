@@ -1,15 +1,14 @@
 // FreeMake editor — an independent IMGUI window (its own MonoBehaviour OnGUI, a root-level
-// GUI.Window that floats above the loader's settings panel). Interaction model ported from
-// CheryTools' FreeMake: draw-order hit testing, click-picking that prefers the already-selected
-// node in an overlap stack, double-click cycling through stacked hits, incremental drag deltas
-// with a snap correction layered on top (the mouse never fights the snap), screen-edge/center
-// snapping, "actually aligned" guide lines, and marquee selection with Shift-to-select locked
-// background images. Undo is a whole-list JSON snapshot stack (EditorHistory).
+// GUI.Window that floats above the loader's settings panel). Canvas interactions: draw-order
+// hit testing, click-picking that prefers the already-selected node in an overlap stack,
+// double-click cycling through stacked hits, incremental drag deltas with a snap correction
+// layered on top (the mouse never fights the snap), screen-edge/center snapping, "actually
+// aligned" guide lines, and marquee selection with Shift-to-select locked background images.
+// Undo is a whole-list JSON snapshot stack (EditorHistory).
 // FreeMake 编辑器——独立 IMGUI 弹窗（挂在组件自己的 OnGUI 上，根级 GUI.Window，浮于加载器
-// 设置面板之上）。交互模型移植自 CheryTools FreeMake：绘制序命中测试、重叠栈中优先保持
-// 已选中项、双击在堆叠命中间循环拣选、累计增量式拖拽叠加吸附修正（鼠标不会与吸附打架）、
-// 屏幕边缘/中心吸附、"实际对齐才显示"的对齐线、框选 + Shift 选锁定背景图。撤销为整表
-// JSON 快照栈（EditorHistory）。
+// 设置面板之上）。画布交互：绘制序命中测试、重叠栈中优先保持已选中项、双击在堆叠命中间
+// 循环拣选、累计增量式拖拽叠加吸附修正（鼠标不会与吸附打架）、屏幕边缘/中心吸附、"实际
+// 对齐才显示"的对齐线、框选 + Shift 选锁定背景图。撤销为整表 JSON 快照栈（EditorHistory）。
 
 using System;
 using System.Collections.Generic;
@@ -398,6 +397,31 @@ namespace JipperKeyViewer.KeyViewer
             Settings.Data.CustomNodes = new List<KvNode>();
             editorSelection.Clear();
             EditorMutated();
+        }
+
+        /// <summary>Seed a node's per-node rain shadow from its selected rain row's settings. /
+        /// 用节点所选雨滴排的设置为其节点级雨滴阴影做种子。</summary>
+        private static void SeedRainShadowFromRow(KvNode n)
+        {
+            ProfileData d = Settings.Data;
+            int row = Mathf.Clamp(n.RainRow, 0, 2) + 1; // 1..3
+            n.RainShadowEnabled = row == 1 ? d.EnableRainShadowRow1 : row == 2 ? d.EnableRainShadowRow2 : d.EnableRainShadowRow3;
+            Color c = row == 1 ? d.RainShadowColorRow1 : row == 2 ? d.RainShadowColorRow2 : d.RainShadowColorRow3;
+            n.RainShadowColor = new[] { c.r, c.g, c.b, c.a };
+            n.RainShadowOffsetX = row == 1 ? d.RainShadowOffsetXRow1 : row == 2 ? d.RainShadowOffsetXRow2 : d.RainShadowOffsetXRow3;
+            n.RainShadowOffsetY = row == 1 ? d.RainShadowOffsetYRow1 : row == 2 ? d.RainShadowOffsetYRow2 : d.RainShadowOffsetYRow3;
+        }
+
+        /// <summary>Seed a node's per-node rain outline from its selected rain row's settings. /
+        /// 用节点所选雨滴排的设置为其节点级雨滴描边做种子。</summary>
+        private static void SeedRainOutlineFromRow(KvNode n)
+        {
+            ProfileData d = Settings.Data;
+            int row = Mathf.Clamp(n.RainRow, 0, 2) + 1; // 1..3
+            n.RainOutlineEnabled = row == 1 ? d.EnableRainOutlineRow1 : row == 2 ? d.EnableRainOutlineRow2 : d.EnableRainOutlineRow3;
+            Color c = row == 1 ? d.RainOutlineColorRow1 : row == 2 ? d.RainOutlineColorRow2 : d.RainOutlineColorRow3;
+            n.RainOutlineColor = new[] { c.r, c.g, c.b, c.a };
+            n.RainOutlineWidth = row == 1 ? d.RainOutlineWidthRow1 : row == 2 ? d.RainOutlineWidthRow2 : d.RainOutlineWidthRow3;
         }
 
         private void EditorAddNode(int type)
@@ -831,9 +855,9 @@ namespace JipperKeyViewer.KeyViewer
 
         // ======================== resize handles / 缩放手柄 ========================
         // Single selection gets 8-way handles; multi selection gets 4 corner handles that
-        // scale the whole bounding box from the opposite corner (DM Note GroupResizeHandles
-        // semantic). / 单选八向手柄；多选四角手柄自对角整体缩放包围盒（DM Note
-        // GroupResizeHandles 语义）。
+        // scale the whole bounding box from the opposite corner (whole-box
+        // resize). / 单选八向手柄；多选四角手柄自对角整体缩放包围盒（整体
+        // 缩放语义）。
 
         private static readonly (int dx, int dy)[] FmHandleDirs8 =
             { (-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1) };
@@ -893,8 +917,8 @@ namespace JipperKeyViewer.KeyViewer
                     fmResizeOrig.Add(new KeyValuePair<KvNode, Rect>(node, new Rect(node.X, node.Y, node.Width, node.Height)));
             fmResizeBBox = EditorSelectionBounds();
             fmResizeMoved = false;
-            // Sibling sizes for size-snapping during the resize (Quartz SnapSize model). /
-            // 兄弟节点尺寸表，供缩放时的尺寸吸附（Quartz SnapSize 模型）。
+            // Sibling sizes for size-snapping during the resize. /
+            // 兄弟节点尺寸表，供缩放时的尺寸吸附。
             fmSiblingW.Clear();
             fmSiblingH.Clear();
             foreach (KvNode node in Settings.Data.CustomNodes)
@@ -1889,8 +1913,8 @@ namespace JipperKeyViewer.KeyViewer
                 }
                 if (single && first.UseCustomRainColor)
                 {
-                    // DM Note noteGradient semantic: separate top/bottom ends. /
-                    // DM Note noteGradient 语义：顶/底两端独立取色。
+                    // Two-color rain: separate top/bottom ends. /
+                    // 雨滴双色：顶/底两端独立取色。
                     Color rowColor = rainSystem.GetRainColor(CustomRainRowByte(first));
                     DrawEditorColorField(I18n.Tr("fm_rain_color_top"), first.RainColorTop, rowColor, arr => first.RainColorTop = arr);
                     DrawEditorColorField(I18n.Tr("fm_rain_color_bottom"), first.RainColorBottom, rowColor, arr => first.RainColorBottom = arr);
@@ -1911,7 +1935,16 @@ namespace JipperKeyViewer.KeyViewer
                 bool useRainShadow = GUILayout.Toggle(first.UseCustomRainShadow, I18n.Tr("fm_rain_shadow_custom"));
                 if (useRainShadow != first.UseCustomRainShadow)
                 {
-                    foreach (KvNode n in editorSelection) n.UseCustomRainShadow = useRainShadow;
+                    foreach (KvNode n in editorSelection)
+                    {
+                        n.UseCustomRainShadow = useRainShadow;
+                        // Seed from the node's row so enabling takes over the CURRENT look — the
+                        // unseeded state mixed node-default enable/offsets with row colors, which
+                        // read as "the shadow ignores the per-node setting". / 从节点所在排做种子，
+                        // 开启即接管当前外观——未做种子时节点默认开关/偏移与排颜色混搭，看起来
+                        // 就是"阴影无视节点设置"。
+                        if (useRainShadow) SeedRainShadowFromRow(n);
+                    }
                     EditorPropertyChanged();
                 }
                 if (first.UseCustomRainShadow)
@@ -1933,7 +1966,11 @@ namespace JipperKeyViewer.KeyViewer
                 bool useRainOutline = GUILayout.Toggle(first.UseCustomRainOutline, I18n.Tr("fm_rain_outline_custom"));
                 if (useRainOutline != first.UseCustomRainOutline)
                 {
-                    foreach (KvNode n in editorSelection) n.UseCustomRainOutline = useRainOutline;
+                    foreach (KvNode n in editorSelection)
+                    {
+                        n.UseCustomRainOutline = useRainOutline;
+                        if (useRainOutline) SeedRainOutlineFromRow(n);
+                    }
                     EditorPropertyChanged();
                 }
                 if (first.UseCustomRainOutline)
@@ -1970,7 +2007,7 @@ namespace JipperKeyViewer.KeyViewer
                             EditorPropertyChanged();
                         });
                 }
-                // Counter bounce (DM Note keyCounterAnimation). / 计数器弹跳（DM Note keyCounterAnimation）。
+                // Counter bounce . / 计数器弹跳（计数器弹跳动画）。
                 bool counterAnim = GUILayout.Toggle(first.CounterAnimEnabled, I18n.Tr("fm_counter_anim"));
                 if (counterAnim != first.CounterAnimEnabled)
                 {
@@ -2010,7 +2047,10 @@ namespace JipperKeyViewer.KeyViewer
                 }
             }
 
-            if (single && first.NodeType != 3)
+            // Color overrides work for multi-select too: fields show the first node's current
+            // values and every change applies to the whole selection. / 配色覆盖对多选同样生效：
+            // 字段显示首个节点的当前值，改动应用到整个选区。
+            if (first.NodeType != 3)
             {
                 bool isKps = first.NodeType == 1;
                 bool isTotal = first.NodeType == 2;
@@ -2025,10 +2065,10 @@ namespace JipperKeyViewer.KeyViewer
                 }
                 if (first.UseCustomColor)
                 {
-                    DrawEditorColorField(I18n.Tr("color_bg"), first.Bg, fbBg, arr => first.Bg = arr);
-                    DrawEditorColorField(I18n.Tr("color_bg_clicked"), first.BgPressed, fbBg, arr => first.BgPressed = arr);
-                    DrawEditorColorField(I18n.Tr("color_outline"), first.Outline, fbOl, arr => first.Outline = arr);
-                    DrawEditorColorField(I18n.Tr("color_outline_clicked"), first.OutlinePressed, fbOl, arr => first.OutlinePressed = arr);
+                    DrawEditorColorField(I18n.Tr("color_bg"), first.Bg, fbBg, arr => { foreach (KvNode n in editorSelection) if (n.NodeType != 3) n.Bg = arr; });
+                    DrawEditorColorField(I18n.Tr("color_bg_clicked"), first.BgPressed, fbBg, arr => { foreach (KvNode n in editorSelection) if (n.NodeType != 3) n.BgPressed = arr; });
+                    DrawEditorColorField(I18n.Tr("color_outline"), first.Outline, fbOl, arr => { foreach (KvNode n in editorSelection) if (n.NodeType != 3) n.Outline = arr; });
+                    DrawEditorColorField(I18n.Tr("color_outline_clicked"), first.OutlinePressed, fbOl, arr => { foreach (KvNode n in editorSelection) if (n.NodeType != 3) n.OutlinePressed = arr; });
                 }
             }
 

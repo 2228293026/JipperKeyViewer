@@ -125,9 +125,9 @@ namespace JipperKeyViewer.KeyViewer
         }
 
         /// <summary>Emit one drop's shadow/outline/(main) quads with the trail gradient. The
-        /// body carries a bottom→top two-color gradient (DM Note noteGradient semantic); the
+        /// body carries a bottom→top two-color gradient (bottom-to-top two-color gradient); the
         /// shadow/outline stay single-color. / 输出一滴雨的阴影/描边/(本体)四边形及轨迹渐变。
-        /// 本体携带底→顶双色渐变（DM Note noteGradient 语义）；阴影/描边保持单色。</summary>
+        /// 本体携带底→顶双色渐变（底→顶双色渐变）；阴影/描边保持单色。</summary>
         private static void DrawDrop(VertexHelper vh, RawRain rain, bool drawMain)
         {
             Rect r = rain.rect;

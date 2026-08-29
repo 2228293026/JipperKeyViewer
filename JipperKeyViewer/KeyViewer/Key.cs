@@ -32,7 +32,7 @@ namespace JipperKeyViewer.KeyViewer
         public Color rainColor = Color.white;
         /// <summary>Top end of the custom rain gradient (Custom nodes) / 自定义雨滴渐变的顶端颜色</summary>
         public Color rainColorTop = Color.white;
-        /// <summary>Counter bounce state (DM Note keyCounterAnimation) / 计数器弹跳状态（DM Note keyCounterAnimation）</summary>
+        /// <summary>Counter bounce state  / 计数器弹跳状态（计数器弹跳动画）</summary>
         public bool Bouncing;
         public float BounceStart;
         public Vector2 BounceBasePos;

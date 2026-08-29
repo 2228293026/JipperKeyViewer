@@ -495,11 +495,11 @@ namespace JipperKeyViewer.KeyViewer
                 }
             }
 
-            // Per-node top color + start-Y offset (DM Note noteGradient / noteOffsetY), and the
-            // DM Note trackBottom model: custom rain starts at the node's TOP edge — the 275px
+            // Per-node top color + start-Y offset (two-color gradient / start offset), and the
+            // node-top-anchored track model: custom rain starts at the node's TOP edge — the 275px
             // container constant is tuned for 50px keys and would spawn the trail inside taller
-            // nodes. / 节点级顶端颜色与起始 Y 偏移（DM Note 的 noteGradient / noteOffsetY），
-            // 以及 DM Note 的 trackBottom 模型：自定义雨滴从节点顶边出发——275px 容器常量是为
+            // nodes. / 节点级顶端颜色与起始 Y 偏移（雨滴双色渐变与起始偏移），
+            // 以及 锚定节点顶边的轨道模型：自定义雨滴从节点顶边出发——275px 容器常量是为
             // 50px 键调校的，较高的节点会让轨迹从按键内部冒出来。
             rawRain.ColorTop = key.CustomNode != null && key.CustomNode.UseCustomRainColor && key.CustomNode.RainColorTop != null
                 ? KeyViewer.NodeColor(key.CustomNode.RainColorTop, rawRain.mainColor)
@@ -515,8 +515,8 @@ namespace JipperKeyViewer.KeyViewer
                 rawRain.StartOffsetY = 0f;
             }
 
-            // Per-node rain parameter overrides (DM Note per-key note width/height/speed). /
-            // 节点级雨滴参数覆盖（DM Note 的逐键 noteWidth/noteHeight/noteSpeed）。
+            // Per-node rain parameter overrides (per-node rain width/height/speed). /
+            // 节点级雨滴参数覆盖（逐键雨滴宽度/高度/速度）。
             if (key.CustomNode != null)
             {
                 if (key.CustomNode.RainWidth > 0f) rawRain.NodeWidth = key.CustomNode.RainWidth;

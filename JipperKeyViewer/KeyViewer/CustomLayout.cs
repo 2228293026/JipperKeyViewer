@@ -31,10 +31,9 @@ namespace JipperKeyViewer.KeyViewer
         /// <summary>Keys with a live counter bounce animation / 正在进行计数器弹跳动画的按键</summary>
         private readonly List<Key> counterBounces = new List<Key>();
 
-        /// <summary>Tick counter bounce animations (DM Note keyCounterAnimation). The value text
-        /// scales up around its center with a cubic-bezier ease, ported from Quartz's bounce
-        /// tick. / 计数器弹跳动画推进（DM Note keyCounterAnimation）：数值文本绕中心以三次
-        /// 贝塞尔缓动放大，自 Quartz 的弹跳 tick 移植。</summary>
+        /// <summary>Tick counter bounce animations: the value text scales up around its center
+        /// with a cubic-bezier ease. / 计数器弹跳动画推进：数值文本绕中心以三次
+        /// 贝塞尔缓动放大。</summary>
         private void TickCounterBounces()
         {
             for (int i = counterBounces.Count - 1; i >= 0; i--)
@@ -429,9 +428,9 @@ namespace JipperKeyViewer.KeyViewer
         /// KPS/Total 节点沿用专属 Kps*/Total* 配色（v1 不做节点级覆盖）。</summary>
         /// <summary>KPS/Total panels follow the dedicated Kps*/Total* colors, with the node
         /// color override (UseCustomColor) taking precedence — all node types share the same
-        /// override fields (CheryTools model). / KPS/Total 面板跟随专属 Kps*/Total* 颜色，
-        /// 节点配色覆盖（UseCustomColor）优先——所有节点类型共用同一组覆盖字段（CheryTools
-        /// 模型）。KPS/Total 专属色没有按压变体，节点覆盖色有。</summary>
+        /// override fields. / KPS/Total 面板跟随专属 Kps*/Total* 颜色，
+        /// 节点配色覆盖（UseCustomColor）优先——所有节点类型共用同一组覆盖字段。
+        /// KPS/Total 专属色没有按压变体，节点覆盖色有。</summary>
         private void ApplyCustomSpecialColors(Key key, KvNode node, bool pressed)
         {
             bool isKps = node.NodeType == 1;
@@ -580,13 +579,13 @@ namespace JipperKeyViewer.KeyViewer
                     StopCoroutine(key.currentAnim);
                 key.currentAnim = StartCoroutine(AnimateKeyScale(key, scaleTarget, 0.08f));
             }
-            // Image keys swap to the pressed texture first (DM Note semantic). /
-            // 图片按键先切换按压贴图（DM Note 语义）。
+            // Image keys swap to the pressed texture first. /
+            // 图片按键先切换按压贴图（按压语义）。
             if (key.CustomImage != null && key.CustomTexPressed != null)
                 key.CustomImage.texture = down ? key.CustomTexPressed : key.CustomTexNormal;
             ApplyCustomKeyColors(key, node, down);
-            // Pressed-text swap (DM Note semantic): the label swaps while held, restores on
-            // release. / 按压文案切换（DM Note 语义）：按住时替换标签，松开恢复。
+            // Pressed-text swap: the label swaps while held, restores on
+            // release. / 按压文案切换（按压语义）：按住时替换标签，松开恢复。
             if (!string.IsNullOrEmpty(node.PressedText))
                 UpdateCustomKeyText(key, node, down);
             if (!down)
@@ -601,9 +600,9 @@ namespace JipperKeyViewer.KeyViewer
                 d.TotalCount++;
                 PressTimes.Enqueue(timeMs);
             }
-            // Counter bounce (DM Note keyCounterAnimation): kick on press — on whichever text is
-            // visible (label when the count is hidden). / 计数器弹跳（DM Note
-            // keyCounterAnimation）：按下时启动——作用在当前可见的文本上（计数隐藏时为标签）。
+            // Counter bounce : kick on press — on whichever text is
+            // visible (label when the count is hidden). / 计数器弹跳
+            // （计数器弹跳动画）：按下时启动——作用在当前可见的文本上（计数隐藏时为标签）。
             if (node.CounterAnimEnabled && node.CounterAnimScale > 1.001f
                 && (key.value != null || key.text != null))
             {

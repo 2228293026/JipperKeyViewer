@@ -39,10 +39,10 @@ namespace JipperKeyViewer.KeyViewer
         public float NodeHeight;
         public float NodeSpeed;
         /// <summary>Custom nodes: absolute distance from the key's BOTTOM edge to the rain start
-        /// (= node height + gap, DM Note's trackBottom model). When set, it REPLACES the row's
+        /// (= node height + gap, node-top-anchored track model). When set, it REPLACES the row's
         /// start-Y — the 275px container constant is tuned for 50px keys and would spawn the
         /// trail inside taller nodes. / 自定义节点：键底边到雨滴起点的绝对距离（= 节点高 +
-        /// 间隙，DM Note 的 trackBottom 模型）。设置后替换所在排起始 Y——275px 容器常量是为
+        /// 间隙，锚定节点顶边的轨道模型）。设置后替换所在排起始 Y——275px 容器常量是为
         /// 50px 键调校的，较高的节点会让轨迹从按键内部冒出来。</summary>
         public bool HasTrackBase;
         public float TrackBaseY;

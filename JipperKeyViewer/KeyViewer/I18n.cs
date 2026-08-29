@@ -133,6 +133,8 @@ namespace JipperKeyViewer.KeyViewer
             ["tab_colors"] = "Colors",
 
             ["fm_open_editor"] = "Open FreeMake Editor",
+            ["fm_ghost_rain_shadow_custom"] = "Custom Ghost Shadow",
+            ["fm_ghost_rain_outline_custom"] = "Custom Ghost Outline",
             ["fm_ghost_bind"] = "Ghost Key",
             ["fm_shown_node"] = "Fields show \"{0}\" — the cyan-framed node (last clicked); changes apply to all selected.",
             ["fm_presets"] = "Preset",
@@ -330,6 +332,8 @@ namespace JipperKeyViewer.KeyViewer
             ["tab_colors"] = "颜色",
 
             ["fm_open_editor"] = "打开 FreeMake 编辑器",
+            ["fm_ghost_rain_shadow_custom"] = "自定义鬼雨阴影",
+            ["fm_ghost_rain_outline_custom"] = "自定义鬼雨描边",
             ["fm_ghost_bind"] = "鬼键",
             ["fm_shown_node"] = "字段显示「{0}」（青色高亮框，最后点击）的当前值——改动应用到全部选中。",
             ["fm_presets"] = "预设",
@@ -527,6 +531,8 @@ namespace JipperKeyViewer.KeyViewer
             ["tab_colors"] = "색상",
 
             ["fm_open_editor"] = "FreeMake 편집기 열기",
+            ["fm_ghost_rain_shadow_custom"] = "사용자 지정 고스트 그림자",
+            ["fm_ghost_rain_outline_custom"] = "사용자 지정 고스트 아웃라인",
             ["fm_ghost_bind"] = "고스트 키",
             ["fm_shown_node"] = "필드는 시안색 테두리 노드 \"{0}\"(마지막 클릭)의 값을 표시합니다 — 변경은 전체 선택에 적용됩니다.",
             ["fm_presets"] = "프리셋",

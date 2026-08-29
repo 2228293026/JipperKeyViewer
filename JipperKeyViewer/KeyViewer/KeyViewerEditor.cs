@@ -434,6 +434,31 @@ namespace JipperKeyViewer.KeyViewer
             n.RainOutlineWidth = row == 1 ? d.RainOutlineWidthRow1 : row == 2 ? d.RainOutlineWidthRow2 : d.RainOutlineWidthRow3;
         }
 
+        /// <summary>Seed a node's per-node GHOST rain shadow from its selected ghost rain row. /
+        /// 用节点所选排的鬼雨阴影设置为其节点级鬼雨阴影做种子。</summary>
+        private static void SeedGhostRainShadowFromRow(KvNode n)
+        {
+            ProfileData d = Settings.Data;
+            int row = Mathf.Clamp(n.RainRow, 0, 2) + 1; // 1..3
+            n.GhostRainShadowEnabled = row == 1 ? d.EnableGhostRainShadowRow1 : row == 2 ? d.EnableGhostRainShadowRow2 : d.EnableGhostRainShadowRow3;
+            Color c = row == 1 ? d.GhostRainShadowColorRow1 : row == 2 ? d.GhostRainShadowColorRow2 : d.GhostRainShadowColorRow3;
+            n.GhostRainShadowColor = new[] { c.r, c.g, c.b, c.a };
+            n.GhostRainShadowOffsetX = row == 1 ? d.GhostRainShadowOffsetXRow1 : row == 2 ? d.GhostRainShadowOffsetXRow2 : d.GhostRainShadowOffsetXRow3;
+            n.GhostRainShadowOffsetY = row == 1 ? d.GhostRainShadowOffsetYRow1 : row == 2 ? d.GhostRainShadowOffsetYRow2 : d.GhostRainShadowOffsetYRow3;
+        }
+
+        /// <summary>Seed a node's per-node GHOST rain outline from its selected ghost rain row. /
+        /// 用节点所选排的鬼雨描边设置为其节点级鬼雨描边做种子。</summary>
+        private static void SeedGhostRainOutlineFromRow(KvNode n)
+        {
+            ProfileData d = Settings.Data;
+            int row = Mathf.Clamp(n.RainRow, 0, 2) + 1; // 1..3
+            n.GhostRainOutlineEnabled = row == 1 ? d.EnableGhostRainOutlineRow1 : row == 2 ? d.EnableGhostRainOutlineRow2 : d.EnableGhostRainOutlineRow3;
+            Color c = row == 1 ? d.GhostRainOutlineColorRow1 : row == 2 ? d.GhostRainOutlineColorRow2 : d.GhostRainOutlineColorRow3;
+            n.GhostRainOutlineColor = new[] { c.r, c.g, c.b, c.a };
+            n.GhostRainOutlineWidth = row == 1 ? d.GhostRainOutlineWidthRow1 : row == 2 ? d.GhostRainOutlineWidthRow2 : d.GhostRainOutlineWidthRow3;
+        }
+
         private void EditorAddNode(int type)
         {
             if (type == 1 && Settings.Data.CustomNodes.Any(n => n != null && n.NodeType == 1)) return;
@@ -2035,6 +2060,56 @@ namespace JipperKeyViewer.KeyViewer
                         foreach (KvNode n in editorSelection) n.RainOutlineWidth = Mathf.Clamp(v, 0f, 50f);
                         EditorPropertyChanged();
                     });
+                }
+                // Per-node GHOST rain shadow/outline — only meaningful with a ghost key bound. /
+                // 节点级鬼雨阴影/描边——仅在绑定了鬼键时有意义。
+                if (!string.IsNullOrWhiteSpace(first.GhostKey))
+                {
+                    bool useGhostShadow = GUILayout.Toggle(first.UseCustomGhostRainShadow, I18n.Tr("fm_ghost_rain_shadow_custom"));
+                    if (useGhostShadow != first.UseCustomGhostRainShadow)
+                    {
+                        foreach (KvNode n in editorSelection)
+                        {
+                            n.UseCustomGhostRainShadow = useGhostShadow;
+                            if (useGhostShadow) SeedGhostRainShadowFromRow(n);
+                        }
+                        EditorPropertyChanged();
+                    }
+                    if (first.UseCustomGhostRainShadow)
+                    {
+                        DrawEditorToggle(I18n.Tr("rain_shadow"), first.GhostRainShadowEnabled, v => { foreach (KvNode n in editorSelection) n.GhostRainShadowEnabled = v; });
+                        DrawEditorColorField(I18n.Tr("rain_shadow_color"), first.GhostRainShadowColor, new Color(0f, 0f, 0f, 0.35f), arr => { foreach (KvNode n in editorSelection) n.GhostRainShadowColor = arr; });
+                        DrawEditorFloatField("X", "fme_grshx_" + first.Id, n => n.GhostRainShadowOffsetX, v =>
+                        {
+                            foreach (KvNode n in editorSelection) n.GhostRainShadowOffsetX = Mathf.Clamp(v, -50f, 50f);
+                            EditorPropertyChanged();
+                        });
+                        DrawEditorFloatField("Y", "fme_grshy_" + first.Id, n => n.GhostRainShadowOffsetY, v =>
+                        {
+                            foreach (KvNode n in editorSelection) n.GhostRainShadowOffsetY = Mathf.Clamp(v, -50f, 50f);
+                            EditorPropertyChanged();
+                        });
+                    }
+                    bool useGhostOutline = GUILayout.Toggle(first.UseCustomGhostRainOutline, I18n.Tr("fm_ghost_rain_outline_custom"));
+                    if (useGhostOutline != first.UseCustomGhostRainOutline)
+                    {
+                        foreach (KvNode n in editorSelection)
+                        {
+                            n.UseCustomGhostRainOutline = useGhostOutline;
+                            if (useGhostOutline) SeedGhostRainOutlineFromRow(n);
+                        }
+                        EditorPropertyChanged();
+                    }
+                    if (first.UseCustomGhostRainOutline)
+                    {
+                        DrawEditorToggle(I18n.Tr("rain_outline"), first.GhostRainOutlineEnabled, v => { foreach (KvNode n in editorSelection) n.GhostRainOutlineEnabled = v; });
+                        DrawEditorColorField(I18n.Tr("rain_outline_color"), first.GhostRainOutlineColor, new Color(1f, 1f, 1f, 0.5f), arr => { foreach (KvNode n in editorSelection) n.GhostRainOutlineColor = arr; });
+                        DrawEditorFloatField(I18n.Tr("rain_outline_width"), "fme_grow_" + first.Id, n => n.GhostRainOutlineWidth, v =>
+                        {
+                            foreach (KvNode n in editorSelection) n.GhostRainOutlineWidth = Mathf.Clamp(v, 0f, 50f);
+                            EditorPropertyChanged();
+                        });
+                    }
                 }
                 // Per-node press scale (the Display tab's press animation per key). /
                 // 节点级按压缩放（显示页的按压缩放，按按键配置）。

@@ -474,24 +474,43 @@ namespace JipperKeyViewer.KeyViewer
             }
 
             // Per-node shadow/outline overrides — applied AFTER the row assignment so a null node
-            // color keeps the row's. Ghost rain intentionally keeps the ghost-row settings (no
-            // per-node ghost override). / 节点级阴影/描边覆盖——在排赋值之后应用，节点颜色为空
-            // 时保留排颜色。鬼雨有意保持鬼雨排设置（无节点级鬼雨覆盖）。
-            if (!isGhost && key.CustomNode != null)
+            // color keeps the row's. Normal rain and ghost rain each have their own override pair
+            // (ghost rows stay the ghost fallback). / 节点级阴影/描边覆盖——在排赋值之后应用，
+            // 节点颜色为空时保留排颜色。普通雨与鬼雨各有独立的覆盖组（鬼雨排仍是鬼雨的回退）。
+            if (key.CustomNode != null)
             {
                 KvNode cn = key.CustomNode;
-                if (cn.UseCustomRainShadow)
+                if (!isGhost)
                 {
-                    rawRain.shadowEnabled = cn.RainShadowEnabled;
-                    rawRain.shadowColor = KeyViewer.NodeColor(cn.RainShadowColor, rawRain.shadowColor);
-                    rawRain.shadowOffsetX = cn.RainShadowOffsetX;
-                    rawRain.shadowOffsetY = cn.RainShadowOffsetY;
+                    if (cn.UseCustomRainShadow)
+                    {
+                        rawRain.shadowEnabled = cn.RainShadowEnabled;
+                        rawRain.shadowColor = KeyViewer.NodeColor(cn.RainShadowColor, rawRain.shadowColor);
+                        rawRain.shadowOffsetX = cn.RainShadowOffsetX;
+                        rawRain.shadowOffsetY = cn.RainShadowOffsetY;
+                    }
+                    if (cn.UseCustomRainOutline)
+                    {
+                        rawRain.outlineEnabled = cn.RainOutlineEnabled;
+                        rawRain.outlineColor = KeyViewer.NodeColor(cn.RainOutlineColor, rawRain.outlineColor);
+                        rawRain.outlineWidth = cn.RainOutlineWidth;
+                    }
                 }
-                if (cn.UseCustomRainOutline)
+                else
                 {
-                    rawRain.outlineEnabled = cn.RainOutlineEnabled;
-                    rawRain.outlineColor = KeyViewer.NodeColor(cn.RainOutlineColor, rawRain.outlineColor);
-                    rawRain.outlineWidth = cn.RainOutlineWidth;
+                    if (cn.UseCustomGhostRainShadow)
+                    {
+                        rawRain.shadowEnabled = cn.GhostRainShadowEnabled;
+                        rawRain.shadowColor = KeyViewer.NodeColor(cn.GhostRainShadowColor, rawRain.shadowColor);
+                        rawRain.shadowOffsetX = cn.GhostRainShadowOffsetX;
+                        rawRain.shadowOffsetY = cn.GhostRainShadowOffsetY;
+                    }
+                    if (cn.UseCustomGhostRainOutline)
+                    {
+                        rawRain.outlineEnabled = cn.GhostRainOutlineEnabled;
+                        rawRain.outlineColor = KeyViewer.NodeColor(cn.GhostRainOutlineColor, rawRain.outlineColor);
+                        rawRain.outlineWidth = cn.GhostRainOutlineWidth;
+                    }
                 }
             }
 

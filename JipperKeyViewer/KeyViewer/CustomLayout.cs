@@ -161,6 +161,9 @@ namespace JipperKeyViewer.KeyViewer
                 node.RainShadowOffsetX = float.IsNaN(node.RainShadowOffsetX) ? 3f : Mathf.Clamp(node.RainShadowOffsetX, -50f, 50f);
                 node.RainShadowOffsetY = float.IsNaN(node.RainShadowOffsetY) ? -3f : Mathf.Clamp(node.RainShadowOffsetY, -50f, 50f);
                 node.RainOutlineWidth = float.IsNaN(node.RainOutlineWidth) ? 2f : Mathf.Clamp(node.RainOutlineWidth, 0f, 50f);
+                node.GhostRainShadowOffsetX = float.IsNaN(node.GhostRainShadowOffsetX) ? 3f : Mathf.Clamp(node.GhostRainShadowOffsetX, -50f, 50f);
+                node.GhostRainShadowOffsetY = float.IsNaN(node.GhostRainShadowOffsetY) ? -3f : Mathf.Clamp(node.GhostRainShadowOffsetY, -50f, 50f);
+                node.GhostRainOutlineWidth = float.IsNaN(node.GhostRainOutlineWidth) ? 2f : Mathf.Clamp(node.GhostRainOutlineWidth, 0f, 50f);
             }
             // Enforce caps: at most one KPS + one Total panel, limited key and image nodes. /
             // 强制上限：KPS/Total 各最多一个，按键与图片节点限量。

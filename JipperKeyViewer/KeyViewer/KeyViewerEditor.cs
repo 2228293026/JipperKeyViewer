@@ -67,7 +67,11 @@ namespace JipperKeyViewer.KeyViewer
         private readonly List<KvNode> fmHitBuffer = new List<KvNode>();
         private float fmLastClickTime = -10f;
         private Vector2 fmLastClickPos = new Vector2(float.MinValue, float.MinValue);
-        private KvNode fmCaptureNode;        private Vector2 fmPropsScroll;
+        private KvNode fmCaptureNode;
+        /// <summary>Node whose GHOST key is being captured (separate from the main binding
+        /// capture). / 正在捕获鬼键的节点（与主键绑定捕获相互独立）。</summary>
+        private KvNode fmCaptureGhostNode;
+        private Vector2 fmPropsScroll;
         private GUIStyle fmNodeLabelStyle;
         private GUIStyle fmHintStyle;
         private readonly Dictionary<string, Texture2D> fmTexCache = new Dictionary<string, Texture2D>();
@@ -1713,6 +1717,7 @@ namespace JipperKeyViewer.KeyViewer
             bool typing = GUI.GetNameOfFocusedControl()?.StartsWith("fme_", StringComparison.Ordinal) == true;
             if (typing) return;
             if (fmCaptureNode != null) return;
+            if (fmCaptureGhostNode != null) return;
             bool ctrl = e.control;
             switch (e.keyCode)
             {
@@ -1802,6 +1807,8 @@ namespace JipperKeyViewer.KeyViewer
             {
                 DrawEditorNodeTypeCombo(first);
                 DrawEditorKeyBindCapture(first);
+                if (first.NodeType == 0 || first.NodeType == 3)
+                    DrawEditorGhostBindCapture(first);
             }
 
             DrawEditorFloatField(I18n.Tr("fm_pos_x"), "fme_x_" + first.Id, n => n.X, v =>
@@ -2141,6 +2148,50 @@ namespace JipperKeyViewer.KeyViewer
             PushEditorHistory();
             node.NodeType = newType;
             EditorMutated();
+        }
+
+        /// <summary>Ghost-key capture row: the alternate trigger that drops ghost rain from this
+        /// node's column (runtime fully supported it; the editor just never exposed it — the
+        /// binding was only settable by hand-editing the profile JSON). / 鬼键捕获行：按它会从
+        /// 该节点列掉落鬼雨的备用触发键（运行时早已完整支持，只是编辑器一直没有入口——此前
+        /// 只能手改配置 JSON 设置）。</summary>
+        private void DrawEditorGhostBindCapture(KvNode node)
+        {
+            GUILayout.BeginHorizontal();
+            string bound = string.IsNullOrWhiteSpace(node.GhostKey) ? "None" : node.GhostKey;
+            GUILayout.Label(I18n.Tr("fm_ghost_bind") + ": " + bound, GUILayout.Width(160f));
+            bool capturing = fmCaptureGhostNode == node;
+            if (GUILayout.Button(capturing ? I18n.Tr("fm_wait_key") : I18n.Tr("fm_bind"), GUILayout.Width(90f)))
+                fmCaptureGhostNode = capturing ? null : node;
+            if (GUILayout.Button(I18n.Tr("fm_clear"), GUILayout.Width(60f)))
+            {
+                node.GhostKey = "";
+                fmCaptureGhostNode = null;
+                EditorPropertyChanged();
+            }
+            GUILayout.EndHorizontal();
+            if (capturing)
+            {
+                GUILayout.Label(I18n.Tr("fm_press_hint"));
+                Event e = Event.current;
+                if (e != null && e.type == EventType.KeyDown)
+                {
+                    if (e.keyCode == KeyCode.Escape)
+                    {
+                        fmCaptureGhostNode = null;
+                        e.Use();
+                    }
+                    else if (e.keyCode != KeyCode.None
+                        && (e.keyCode < KeyCode.Mouse0 || e.keyCode > KeyCode.Mouse6)
+                        && e.keyCode != KeyCode.Return)
+                    {
+                        node.GhostKey = e.keyCode.ToString();
+                        fmCaptureGhostNode = null;
+                        e.Use();
+                        EditorPropertyChanged();
+                    }
+                }
+            }
         }
 
         private void DrawEditorKeyBindCapture(KvNode node)

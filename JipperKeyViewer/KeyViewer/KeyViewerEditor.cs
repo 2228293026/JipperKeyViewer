@@ -1907,9 +1907,11 @@ namespace JipperKeyViewer.KeyViewer
             for (int i = 1; i < editorSelection.Count; i++)
                 if (editorSelection[i].Depth != first.Depth) { depthMixed = true; break; }
             string depthText = TextInputField("fme_d_" + first.Id, depthMixed ? "—" : newDepth.ToString(), GUILayout.Width(56f));
-            if (int.TryParse(depthText, out int parsedDepth)) newDepth = Mathf.Clamp(parsedDepth, 0, 60);
+            // Strip the mixed marker so typing over "—" parses (see DrawEditorFloatField). /
+            // 剥掉混合标记，直接在"—"后输入也能解析（见 DrawEditorFloatField）。
+            if (int.TryParse(depthText.Replace("—", "").Trim(), out int parsedDepth)) newDepth = Mathf.Clamp(parsedDepth, 0, 60);
             GUILayout.EndHorizontal();
-            if (newDepth != first.Depth && (!depthMixed || int.TryParse(depthText, out _)))
+            if (newDepth != first.Depth && (!depthMixed || int.TryParse(depthText.Replace("—", "").Trim(), out _)))
             {
                 foreach (KvNode n in editorSelection) n.Depth = newDepth;
                 EditorPropertyChanged();
@@ -2431,10 +2433,10 @@ namespace JipperKeyViewer.KeyViewer
             for (int i = 1; i < editorSelection.Count; i++)
                 if (!Mathf.Approximately(editorSelection[i].FontSize, first.FontSize)) { mixed = true; break; }
             string text = TextInputField("fme_fs_" + first.Id, mixed ? "—" : size.ToString(), GUILayout.Width(56f));
-            if (int.TryParse(text, out int parsed)) size = Mathf.Clamp(parsed, 0, 72);
+            if (int.TryParse(text.Replace("—", "").Trim(), out int parsed)) size = Mathf.Clamp(parsed, 0, 72);
             GUILayout.Label(size <= 0 ? I18n.Tr("fm_font_global") : size + "px", GUILayout.Width(48f));
             GUILayout.EndHorizontal();
-            if (!Mathf.Approximately(size, first.FontSize) && (!mixed || int.TryParse(text, out _)))
+            if (!Mathf.Approximately(size, first.FontSize) && (!mixed || int.TryParse(text.Replace("—", "").Trim(), out _)))
             {
                 foreach (KvNode n in editorSelection) n.FontSize = size;
                 EditorPropertyChanged();
@@ -2481,7 +2483,11 @@ namespace JipperKeyViewer.KeyViewer
             }
             string seed = mixed ? "—" : v0.ToString("0.##");
             string text = TextInputField(ctrl, seed, GUILayout.Width(110f));
-            if (float.TryParse(text, out float parsed) && IsFiniteFloat(parsed) && (mixed || Math.Abs(parsed - v0) > 0.001f))
+            // Strip the mixed marker before parsing: clicking in and typing leaves "—60", which
+            // never parsed — the primary multi-select flow (select many, type one value, all
+            // apply) was dead. / 解析前剥掉混合标记：点击后直接输入会留下"—60"，此前永不解析
+            // ——多选的主流程（选一堆、输一个值、全体生效）等于失效。
+            if (float.TryParse(text.Replace("—", "").Trim(), out float parsed) && IsFiniteFloat(parsed) && (mixed || Math.Abs(parsed - v0) > 0.001f))
                 apply(parsed);
             GUILayout.EndHorizontal();
         }

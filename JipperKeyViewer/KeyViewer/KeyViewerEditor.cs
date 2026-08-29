@@ -1242,32 +1242,40 @@ namespace JipperKeyViewer.KeyViewer
         {
             fmGroupsExpanded = GUILayout.Toggle(fmGroupsExpanded, I18n.Tr("fm_groups"), GUILayout.Height(20f));
             if (!fmGroupsExpanded) return;
+            GUILayout.Label("<i>" + I18n.Tr("fm_groups_hint") + "</i>");
             List<KvLayerGroup> groups = Settings.Data.LayerGroups;
             for (int i = 0; i < groups.Count; i++)
             {
                 KvLayerGroup g = groups[i];
                 GUILayout.BeginHorizontal();
-                string name = TextInputField("fme_g_" + g.Id, g.Name ?? "", GUILayout.MinWidth(80f));
+                string name = TextInputField("fme_g_" + g.Id, g.Name ?? "", GUILayout.MinWidth(70f));
                 if (!string.Equals(name, g.Name ?? "", StringComparison.Ordinal))
                 {
                     g.Name = name;
                     SaveSettingsFromGui();
                 }
-                bool vis = GUILayout.Toggle(g.Visible, GUIContent.none, GUILayout.Width(30f));
+                bool vis = GUILayout.Toggle(g.Visible, I18n.Tr("fm_group_show"), GUILayout.Width(52f));
                 if (vis != g.Visible)
                 {
                     g.Visible = vis;
                     EditorMutated();
                 }
+                if (GUILayout.Button(I18n.Tr("fm_group_select"), GUILayout.Width(52f)))
+                {
+                    editorSelection.Clear();
+                    foreach (KvNode n in Settings.Data.CustomNodes)
+                        if (n != null && n.GroupId == g.Id) editorSelection.Add(n);
+                    fmActiveNode = editorSelection.Count > 0 ? editorSelection[0] : null;
+                }
                 GUI.enabled = editorSelection.Count > 0;
-                if (GUILayout.Button(I18n.Tr("fm_group_assign"), GUILayout.Width(64f)))
+                if (GUILayout.Button(I18n.Tr("fm_group_assign") + "(" + editorSelection.Count + ")", GUILayout.Width(80f)))
                 {
                     PushEditorHistory();
                     foreach (KvNode n in editorSelection) n.GroupId = g.Id;
                     EditorMutated();
                 }
                 GUI.enabled = true;
-                if (GUILayout.Button(I18n.Tr("fm_group_del"), GUILayout.Width(64f)))
+                if (GUILayout.Button(I18n.Tr("fm_group_del"), GUILayout.Width(52f)))
                 {
                     PushEditorHistory();
                     string deadId = g.Id;
@@ -2300,6 +2308,12 @@ namespace JipperKeyViewer.KeyViewer
                 RefreshAllCountDisplay();
                 SaveSettingsFromGui();
             }
+
+            // Group manager lives at the panel bottom REGARDLESS of selection — it used to show
+            // only with an empty selection while 指派 needed a non-empty one, making assign
+            // structurally unreachable. / 图层组管理区常驻面板底部，与选中状态无关——此前只在
+            // 空选区时显示，而指派又要求非空选区，指派在结构上根本用不了。
+            DrawEditorGroupManager();
         }
 
         private void DrawEditorNodeTypeCombo(KvNode node)

@@ -133,6 +133,9 @@ namespace JipperKeyViewer.KeyViewer
             ["tab_colors"] = "Colors",
 
             ["fm_open_editor"] = "Open FreeMake Editor",
+            ["fm_group_show"] = "Show",
+            ["fm_group_select"] = "Select",
+            ["fm_groups_hint"] = "Select nodes on the canvas, then click Assign(n) on a group; Show toggles the whole group.",
             ["fm_rain_fade_custom"] = "Custom Rain Fade",
             ["fm_ghost_rain_params_custom"] = "Custom Ghost Rain",
             ["fm_ghost_rain_shadow_custom"] = "Custom Ghost Shadow",
@@ -334,6 +337,9 @@ namespace JipperKeyViewer.KeyViewer
             ["tab_colors"] = "颜色",
 
             ["fm_open_editor"] = "打开 FreeMake 编辑器",
+            ["fm_group_show"] = "显示",
+            ["fm_group_select"] = "选中",
+            ["fm_groups_hint"] = "先在画布选中节点，再点目标组的「指派(n)」入组；「显示」整组显隐。",
             ["fm_rain_fade_custom"] = "自定义雨滴渐变",
             ["fm_ghost_rain_params_custom"] = "自定义鬼雨参数",
             ["fm_ghost_rain_shadow_custom"] = "自定义鬼雨阴影",
@@ -535,6 +541,9 @@ namespace JipperKeyViewer.KeyViewer
             ["tab_colors"] = "색상",
 
             ["fm_open_editor"] = "FreeMake 편집기 열기",
+            ["fm_group_show"] = "표시",
+            ["fm_group_select"] = "선택",
+            ["fm_groups_hint"] = "캔버스에서 노드를 선택한 뒤 그룹의 '지정(n)'을 누릅니다; '표시'는 그룹 전체 표시/숨김입니다.",
             ["fm_rain_fade_custom"] = "사용자 지정 빗줄기 페이드",
             ["fm_ghost_rain_params_custom"] = "사용자 지정 고스트 빗줄기",
             ["fm_ghost_rain_shadow_custom"] = "사용자 지정 고스트 그림자",

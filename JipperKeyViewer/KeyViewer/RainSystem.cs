@@ -165,7 +165,15 @@ namespace JipperKeyViewer.KeyViewer
         {
             if (rain.removed) return;
 
-            float speed = rain.NodeSpeed > 0f ? rain.NodeSpeed : (rain.isGhost ? ghostRowSpeeds[row] : rowSpeeds[row]);
+            // Per-node speeds share the row sliders' user-facing unit — the row pipeline bakes a
+            // /300 conversion into rowSpeeds, so NodeSpeed must be scaled the same way here.
+            // Consumed raw it was 300× too fast (a seeded row value of 100 snapped the trail to
+            // full height instantly — read as "no upward animation"). / 逐节点速度与排滑杆共用
+            // 同一用户单位——排管线在 rowSpeeds 里烘焙了 /300 换算，NodeSpeed 此处必须同样
+            // 缩放。原样消费会快 300 倍（种子值 100 瞬间拉满轨迹——看起来就是"没有向上动画"）。
+            float speed = rain.NodeSpeed > 0f
+                ? rain.NodeSpeed / 300f
+                : (rain.isGhost ? ghostRowSpeeds[row] : rowSpeeds[row]);
             float height = rain.NodeHeight > 0f ? rain.NodeHeight : (rain.isGhost ? ghostRowHeights[row] : rowHeights[row]);
             float dt = dtSec * 1000f;
             if (!rain.UpdateLocation(rain.growing, speed, height, dt))

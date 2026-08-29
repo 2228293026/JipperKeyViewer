@@ -1638,8 +1638,29 @@ namespace JipperKeyViewer.KeyViewer
                 GUI.Label(ClipRect(sr, canvasRect), label, fmNodeLabelStyle);
             }
             if (selected)
+            {
+                // Multi-select: the ACTIVE node (whose values the property panel shows) gets a
+                // distinct cyan, thicker frame; the rest stay yellow. / 多选时活动节点（属性
+                // 面板显示其值的那个）用醒目的青色加粗框，其余保持黄色。
+                bool active = editorSelection.Count > 1 && fmActiveNode == node;
                 DrawRectOutline(new Rect(sr.x - 2f, sr.y - 2f, sr.width + 4f, sr.height + 4f),
-                    new Color(1f, 0.82f, 0.15f, 0.95f), 2f);
+                    active ? new Color(0.25f, 0.95f, 1f, 1f) : new Color(1f, 0.82f, 0.15f, 0.95f),
+                    active ? 3.5f : 2f);
+            }
+        }
+
+        /// <summary>Human-readable node name for the panel: key name / custom text / KPS /
+        /// Total / image file name — mirrors the canvas label. / 面板用的节点人话名称：键名/
+        /// 自定义文本/KPS/Total/图片文件名——与画布标签一致。</summary>
+        private static string EditorNodeDisplayName(KvNode node)
+        {
+            if (node.NodeType == 1) return string.IsNullOrEmpty(node.CustomText) ? "KPS" : node.CustomText;
+            if (node.NodeType == 2) return string.IsNullOrEmpty(node.CustomText) ? "Total" : node.CustomText;
+            if (node.NodeType == 3)
+                return string.IsNullOrWhiteSpace(node.ImagePath) ? I18n.Tr("fm_add_image") : System.IO.Path.GetFileName(node.ImagePath);
+            if (!string.IsNullOrEmpty(node.CustomText)) return node.CustomText;
+            KeyCode kc = CustomNodeKeyCode(node);
+            return kc != KeyCode.None ? KeyToString(kc) : "?";
         }
 
         private static Color WithAlpha(Color c, float mul)
@@ -1775,7 +1796,7 @@ namespace JipperKeyViewer.KeyViewer
 
             GUILayout.Label(string.Format(I18n.Tr("fm_selected_count"), editorSelection.Count));
             if (!single)
-                GUILayout.Label("<i>" + string.Format(I18n.Tr("fm_shown_node"), first.Id) + "</i>");
+                GUILayout.Label("<i>" + string.Format(I18n.Tr("fm_shown_node"), EditorNodeDisplayName(first)) + "</i>");
 
             if (single)
             {

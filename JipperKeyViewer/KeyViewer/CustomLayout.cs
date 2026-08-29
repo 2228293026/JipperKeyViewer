@@ -430,7 +430,11 @@ namespace JipperKeyViewer.KeyViewer
                 Color olPressed = node.UseCustomColor ? NodeColor(node.OutlinePressed, d.OutlineClicked) : d.OutlineClicked;
                 SetShapeColors(key, pressed ? bgPressed : bg, pressed ? olPressed : ol);
             }
-            key.text.color = pressed ? d.TextClicked : d.Text;
+            // Per-node text colors (null arrays fall back to the globals). /
+            // 节点级文本颜色（数组为空回落全局）。
+            Color txt = node.UseCustomColor && node.TextColor != null ? NodeColor(node.TextColor, d.Text) : d.Text;
+            Color txtPressed = node.UseCustomColor && node.TextColorPressed != null ? NodeColor(node.TextColorPressed, d.TextClicked) : d.TextClicked;
+            key.text.color = pressed ? txtPressed : txt;
             if (key.value != null) key.value.color = key.text.color;
         }
 
@@ -463,7 +467,14 @@ namespace JipperKeyViewer.KeyViewer
                 olP = ol;
             }
             SetShapeColors(key, pressed ? bgP : bg, pressed ? olP : ol);
-            key.text.color = isKps ? Settings.Data.KpsText : Settings.Data.TotalText;
+            // Per-node text colors on stat panels: base falls back to the dedicated Kps/Total
+            // text color, the pressed variant to the node's own base (dedicated sets have no
+            // pressed variant). / 面板节点的节点级文本颜色：常态回落专属 Kps/Total 文本色，
+            // 按压变体回落节点自身常态色（专属色无按压变体）。
+            Color statBase = isKps ? Settings.Data.KpsText : Settings.Data.TotalText;
+            Color statTxt = node.UseCustomColor && node.TextColor != null ? NodeColor(node.TextColor, statBase) : statBase;
+            Color statTxtP = node.UseCustomColor && node.TextColorPressed != null ? NodeColor(node.TextColorPressed, statTxt) : statTxt;
+            key.text.color = pressed ? statTxtP : statTxt;
             if (key.value != null) key.value.color = key.text.color;
         }
 

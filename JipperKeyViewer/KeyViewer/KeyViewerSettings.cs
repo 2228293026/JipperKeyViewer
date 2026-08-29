@@ -615,6 +615,10 @@ namespace JipperKeyViewer.KeyViewer
         public float[] BgPressed;
         public float[] Outline;
         public float[] OutlinePressed;
+        // Per-node text colors (null = follow the global Text/TextClicked). /
+        // 节点级文本颜色（null = 跟随全局 Text/TextClicked）。
+        public float[] TextColor;
+        public float[] TextColorPressed;
 
         // ===== rain / 雨滴 =====
         // RainRow maps the node onto the three global rain parameter rows (speed / height /

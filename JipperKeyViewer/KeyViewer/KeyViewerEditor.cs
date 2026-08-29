@@ -2306,6 +2306,10 @@ namespace JipperKeyViewer.KeyViewer
                     DrawEditorColorField(I18n.Tr("color_bg_clicked"), first.BgPressed, fbBg, arr => { foreach (KvNode n in editorSelection) if (n.NodeType != 3) n.BgPressed = arr; });
                     DrawEditorColorField(I18n.Tr("color_outline"), first.Outline, fbOl, arr => { foreach (KvNode n in editorSelection) if (n.NodeType != 3) n.Outline = arr; });
                     DrawEditorColorField(I18n.Tr("color_outline_clicked"), first.OutlinePressed, fbOl, arr => { foreach (KvNode n in editorSelection) if (n.NodeType != 3) n.OutlinePressed = arr; });
+                    Color fbTxt = isKps ? Settings.Data.KpsText : isTotal ? Settings.Data.TotalText : Settings.Data.Text;
+                    Color fbTxtP = isKps || isTotal ? fbTxt : Settings.Data.TextClicked;
+                    DrawEditorColorField(I18n.Tr("color_text"), first.TextColor, fbTxt, arr => { foreach (KvNode n in editorSelection) n.TextColor = arr; });
+                    DrawEditorColorField(I18n.Tr("color_text_clicked"), first.TextColorPressed, fbTxtP, arr => { foreach (KvNode n in editorSelection) n.TextColorPressed = arr; });
                 }
             }
 

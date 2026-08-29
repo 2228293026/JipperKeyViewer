@@ -1,0 +1,96 @@
+// Timeline-style undo for the FreeMake editor. One ordered list of whole-document JSON
+// snapshots plus a cursor: editing appends past the cursor (dropping any redone future),
+// undo/redo walk the cursor and hand the caller the state to restore. Arrow-key bursts
+// coalesce: the first nudge inside a short window records, the rest ride on it.
+// / FreeMake 编辑器的时间线式撤销。一个有序的整份文档 JSON 快照列表加游标：编辑在游标后
+// 追加（丢弃已重做的未来），撤销/重做移动游标并把要恢复的状态交还给调用方。方向键连发
+// 按短窗口合并：窗口内首次微调记录，其余搭车。
+
+using System;
+using System.Collections.Generic;
+
+namespace JipperKeyViewer.KeyViewer
+{
+    internal sealed class EditorHistory
+    {
+        // How many snapshots the timeline keeps; older ones fall off the front. /
+        // 时间线保留的快照数；更早的从头部淘汰。
+        private const int TimelineCapacity = 64;
+        // Nudge bursts within this window collapse into one timeline entry. /
+        // 该窗口内的微调连发合并为一条时间线记录。
+        private const float NudgeMergeWindow = 0.4f;
+
+        // snapshots[0..position] are remembered states, oldest first; `position` is the index
+        // the document is currently at (the newest snapshot). Edits truncate everything after
+        // `position` before appending, so redo history dies on any new edit — the standard
+        // linear-timeline behavior. / snapshots[0..position] 是记住的状态（旧在前）；
+        // `position` 是文档当前所在条目（最新快照）。编辑先截断 position 之后的内容再追加，
+        // 任何新编辑都会作废重做历史——线性时间线的标准行为。
+        private readonly List<string> snapshots = new List<string>();
+        private int position = -1;
+        private float lastNudgeStamp = float.NegativeInfinity;
+
+        internal bool CanUndo => position > 0;
+        internal bool CanRedo => position >= 0 && position < snapshots.Count - 1;
+
+        internal void Push(string snapshot)
+        {
+            if (snapshot == null) return;
+            if (position >= 0 && position < snapshots.Count - 1)
+                snapshots.RemoveRange(position + 1, snapshots.Count - 1 - position);
+            snapshots.Add(snapshot);
+            position = snapshots.Count - 1;
+            if (snapshots.Count > TimelineCapacity)
+            {
+                snapshots.RemoveAt(0);
+                position--;
+            }
+            // Deliberately NOT resetting lastNudgeStamp here: PushNudge sets it just before
+            // calling in, and a plain Push shouldn't interfere with an open nudge burst either
+            // (only EndNudge/Clear close it). / 此处刻意不重置 lastNudgeStamp：PushNudge 在
+            // 调入前刚设置它；普通 Push 也不应打断未闭合的微调连发（只有 EndNudge/Clear
+            // 闭合）。
+        }
+
+        /// <summary>Nudge variant: only the first nudge inside the merge window records. /
+        /// 微调变体：合并窗口内只有第一次微调记录。</summary>
+        internal void PushNudge(string snapshot, float now)
+        {
+            if (now - lastNudgeStamp <= NudgeMergeWindow) return;
+            lastNudgeStamp = now;
+            Push(snapshot);
+        }
+
+        /// <summary>Close a nudge burst so the next one starts a fresh entry. /
+        /// 结束一次微调连发，下一次连发开新记录。</summary>
+        internal void EndNudge() => lastNudgeStamp = float.NegativeInfinity;
+
+        /// <summary>Step back one entry; `current` becomes the document state at the cursor so a
+        /// later redo returns to it. Returns the state to restore, or null at the timeline's
+        /// start. / 回退一格；`current` 记为游标处的文档状态供之后重做返回。返回要恢复的
+        /// 状态，到达时间线起点时返回 null。</summary>
+        internal string Undo(string current)
+        {
+            if (!CanUndo) return null;
+            snapshots[position] = current ?? snapshots[position];
+            position--;
+            return snapshots[position];
+        }
+
+        /// <summary>Step forward one entry; mirrors Undo. / 前进一格，与 Undo 对称。</summary>
+        internal string Redo(string current)
+        {
+            if (!CanRedo) return null;
+            snapshots[position] = current ?? snapshots[position];
+            position++;
+            return snapshots[position];
+        }
+
+        internal void Clear()
+        {
+            snapshots.Clear();
+            position = -1;
+            EndNudge();
+        }
+    }
+}

@@ -124,20 +124,15 @@ namespace JipperKeyViewer.KeyViewer
             }
         }
 
-        /// <summary>Emit one drop's shadow/outline/(main) quads with the trail gradient / 输出一滴雨的阴影/描边/(本体)四边形及轨迹渐变</summary>
+        /// <summary>Emit one drop's shadow/outline/(main) quads with the trail gradient. The
+        /// body carries a bottom→top two-color gradient (DM Note noteGradient semantic); the
+        /// shadow/outline stay single-color. / 输出一滴雨的阴影/描边/(本体)四边形及轨迹渐变。
+        /// 本体携带底→顶双色渐变（DM Note noteGradient 语义）；阴影/描边保持单色。</summary>
         private static void DrawDrop(VertexHelper vh, RawRain rain, bool drawMain)
         {
             Rect r = rain.rect;
             if (r.width <= 0f || r.height <= 0f) return;
-            // Ghost quads drawn here (shadow/outline, or the sprite-missing fallback body) keep the
-            // old RainGraphic white base — alpha follows the fade only. Normal drops tint everything
-            // with the rain color; the fallback ghost body uses the ghost color like the old path.
-            // 此处绘制的鬼雨四边形（阴影/描边，或贴图缺失时的本体回退）保持旧 RainGraphic 的
-            // 白色基底——透明度只受淡出影响。普通雨滴全部以雨色着色；回退鬼雨本体与旧路径
-            // 一致使用鬼雨色。
-            Color baseCol = rain.isGhost && !drawMain
-                ? new Color(1f, 1f, 1f, rain.alpha)
-                : new Color(rain.mainColor.r, rain.mainColor.g, rain.mainColor.b, rain.mainColor.a * rain.alpha);
+            float baseA = rain.isGhost && !drawMain ? rain.alpha : rain.mainColor.a * rain.alpha;
             float h = r.height;
             float span = rain.dFar - rain.dNear;
             bool simple = rain.fadePx <= 0.5f || rain.trackHeight <= 0.5f || span <= 0.0001f;
@@ -146,51 +141,62 @@ namespace JipperKeyViewer.KeyViewer
             if (rain.shadowEnabled)
             {
                 Color sc = rain.shadowColor;
-                sc.a *= baseCol.a;
+                sc.a *= baseA;
                 DrawRainQuad(vh, r.xMin + rain.shadowOffsetX * sf, r.xMax + rain.shadowOffsetX * sf,
-                    r.yMin + rain.shadowOffsetY * sf, r.yMax + rain.shadowOffsetY * sf, h, sc,
+                    r.yMin + rain.shadowOffsetY * sf, r.yMax + rain.shadowOffsetY * sf, h, sc, sc,
                     rain.dNear, rain.dFar, rain.trackHeight, rain.fadePx, span, simple);
             }
             if (rain.outlineEnabled)
             {
                 Color oc = rain.outlineColor;
-                oc.a *= baseCol.a;
+                oc.a *= baseA;
                 float ow = rain.outlineWidth * sf;
-                DrawRainQuad(vh, r.xMin - ow, r.xMax + ow, r.yMin - ow, r.yMax + ow, h + ow * 2, oc,
+                DrawRainQuad(vh, r.xMin - ow, r.xMax + ow, r.yMin - ow, r.yMax + ow, h + ow * 2, oc, oc,
                     rain.dNear, rain.dFar, rain.trackHeight, rain.fadePx, span, simple);
             }
             if (drawMain)
-                DrawRainQuad(vh, r.xMin, r.xMax, r.yMin, r.yMax, h, baseCol,
+            {
+                Color cb = rain.mainColor; cb.a = baseA;
+                Color ct = rain.ColorTop; ct.a = baseA;
+                DrawRainQuad(vh, r.xMin, r.xMax, r.yMin, r.yMax, h, cb, ct,
                     rain.dNear, rain.dFar, rain.trackHeight, rain.fadePx, span, simple);
+            }
         }
 
-        /// <summary>Trail-gradient quad, ported verbatim from the old RainGraphic / 轨迹渐变四边形，自旧 RainGraphic 原样移植</summary>
-        private static void DrawRainQuad(VertexHelper vh, float xL, float xR, float yB, float yT, float h, Color col,
+        /// <summary>Trail-gradient quad, ported verbatim from the old RainGraphic and extended to
+        /// a bottom→top two-color body (single-color callers pass the same color twice). /
+        /// 轨迹渐变四边形，自旧 RainGraphic 原样移植并扩展为底→顶双色（单色调用方传同一颜色
+        /// 两次）。</summary>
+        private static void DrawRainQuad(VertexHelper vh, float xL, float xR, float yB, float yT, float h, Color colBot, Color colTop,
             float dNear, float dFar, float trackH, float fade, float span, bool simple)
         {
             if (simple)
             {
-                AddQuad(vh, xL, xR, yB, yT, 0f, 1f, 0f, 1f, col, col);
+                AddQuad(vh, xL, xR, yB, yT, 0f, 1f, 0f, 1f, colBot, colTop);
                 return;
             }
 
             float fadeStartD = trackH - fade;
             float aNear = AlphaAtD(dNear, fadeStartD, trackH, fade);
             float aFar = AlphaAtD(dFar, fadeStartD, trackH, fade);
-            Color colNear = col; colNear.a = col.a * aNear;
-            Color colFar = col; colFar.a = col.a * aFar;
-
             bool crosses = dNear < fadeStartD && dFar > fadeStartD;
             if (!crosses)
             {
                 // reverseFade was always false in the old renderer / 旧渲染器 reverseFade 恒为 false
-                AddQuad(vh, xL, xR, yB, yT, 0f, 1f, 0f, 1f, colNear, colFar);
+                AddQuad(vh, xL, xR, yB, yT, 0f, 1f, 0f, 1f, WithA(colBot, aNear), WithA(colTop, aFar));
                 return;
             }
             float t = (fadeStartD - dNear) / span;
             float yMid = yB + t * h;
-            AddQuad(vh, xL, xR, yB, yMid, 0f, 1f, 0f, 0.5f, colNear, col);
-            AddQuad(vh, xL, xR, yMid, yT, 0f, 1f, 0.5f, 1f, col, colFar);
+            Color cMid = Color.Lerp(colBot, colTop, t);
+            AddQuad(vh, xL, xR, yB, yMid, 0f, 1f, 0f, 0.5f, WithA(colBot, aNear), cMid);
+            AddQuad(vh, xL, xR, yMid, yT, 0f, 1f, 0.5f, 1f, cMid, WithA(colTop, aFar));
+        }
+
+        private static Color WithA(Color c, float mul)
+        {
+            c.a *= mul;
+            return c;
         }
 
         private static float AlphaAtD(float d, float fadeStartD, float trackH, float fade)

@@ -295,6 +295,13 @@ namespace JipperKeyViewer.KeyViewer
                 GUILayout.Label("<i>" + I18n.Tr("full_kb_keys_na") + "</i>");
                 return;
             }
+            if (IsCustomLayout)
+            {
+                // Bindings and texts are per node in the FreeMake editor. / 绑定与文本在
+                // FreeMake 编辑器里按节点编辑。
+                GUILayout.Label("<i>" + I18n.Tr("fm_binding_hint") + "</i>");
+                return;
+            }
             KeyChangeExpanded = DrawFoldoutButton(I18n.Tr("key_change"), KeyChangeExpanded);
             if (KeyChangeExpanded)
                 DrawKeyChangeSection();

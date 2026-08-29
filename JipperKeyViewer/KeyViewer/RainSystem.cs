@@ -165,8 +165,8 @@ namespace JipperKeyViewer.KeyViewer
         {
             if (rain.removed) return;
 
-            float speed = rain.isGhost ? ghostRowSpeeds[row] : rowSpeeds[row];
-            float height = rain.isGhost ? ghostRowHeights[row] : rowHeights[row];
+            float speed = rain.NodeSpeed > 0f ? rain.NodeSpeed : (rain.isGhost ? ghostRowSpeeds[row] : rowSpeeds[row]);
+            float height = rain.NodeHeight > 0f ? rain.NodeHeight : (rain.isGhost ? ghostRowHeights[row] : rowHeights[row]);
             float dt = dtSec * 1000f;
             if (!rain.UpdateLocation(rain.growing, speed, height, dt))
             {
@@ -225,7 +225,9 @@ namespace JipperKeyViewer.KeyViewer
             // Y 从（键底边 + 起始 Y + 容器高）起算。起始 Y（普通与鬼雨）在此实时读取，
             // 创建时烙入的 startY 被减回。
             int ri = rain.color == 0 ? 0 : rain.color == 3 ? 2 : 1;
-            float baseStart = rain.isGhost ? ghostRowStartYs[ri] : rowStartYs[ri];
+            float baseStart = rain.HasTrackBase
+                ? rain.TrackBaseY + rain.StartOffsetY
+                : (rain.isGhost ? ghostRowStartYs[ri] : rowStartYs[ri]) + rain.StartOffsetY;
             float travel = rain.anchoredPosition.Value.y - rain.startY;
             float cx = keyPos.x + key.rainOffsetX + key.rainWidth * 0.5f;
             float topY = keyPos.y - key.keySize.y * 0.5f + baseStart + RainContainerHeight + travel;
@@ -254,7 +256,15 @@ namespace JipperKeyViewer.KeyViewer
 
         public void TriggerRainEffect(int keyIndex, Key key)
         {
-            if (key == null || !IsRainEnabledForKey(keyIndex))
+            if (key == null) return;
+            // Custom nodes carry their own per-node rain gate. / 自定义节点自带逐节点雨滴开关。
+            if (key.CustomNode != null)
+            {
+                if (!key.CustomNode.RainEnabled) return;
+                CreateRainDropForKey(keyIndex, key);
+                return;
+            }
+            if (!IsRainEnabledForKey(keyIndex))
                 return;
             CreateRainDropForKey(keyIndex, key);
         }
@@ -277,7 +287,14 @@ namespace JipperKeyViewer.KeyViewer
 
         public void TriggerGhostRain(int keyIndex, Key key)
         {
-            if (key == null || !IsRainEnabledForKey(keyIndex)) return;
+            if (key == null) return;
+            if (key.CustomNode != null)
+            {
+                if (!key.CustomNode.RainEnabled) return;
+                CreateRainDropForKey(keyIndex, key, isGhost: true);
+                return;
+            }
+            if (!IsRainEnabledForKey(keyIndex)) return;
             CreateRainDropForKey(keyIndex, key, isGhost: true);
         }
 
@@ -346,6 +363,13 @@ namespace JipperKeyViewer.KeyViewer
                 r.FinalSize = default;
                 r.rect = default;
                 r.mainColor = Color.white;
+                r.ColorTop = Color.white;
+                r.StartOffsetY = 0f;
+                r.HasTrackBase = false;
+                r.TrackBaseY = 0f;
+                r.NodeWidth = 0f;
+                r.NodeHeight = 0f;
+                r.NodeSpeed = 0f;
                 r.alpha = 1f;
                 r.scaleF = 1f;
                 r.fadingOut = false;
@@ -380,7 +404,11 @@ namespace JipperKeyViewer.KeyViewer
         {
             if (KeyViewer.IsFullKeyboard) return;
 
-            int row = keyIndex < 8 ? 1 : (keyIndex < 16 ? 2 : 3);
+            // Custom nodes carry their own rain row; fixed layouts derive it from the slot
+            // index. / 自定义节点自带雨滴排；固定布局按槽位序号推导。
+            int row = key.CustomNode != null
+                ? Mathf.Clamp(key.CustomNode.RainRow, 0, 2) + 1
+                : (keyIndex < 8 ? 1 : (keyIndex < 16 ? 2 : 3));
 
             RawRain rawRain = GetRawRain(key.color);
             float baseY = row == 1 ? settings.Data.RainStartYRow1 : row == 2 ? settings.Data.RainStartYRow2 : settings.Data.RainStartYRow3;
@@ -390,9 +418,11 @@ namespace JipperKeyViewer.KeyViewer
 
             if (isGhost)
             {
-                rawRain.mainColor = settings.Data.EnablePerKeyColors
-                    ? settings.Data.PerKeyGhostRainColor[keyIndex]
-                    : GetGhostRainColor(key.color);
+                rawRain.mainColor = key.CustomNode != null
+                    ? GetGhostRainColor(key.color)
+                    : settings.Data.EnablePerKeyColors
+                        ? settings.Data.PerKeyGhostRainColor[keyIndex]
+                        : GetGhostRainColor(key.color);
 
                 rawRain.shadowEnabled = row == 1 ? settings.Data.EnableGhostRainShadowRow1
                     : row == 2 ? settings.Data.EnableGhostRainShadowRow2
@@ -441,6 +471,57 @@ namespace JipperKeyViewer.KeyViewer
                 rawRain.outlineWidth = row == 1 ? settings.Data.RainOutlineWidthRow1
                     : row == 2 ? settings.Data.RainOutlineWidthRow2
                     : settings.Data.RainOutlineWidthRow3;
+            }
+
+            // Per-node shadow/outline overrides — applied AFTER the row assignment so a null node
+            // color keeps the row's. Ghost rain intentionally keeps the ghost-row settings (no
+            // per-node ghost override). / 节点级阴影/描边覆盖——在排赋值之后应用，节点颜色为空
+            // 时保留排颜色。鬼雨有意保持鬼雨排设置（无节点级鬼雨覆盖）。
+            if (!isGhost && key.CustomNode != null)
+            {
+                KvNode cn = key.CustomNode;
+                if (cn.UseCustomRainShadow)
+                {
+                    rawRain.shadowEnabled = cn.RainShadowEnabled;
+                    rawRain.shadowColor = KeyViewer.NodeColor(cn.RainShadowColor, rawRain.shadowColor);
+                    rawRain.shadowOffsetX = cn.RainShadowOffsetX;
+                    rawRain.shadowOffsetY = cn.RainShadowOffsetY;
+                }
+                if (cn.UseCustomRainOutline)
+                {
+                    rawRain.outlineEnabled = cn.RainOutlineEnabled;
+                    rawRain.outlineColor = KeyViewer.NodeColor(cn.RainOutlineColor, rawRain.outlineColor);
+                    rawRain.outlineWidth = cn.RainOutlineWidth;
+                }
+            }
+
+            // Per-node top color + start-Y offset (DM Note noteGradient / noteOffsetY), and the
+            // DM Note trackBottom model: custom rain starts at the node's TOP edge — the 275px
+            // container constant is tuned for 50px keys and would spawn the trail inside taller
+            // nodes. / 节点级顶端颜色与起始 Y 偏移（DM Note 的 noteGradient / noteOffsetY），
+            // 以及 DM Note 的 trackBottom 模型：自定义雨滴从节点顶边出发——275px 容器常量是为
+            // 50px 键调校的，较高的节点会让轨迹从按键内部冒出来。
+            rawRain.ColorTop = key.CustomNode != null && key.CustomNode.UseCustomRainColor && key.CustomNode.RainColorTop != null
+                ? KeyViewer.NodeColor(key.CustomNode.RainColorTop, rawRain.mainColor)
+                : rawRain.mainColor;
+            if (key.CustomNode != null)
+            {
+                rawRain.HasTrackBase = true;
+                rawRain.TrackBaseY = key.keySize.y - RainContainerHeight + 2f;
+                rawRain.StartOffsetY = key.CustomNode.RainOffsetY;
+            }
+            else
+            {
+                rawRain.StartOffsetY = 0f;
+            }
+
+            // Per-node rain parameter overrides (DM Note per-key note width/height/speed). /
+            // 节点级雨滴参数覆盖（DM Note 的逐键 noteWidth/noteHeight/noteSpeed）。
+            if (key.CustomNode != null)
+            {
+                if (key.CustomNode.RainWidth > 0f) rawRain.NodeWidth = key.CustomNode.RainWidth;
+                if (key.CustomNode.RainHeight > 0f) rawRain.NodeHeight = key.CustomNode.RainHeight;
+                if (key.CustomNode.RainSpeed > 0f) rawRain.NodeSpeed = key.CustomNode.RainSpeed;
             }
 
             rawRain.isGhost = isGhost;

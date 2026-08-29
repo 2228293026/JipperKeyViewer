@@ -281,17 +281,6 @@ namespace JipperKeyViewer.KeyViewer
             // 全键盘主键占用 0-104，脚键索引(24+)与真实键重叠，绝不能再处理脚键组，否则污染主键状态。
             if (!IsFullKeyboard && cachedFootKeys != null)
                 ProcessKeyGroup(cachedFootKeys, FootKeyBase, elapsedMilliseconds);
-            if (Total != null && lastTotal != d.TotalCount)
-            {
-                lastTotal = d.TotalCount;
-                NumBuffer.Format(lastTotal, d.EnableCountFormatting, out var buf, out int off, out int len);
-                if (KpsTotalCenteredApplies())
-                    SetKpsTotalDisplay(Total, "Total", new string(buf, off, len));
-                else if (!KpsTotalIsSlim() && Settings.Data.HideKpsTotalLabel)
-                    Total.text.SetText(buf, off, len);
-                else if (Total.value != null)
-                    Total.value.SetText(buf, off, len);
-            }
         }
 
         /// <summary>
@@ -383,6 +372,21 @@ namespace JipperKeyViewer.KeyViewer
                         Kps.value.SetText(buf, off, len);
                 }
             }
+            // The Total display update lives HERE (not in ProcessMainAndFootKeys) so both input
+            // paths — fixed layouts AND the FreeMake custom path, which never runs the former —
+            // refresh it every frame. / Total 计数显示更新放在此处（而非 ProcessMainAndFootKeys），
+            // 使固定布局与 FreeMake 自定义两条输入路径（后者不经过前者）都会逐帧刷新。
+            if (Total != null && lastTotal != Settings.Data.TotalCount)
+            {
+                lastTotal = Settings.Data.TotalCount;
+                NumBuffer.Format(lastTotal, Settings.Data.EnableCountFormatting, out var buf, out int off, out int len);
+                if (KpsTotalCenteredApplies())
+                    SetKpsTotalDisplay(Total, "Total", new string(buf, off, len));
+                else if (!KpsTotalIsSlim() && Settings.Data.HideKpsTotalLabel)
+                    Total.text.SetText(buf, off, len);
+                else if (Total.value != null)
+                    Total.value.SetText(buf, off, len);
+            }
         }
 
         /// <summary>
@@ -391,6 +395,7 @@ namespace JipperKeyViewer.KeyViewer
         private void ProcessPerKeyKpsInUpdate(long elapsedMilliseconds)
         {
             if (!_hasKeyPressActivity) return;
+            if (IsCustomLayout) return; // custom nodes drain their own KPS logs / 自定义节点消费自己的 KPS 队列
             if (!Settings.Data.EnablePerKeyKps || keyPressTimes == null || Keys == null) return;
             for (int i = 0; i < Keys.Length && i < keyPressTimes.Length; i++)
             {
@@ -469,6 +474,8 @@ namespace JipperKeyViewer.KeyViewer
                 }
                 if (key.visuals != null)
                     key.visuals.localScale = Vector3.one;
+                if (key.CustomImageRect != null)
+                    key.CustomImageRect.localScale = Vector3.one;
                 if (key.shapeSlot >= 0)
                 {
                     if (keyShapeLayer != null) keyShapeLayer.SetScale(key.shapeSlot, 1f);
@@ -538,6 +545,10 @@ namespace JipperKeyViewer.KeyViewer
                 float p = Mathf.Min(1f, elapsed / duration);
                 float s = Mathf.Lerp(startS, target, p);
                 animTarget.localScale = new Vector3(s, s, 1);
+                // Image keys scale their RawImage visual alongside the text wrapper. /
+                // 图片按键的 RawImage 视觉与文本包裹层同步缩放。
+                if (key.CustomImageRect != null)
+                    key.CustomImageRect.localScale = new Vector3(s, s, 1f);
                 // shapeSlot equals the key index for all real keys; when rain-follow is off, drive
                 // the rain scale back to 1 so a mid-hold toggle never leaves it stuck scaled /
                 // 真实按键的 shapeSlot 即键索引；雨滴跟随关闭时把雨滴缩放拉回 1，
@@ -549,6 +560,8 @@ namespace JipperKeyViewer.KeyViewer
             if (key == null || animTarget == null) yield break;
             if (keyShapeLayer == null || keyShapeLayer.Generation != generation) yield break;
             animTarget.localScale = new Vector3(target, target, 1);
+            if (key.CustomImageRect != null)
+                key.CustomImageRect.localScale = new Vector3(target, target, 1f);
             if (key.shapeSlot >= 0) keyShapeLayer.SetScale(key.shapeSlot, target);
             if (rainLayer != null && key.shapeSlot >= 0) rainLayer.SetKeyScale(key.shapeSlot, affectRain ? target : 1f);
         }

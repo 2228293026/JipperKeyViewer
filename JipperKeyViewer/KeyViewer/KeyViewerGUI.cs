@@ -36,7 +36,7 @@ namespace JipperKeyViewer.KeyViewer
             switch (settingsGuiTab)
             {
                 case 1:
-                    DrawCustomPositionSection();
+                    if (!IsCustomLayout) DrawCustomPositionSection(); // nodes are their own position / 节点即位置
                     DrawLayoutSection();
                     if (KeyViewer.IsFullKeyboard)
                         DrawFullKeyboardKpsTotalSection();

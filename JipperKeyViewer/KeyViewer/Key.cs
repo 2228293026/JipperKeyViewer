@@ -8,6 +8,7 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace JipperKeyViewer.KeyViewer
 {
@@ -29,6 +30,12 @@ namespace JipperKeyViewer.KeyViewer
         public byte color;
         /// <summary>Pre-computed rain color for this key / 预先计算的该键雨滴颜色</summary>
         public Color rainColor = Color.white;
+        /// <summary>Top end of the custom rain gradient (Custom nodes) / 自定义雨滴渐变的顶端颜色</summary>
+        public Color rainColorTop = Color.white;
+        /// <summary>Counter bounce state (DM Note keyCounterAnimation) / 计数器弹跳状态（DM Note keyCounterAnimation）</summary>
+        public bool Bouncing;
+        public float BounceStart;
+        public Vector2 BounceBasePos;
         /// <summary>Active rain drops list / 活跃中的雨滴列表</summary>
         public List<RawRain> rainList = new List<RawRain>();
         /// <summary>Whether this key is currently pressed / 当前是否被按下</summary>
@@ -41,5 +48,20 @@ namespace JipperKeyViewer.KeyViewer
         public float rainOffsetX;
         /// <summary>Rain column width (key width; 50 when redirected to a front column) / 雨滴列宽（按键宽度；重指向前列时为 50）</summary>
         public float rainWidth = 50f;
+        /// <summary>Backing node when this key belongs to a Custom layout / 自定义布局时对应的节点</summary>
+        public KvNode CustomNode;
+        /// <summary>Parsed KeyBind of CustomNode, cached with the raw string it was parsed from / CustomNode 绑定键的解析缓存（附解析时的原始字符串）</summary>
+        public KeyCode CustomKeyCode;
+        public string CustomKeyBindCached;
+        /// <summary>Per-key KPS press log for Custom nodes (ephemeral, rebuilt with the overlay) / 自定义节点的每键 KPS 队列（临时态，随覆盖层重建）</summary>
+        public readonly Queue<long> KpsLog = new Queue<long>(32);
+        /// <summary>Last per-key KPS value written to the counter text / 上一次写入计数文本的每键 KPS 值</summary>
+        public int LastShownKps = int.MinValue;
+        /// <summary>Image-key visuals: the RawImage replaces the shape-layer box, and the two
+        /// textures swap on press / 图片按键视觉：RawImage 取代形状层盒子，两张贴图按压时切换</summary>
+        public RectTransform CustomImageRect;
+        public RawImage CustomImage;
+        public Texture2D CustomTexNormal;
+        public Texture2D CustomTexPressed;
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using Newtonsoft.Json;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -46,7 +47,7 @@ namespace JipperKeyViewer.KeyViewer
         public static readonly byte[] BackSequence24 = new byte[] { 12, 13, 9, 8, 10, 11, 14, 15, 17, 16, 18, 19, 21, 20, 22, 23 };
 
         /// <summary>Display names for main key layout selection grid / 主按键布局选择网格的显示名称</summary>
-        static readonly string[] KeyLayoutNames = { "12K", "16K", "20K", "10K", "8K", "14K", "24K", "108K" };
+        static readonly string[] KeyLayoutNames = { "12K", "16K", "20K", "10K", "8K", "14K", "24K", "108K", "自定义" };
         /// <summary>Display names for foot key layout selection grid / 脚键布局选择网格的显示名称</summary>
         static readonly string[] FootKeyLayoutNames = { "Off", "2K", "4K", "6K", "8K", "10K", "12K", "14K", "16K" };
 
@@ -58,8 +59,15 @@ namespace JipperKeyViewer.KeyViewer
         internal const int MaxKeySlots = 40;
         /// <summary>Whether the current layout is the full 108-key keyboard / 当前布局是否为全键盘</summary>
         internal static bool IsFullKeyboard => Settings.Data.KeyViewerStyle == KeyviewerStyle.Full108;
+        /// <summary>Whether the current layout is the FreeMake custom node layout / 当前布局是否为 FreeMake 自定义节点布局</summary>
+        internal static bool IsCustomLayout => Settings.Data.KeyViewerStyle == KeyviewerStyle.Custom;
         /// <summary>Number of main keys for the current layout (40 normal, 108 full) / 当前布局的主键数</summary>
-        private static int GetKeyCount() => IsFullKeyboard ? Settings.Data.key108.Length : MaxKeySlots;
+        private static int GetKeyCount()
+        {
+            if (IsFullKeyboard) return Settings.Data.key108.Length;
+            if (IsCustomLayout) return CustomKeyNodeCount();
+            return MaxKeySlots;
+        }
 
         /// <summary>Default 108-key physical keyboard bindings, indexed by Full108 array slot / 全键盘默认键位绑定，下标对应 Full108 数组槽位</summary>
         internal static KeyCode[] BuildDefaultKey108()
@@ -376,10 +384,20 @@ namespace JipperKeyViewer.KeyViewer
         }
 
         /// <summary>
+        /// Flush any pending debounced save before shutdown (UMM has no quit hook; Melon's
+        /// OnApplicationQuit also calls SaveSettings — the double save is harmless). /
+        /// 关闭前冲刷挂起的去抖保存（UMM 没有退出钩子；Melon 的 OnApplicationQuit 也会调用
+        /// SaveSettings——重复保存无害）。
+        /// </summary>
+        void OnApplicationQuit()
+        {
+            if (Settings != null) SaveSettings();
+        }
+
+        /// <summary>
         /// Called when the GameObject is destroyed / GameObject 被销毁时调用
         /// </summary>
-        void OnDestroy()
-        {
+        void OnDestroy()        {
             SaveSettings();
             instance = null; // stop loader GUI callbacks from running on the destroyed component / 阻止加载器 GUI 回调继续在已销毁组件上运行
             SceneManager.sceneLoaded -= OnSceneLoaded;
@@ -461,11 +479,21 @@ namespace JipperKeyViewer.KeyViewer
                 CheckResolutionChanged();
                 long now = Stopwatch.ElapsedMilliseconds;
                 ProcessKeySelection();              // Handle key rebinding input / 处理按键重新绑定输入
-                ProcessMainAndFootKeysInUpdate(now); // Detect key presses / 检测按键按下
+                if (IsCustomLayout)
+                {
+                    // FreeMake nodes: bindings/counters live on the nodes; ghosts included. /
+                    // FreeMake 节点：绑定与计数在节点上，鬼键一并处理。
+                    ProcessCustomKeysInUpdate(now);
+                }
+                else
+                {
+                    ProcessMainAndFootKeysInUpdate(now); // Detect key presses / 检测按键按下
+                    ProcessGhostKeysInUpdate();          // Process ghost key inputs / 处理鬼键输入
+                    if (Settings.Data.EnableRainEffect) rainSystem.UpdateEffects(Keys); // Update rain drop positions / 更新雨滴位置
+                }
                 ProcessKpsInUpdate(now);            // Update KPS counter / 更新 KPS 计数器
                 ProcessPerKeyKpsInUpdate(now);       // Update per-key KPS / 更新每键 KPS
-                ProcessGhostKeysInUpdate();          // Process ghost key inputs / 处理鬼键输入
-                if (Settings.Data.EnableRainEffect) rainSystem.UpdateEffects(Keys); // Update rain drop positions / 更新雨滴位置
+                if (IsCustomLayout) TickCounterBounces(); // counter bounce animations / 计数器弹跳动画
             }
         }
 
@@ -494,6 +522,12 @@ namespace JipperKeyViewer.KeyViewer
                     Settings = new KeyViewerSettings();
                     return;
                 }
+                // JsonUtility.FromJson does NOT run field initializers — the meta JSON never
+                // carries "Data", so Data would be null here and the legacy overwrite below
+                // would NRE. / JsonUtility.FromJson 不运行字段初始化器——meta JSON 永远没有
+                // "Data"，此处 Data 会是 null，随后的旧版覆盖会 NRE。
+                if (Settings.Data == null) Settings.Data = new ProfileData();
+                if (Settings.CurrentProfile == null) Settings.CurrentProfile = "Default";
 
                 // Backward compat: old flat JSON had profile fields directly on KeyViewerSettings,
                 // now they live in ProfileData. Overwrite Data from the flat JSON to preserve them.
@@ -514,6 +548,9 @@ namespace JipperKeyViewer.KeyViewer
                 if (Settings.Version < 6) MigrateV5toV6(metaVersionOnDisk);
 
                 EnsureSettingsArrays();
+                // Startup diagnostic: makes stale-DLL / lost-config situations immediately
+                // visible in the log. / 启动诊断：旧 DLL 或配置丢失在日志里立即可见。
+                Loader.Log($"KeyViewer: profile '{Settings.CurrentProfile}' loaded ({Settings.Data.CustomNodes.Count} custom nodes, {Settings.Data.LayerGroups.Count} layer groups)");
                 SyncProfilesWithDisk();
                 settingsGuiTab = Mathf.Clamp(Settings.UiTab, 0, TabCount - 1);
             }
@@ -732,9 +769,11 @@ namespace JipperKeyViewer.KeyViewer
                         if (!raw.Contains("FullKpsPosition")) continue; // dormant v4-form file / 休眠的 v4 形态文件
                         var pd = new ProfileData();
                         JsonUtility.FromJsonOverwrite(raw, pd);
+                        pd.SyncArraysFromLists();
                         pd.FullKpsPosition = FlipYConvention(pd.FullKpsPosition);
                         pd.FullTotalPosition = FlipYConvention(pd.FullTotalPosition);
-                        WriteAllTextSafe(path, JsonUtility.ToJson(pd, true));
+                        pd.SyncListsToArrays();
+                        WriteAllTextSafe(path, JsonConvert.SerializeObject(pd, Formatting.Indented, ProfileData.ProfileSerializer));
                     }
                     catch (Exception e)
                     {
@@ -788,6 +827,22 @@ namespace JipperKeyViewer.KeyViewer
                         if (pd.Count != null) Array.Copy(pd.Count, c, Math.Min(pd.Count.Length, MaxKeySlots));
                         pd.Count = c;
                     }
+                    // 36-era files also carried shorter PerKey color arrays (38 = 36+2): the shifts
+                    // below only write inside the old length, so migrating a dormant profile with
+                    // footSize 16 silently dropped the tail slots (foot keys 14/15). Resize first —
+                    // the tail fills from the profile's own global colors, the same fill
+                    // EnsureSettingsArrays applies when a newer build loads a short array.
+                    // 36-era 文件的 PerKey 颜色数组同样更短（38 = 36+2）：下方的平移只写入旧长度
+                    // 之内，休眠 Profile 带 16K 脚键时会把尾部槽位静默丢掉（脚键 14/15）。先重定
+                    // 长度——尾部用该 Profile 自己的全局色填充，与新版加载短数组时
+                    // EnsureSettingsArrays 的填充语义一致。
+                    pd.PerKeyBackground = EnsureColorArray(pd.PerKeyBackground, MaxKeySlots + 2, pd.Background);
+                    pd.PerKeyBackgroundClicked = EnsureColorArray(pd.PerKeyBackgroundClicked, MaxKeySlots + 2, pd.BackgroundClicked);
+                    pd.PerKeyOutline = EnsureColorArray(pd.PerKeyOutline, MaxKeySlots + 2, pd.Outline);
+                    pd.PerKeyOutlineClicked = EnsureColorArray(pd.PerKeyOutlineClicked, MaxKeySlots + 2, pd.OutlineClicked);
+                    pd.PerKeyText = EnsureColorArray(pd.PerKeyText, MaxKeySlots + 2, pd.Text);
+                    pd.PerKeyTextClicked = EnsureColorArray(pd.PerKeyTextClicked, MaxKeySlots + 2, pd.TextClicked);
+                    pd.PerKeyRainColor = EnsureColorArray(pd.PerKeyRainColor, MaxKeySlots + 2, pd.RainColor);
                     Array.Copy(pd.Count, oldBase, pd.Count, FootKeyBase, fs);
                     // Gap-only clear — the full-range clear overlapped the just-copied entries
                     // when fs > (FootKeyBase - oldBase). Mirror of the live-migration fix above.
@@ -813,7 +868,8 @@ namespace JipperKeyViewer.KeyViewer
                     Shift(pd.PerKeyText, oldBase, FootKeyBase, fs);
                     Shift(pd.PerKeyTextClicked, oldBase, FootKeyBase, fs);
                     Shift(pd.PerKeyRainColor, oldBase, FootKeyBase, fs);
-                    WriteAllTextSafe(path, JsonUtility.ToJson(pd, true));
+                    pd.SyncListsToArrays();
+                    WriteAllTextSafe(path, JsonConvert.SerializeObject(pd, Formatting.Indented, ProfileData.ProfileSerializer));
                 }
                 catch (Exception e)
                 {
@@ -993,6 +1049,7 @@ namespace JipperKeyViewer.KeyViewer
                     Array.Copy(Settings.Data.PerKeyFontSize, f, Math.Min(Settings.Data.PerKeyFontSize.Length, n));
                 Settings.Data.PerKeyFontSize = f;
             }
+            EnsureCustomNodes();
         }
 
         private void ClearKpsTimers()
@@ -1106,8 +1163,13 @@ namespace JipperKeyViewer.KeyViewer
         private void SaveCurrentProfile()
         {
             if (!Directory.Exists(ProfileDir)) Directory.CreateDirectory(ProfileDir);
+            // Flush the working lists into the persisted array fields, then serialize with
+            // Newtonsoft (Fields mode) — real nested arrays, no escaped embedded strings. /
+            // 先把工作列表刷入持久化数组字段，再用 Newtonsoft（字段模式）序列化——真正的嵌套
+            // 数组，无转义内嵌字符串。
+            Settings.Data.SyncListsToArrays();
             string profilePath = GetProfilePath(Settings.CurrentProfile);
-            string json = JsonUtility.ToJson(Settings.Data, true);
+            string json = JsonConvert.SerializeObject(Settings.Data, ProfileData.ProfileSerializer);
             WriteAllTextSafe(profilePath, json);
         }
 
@@ -1151,7 +1213,8 @@ namespace JipperKeyViewer.KeyViewer
                 // 摧毁稍后在 LoadSettings 运行的 V3→V4 迁移。只有 null 或超长的 Count 才不可
                 // 能出自任何版本的完整写入。
                 ProfileData pd = new ProfileData();
-                JsonUtility.FromJsonOverwrite(json, pd);
+                JsonConvert.PopulateObject(json, pd, ProfileData.ProfileSerializer);
+                pd.SyncArraysFromLists();
                 if (pd.Count == null || pd.Count.Length > MaxKeySlots)
                 {
                     Loader.Error($"Profile '{name}' failed validation (Count length {(pd.Count?.Length.ToString() ?? "null")}), backing up and falling back to defaults");
@@ -1190,7 +1253,17 @@ namespace JipperKeyViewer.KeyViewer
             if (!LoadProfile(newName))
             {
                 Loader.Warning($"Failed to switch to profile '{newName}', staying on '{oldName}'");
-                LoadProfile(oldName);
+                // The fallback re-load bypasses the success path below, which is what normally runs
+                // EnsureSettingsArrays. In practice the old file was just rewritten by
+                // SaveCurrentProfile above, but a failed write or external change could hand back a
+                // legacy-length Data (Count[36]) that RefreshAllCountDisplay / the per-key color
+                // editors index out of range, or unclamped enums that throw in GetLayout.
+                // 回退重载绕过了下方成功路径的 EnsureSettingsArrays。实际旧文件刚被上方
+                // SaveCurrentProfile 重写过，但写盘失败或外部改动可能递回旧长度的数据
+                //（Count[36]），让 RefreshAllCountDisplay / 每键颜色编辑器越界索引，或未钳制的
+                // 枚举在 GetLayout 抛异常——此处对称补齐。
+                if (LoadProfile(oldName))
+                    EnsureSettingsArrays();
                 return false;
             }
             Settings.CurrentProfile = newName;

@@ -293,17 +293,20 @@ namespace JipperKeyViewer.KeyViewer
             }
 
             GUILayout.Label(I18n.Tr("rain_start_y") + ":");
-            // Start-Y is read live at render time — sliders apply to existing drops directly;
-            // saved together with the next settings write, matching the old no-save-on-tick behaviour /
-            // 起始 Y 渲染时实时读取——滑块直接作用于现有雨滴；随下次设置写入一并保存，与旧实现不逐帧存盘一致
+            // Start-Y is read live at render time — sliders apply to existing drops directly. It
+            // still persists through the debounced save like every other slider on this page: the
+            // old save-on-next-write behaviour meant a crash right after adjusting reverted the
+            // values, and the ghost block below already saved, so the two halves disagreed.
+            // 起始 Y 渲染时实时读取——滑块直接作用于现有雨滴。落盘与页面其它滑块一致走去抖保存：
+            // 旧的“随下次写入捎带”行为意味着刚调完就崩溃会回退，且下方鬼雨块已经保存，两半行为不一致。
             float newStartY1 = FloatSliderField(I18n.Tr("rain_row1"), Settings.Data.RainStartYRow1, -2000f, 1000f, "F0");
-            if (newStartY1 != Settings.Data.RainStartYRow1) { Settings.Data.RainStartYRow1 = newStartY1; }
+            if (!Mathf.Approximately(newStartY1, Settings.Data.RainStartYRow1)) { Settings.Data.RainStartYRow1 = newStartY1; SaveSettingsFromGui(); }
             float newStartY2 = FloatSliderField(I18n.Tr("rain_row2"), Settings.Data.RainStartYRow2, -2000f, 1000f, "F0");
-            if (newStartY2 != Settings.Data.RainStartYRow2) { Settings.Data.RainStartYRow2 = newStartY2; }
+            if (!Mathf.Approximately(newStartY2, Settings.Data.RainStartYRow2)) { Settings.Data.RainStartYRow2 = newStartY2; SaveSettingsFromGui(); }
             if (HasThirdRow)
             {
                 float newStartY3 = FloatSliderField(I18n.Tr("rain_row3"), Settings.Data.RainStartYRow3, -2000f, 1000f, "F0");
-                if (newStartY3 != Settings.Data.RainStartYRow3) { Settings.Data.RainStartYRow3 = newStartY3; }
+                if (!Mathf.Approximately(newStartY3, Settings.Data.RainStartYRow3)) { Settings.Data.RainStartYRow3 = newStartY3; SaveSettingsFromGui(); }
             }
 
             GUILayout.Space(5);

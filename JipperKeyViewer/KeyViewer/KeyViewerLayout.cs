@@ -73,8 +73,11 @@ namespace JipperKeyViewer.KeyViewer
             keyShapeLayer.Init(Keys.Length + 2); // + KPS/Total slots / 加上 KPS/Total 槽位
             rainLayer.Init(Keys.Length); // per-key rain press scales / 每键雨滴按压缩放
             InitializeMainKeys(GetLayout(Settings.Data.KeyViewerStyle));
-            // Initialize foot keys based on selected layout (full keyboard has none) / 根据选中的布局初始化脚键（全键盘无脚键）
-            if (!IsFullKeyboard)
+            // Initialize foot keys based on selected layout (full keyboard and the FreeMake custom
+            // layout have none — a leftover foot style would draw fixed-position foot keys mixed
+            // into the node canvas). / 根据选中的布局初始化脚键（全键盘与 FreeMake 自定义布局
+            // 无脚键——残留的脚键样式会把固定位置的脚键混进节点画布）。
+            if (!IsFullKeyboard && !IsCustomLayout)
             {
                 int footSize = FootKeySize(Settings.Data.FootKeyViewerStyle);
                 if (footSize > 0) InitializeFootKeyViewer(footSize);
@@ -331,6 +334,14 @@ namespace JipperKeyViewer.KeyViewer
         private static bool KpsTotalIsSlim()
         {
             if (IsFullKeyboard) return true; // full keyboard KPS/Total are always slim / 全键盘 KPS/Total 始终为 slim
+            // Custom stat nodes honor the global hide-label toggle like the fixed non-slim designs
+            // (value centered alone); with centered on they stay slim for the centered/stacked
+            // modes. Reading the raw KpsTotalCentered toggle (not KpsTotalCenteredApplies) avoids
+            // recursion — Applies() itself calls this. / 自定义 KPS/Total 节点像固定布局的非 slim
+            // 设计一样响应全局隐藏标签开关（仅数值居中）；居中开启时保持 slim 走居中/堆叠模式。
+            // 读原始 KpsTotalCentered 开关（而非 KpsTotalCenteredApplies）以避免递归——后者本身
+            // 调用本函数。
+            if (IsCustomLayout) return !Settings.Data.HideKpsTotalLabel || Settings.Data.KpsTotalCentered;
             int key = (int)Settings.Data.KeyViewerStyle << 1 | (Settings.Data.StandardKeyWidth ? 1 : 0);
             if (key == _slimCacheKey) return _slimCacheValue;
             _slimCacheKey = key;
@@ -354,9 +365,33 @@ namespace JipperKeyViewer.KeyViewer
         private static bool KpsTotalStackedApplies()
             => KpsTotalCenteredApplies() && Settings.Data.KpsTotalStackedWhenCentered;
 
+        /// <summary>Effective stat text mode for a stat key: the FreeMake node's layout override
+        /// when enabled, otherwise the global toggles (fixed layouts pass a null node).
+        /// hideLabel (value-only) only pairs with slim=false, mirroring the fixed designs.
+        /// / 面板按键的生效文本模式：FreeMake 节点开启覆盖时用节点值，否则跟随全局开关
+        /// （固定布局传入空节点）。hideLabel（仅数值）与非 slim 配对，与固定设计一致。</summary>
+        private void StatTextMode(KvNode node, out bool slim, out bool centered, out bool stacked, out bool hideLabel)
+        {
+            if (node != null && (node.NodeType == 1 || node.NodeType == 2) && node.UseCustomStatLayout)
+            {
+                centered = node.StatCentered;
+                stacked = centered && node.StatStacked;
+                hideLabel = !centered && node.HideLabel;
+                slim = !hideLabel;
+            }
+            else
+            {
+                slim = KpsTotalIsSlim();
+                centered = KpsTotalCenteredApplies();
+                stacked = KpsTotalStackedApplies();
+                hideLabel = !slim && Settings.Data.HideKpsTotalLabel;
+            }
+        }
+
         private void InitializeMainKeys(LayoutDesc layout)
         {
             if (IsFullKeyboard) { InitializeFullKeyboard(); return; }
+            if (IsCustomLayout) { InitializeCustomLayout(); return; }
             int remove = Settings.Data.DownLocation ? 200 : 0;
             for (int i = 0; i < 8; i++)
                 Keys[i] = CreateKey(i, 54 * i, layout.frontY - remove, 50, 0);
@@ -589,9 +624,9 @@ namespace JipperKeyViewer.KeyViewer
                 SetKeyPosition(-2, Settings.Data.FullTotalPosition.x * CanvasWidth, (1f - Settings.Data.FullTotalPosition.y) * 1080f);
         }
 
-        /// <summary>Redirect back-row rain to front-row columns for layouts with non-standard key widths.
-        /// Matches JipperResourcePack's RainPool sharing — rain drops inherit front row's X position,
-        /// while per-row settings (color, speed, height) remain from the pressed key's row.
+        /// <summary>Redirect back-row rain to front-row columns for layouts with non-standard key widths:
+        /// rain drops inherit the front row's X position, while per-row settings (color, speed,
+        /// height) remain from the pressed key's row.
         /// 将非标准宽度布局的后排雨滴重指向前排列，雨滴位置与前列对齐
         /// </summary>
         private void ApplyRainContainerSharing()
@@ -734,9 +769,14 @@ namespace JipperKeyViewer.KeyViewer
         /// <param name="slim">Use slim style (for KPS/Total display) / 使用窄样式（用于 KPS/Total 显示）</param>
         /// <param name="count">Show press count text / 显示按下计数文本</param>
         /// <param name="hideLabel">Hide label text, center value (non-slim KPS/Total only) / 隐藏标签文字，数值居中（仅非 slim 的 KPS/Total）</param>
-        private Key CreateKey(int i, float x, float y, float sizeX, int raining, bool slim = false, bool count = true, float sizeY = 0f, bool isFootKey = false, bool hideLabel = false)
+        private Key CreateKey(int i, float x, float y, float sizeX, int raining, bool slim = false, bool count = true, float sizeY = 0f, bool isFootKey = false, bool hideLabel = false, bool? forceCentered = null, bool? forceStacked = null)
         {
-            if (i >= 0 && i < FootKeyBase && Settings.Data.HideMainKeyCount)
+            // Custom nodes own their count visibility (node.HideCount) — the global hide-main-count
+            // toggle is a fixed-layout control and used to strip the value texts of every custom
+            // key regardless of node settings. / 自定义节点的计数可见性由节点自身（HideCount）决定
+            // ——全局「隐藏主键计数」是固定布局的开关，此前会无视节点设置把所有自定义键的数值
+            // 文本整个去掉。
+            if (!IsCustomLayout && i >= 0 && i < FootKeyBase && Settings.Data.HideMainKeyCount)
                 count = false;
             // KPS / Total boxes: four modes
             // 1. Default slim: left label / right number
@@ -748,8 +788,11 @@ namespace JipperKeyViewer.KeyViewer
             // 2. 居中单行："KPS 123" 合并为一个居中框
             // 3. 居中堆叠：标签在上方，数值在下方（字号缩小以适应）
             // 4. 隐藏标签：数值居中，替换顶部标签（仅非 slim）
-            bool centeredText = (i == -1 || i == -2) && KpsTotalCenteredApplies();
-            bool stackedText = centeredText && KpsTotalStackedApplies();
+            // forceCentered/forceStacked: per-node overrides from the FreeMake stat nodes; null =
+            // derive from the global toggles (fixed layouts). / forceCentered/forceStacked：
+            // FreeMake 面板节点的节点级覆盖；null = 跟随全局开关（固定布局）。
+            bool centeredText = (i == -1 || i == -2) && (forceCentered ?? KpsTotalCenteredApplies());
+            bool stackedText = centeredText && (forceStacked ?? KpsTotalStackedApplies());
             GameObject obj = new("Key " + i);
             KeyViewerSettings settings = Settings;
             // For stacked mode, use taller container to fit two rows of text without overlap
@@ -1012,16 +1055,22 @@ namespace JipperKeyViewer.KeyViewer
         /// 3. 居中堆叠：标签（上）和数值（下）用较小字号
         /// 4. 隐藏标签（仅非 slim）：数值居中显示，替换顶部标签
         /// </summary>
-        private static void SetKpsTotalDisplay(Key key, string defaultLabel, string valueStr)
+        private void SetKpsTotalDisplay(Key key, string defaultLabel, string valueStr)
         {
             if (key == null) return;
             bool isKps = defaultLabel == "KPS";
             string customLabel = isKps ? Settings.Data.KpsLabel : Settings.Data.TotalLabel;
             string label = customLabel;
 
-            // Hide label mode (non-slim only): value hidden, text already centered from CreateKey
-            // 隐藏标签模式（仅非 slim）：隐藏数值，文字已在 CreateKey 中居中
-            if (!KpsTotalIsSlim() && Settings.Data.HideKpsTotalLabel)
+            // One mode resolver for fixed layouts AND custom stat nodes — the node's layout
+            // override (UseCustomStatLayout) wins over the global toggles.
+            // 固定布局与自定义面板节点共用同一模式解析——节点布局覆盖（UseCustomStatLayout）
+            // 优先于全局开关。
+            StatTextMode(key.CustomNode, out bool slim, out bool centered, out bool stacked, out bool hideLabelMode);
+
+            // Hide label mode: value hidden, text already centered from CreateKey
+            // 隐藏标签模式：隐藏数值，文字已在 CreateKey 中居中
+            if (hideLabelMode)
             {
                 if (key.value != null)
                     key.value.gameObject.SetActive(false);
@@ -1029,7 +1078,7 @@ namespace JipperKeyViewer.KeyViewer
             }
             else
             {
-                if (KpsTotalStackedApplies())
+                if (stacked)
                 {
                     if (key.value != null)
                     {
@@ -1038,7 +1087,7 @@ namespace JipperKeyViewer.KeyViewer
                     }
                     key.text.text = label;
                 }
-                else if (KpsTotalCenteredApplies())
+                else if (centered)
                 {
                     if (key.value != null) key.value.gameObject.SetActive(false);
                     key.text.text = label + " " + valueStr;
@@ -1074,7 +1123,7 @@ namespace JipperKeyViewer.KeyViewer
         /// Set the display text for a key based on its index and current bindings / 根据按键索引和当前绑定设置显示文本
         /// Special indices: -1=KPS, -2=Total / 特殊索引：-1=KPS，-2=Total
         /// </summary>
-        private static void UpdateKeyText(Key key, int i)
+        private void UpdateKeyText(Key key, int i)
         {
             if (key == null) return;
             if (i == -1)
@@ -1156,6 +1205,7 @@ namespace JipperKeyViewer.KeyViewer
         {
             if (Keys == null || !Settings.Data.CustomPositionEnabled) return;
             if (IsFullKeyboard) { RepositionFullKeyboard(); return; }
+            if (IsCustomLayout) return; // nodes are their own position / 自定义节点即位置
             Vector2 norm = Settings.Data.MainKeyViewerPosition;
             // Convert normalized (X: 0=left 1=right, Y: 0=top 1=bottom) to reference pixel offsets from bottom-left.
             // X: interpolate so X=0 = left edge at screen left, X=1 = right edge at screen right.
@@ -1332,6 +1382,7 @@ namespace JipperKeyViewer.KeyViewer
         {
             if (Keys == null) return; // overlay disabled — nothing to recolor / 覆盖层未启用，无需重着色
             if (IsFullKeyboard) { ApplyFullKeyboardColors(); return; }
+            if (IsCustomLayout) { ApplyCustomAllColors(); return; }
             if (Settings.Data.EnablePerKeyColors)
                 ApplyPerKeyColorsToAll();
             else
@@ -1521,6 +1572,13 @@ namespace JipperKeyViewer.KeyViewer
         private void ResetFootKeyViewer()
         {
             if (IsFullKeyboard) return; // full keyboard has no foot keys / 全键盘无脚键
+            // Custom layouts have no foot keys EITHER — and their Keys array is only as long as
+            // the node count, so writing the FootKeyBase(24)-anchored foot slots would index out
+            // of bounds (crashed OnGUI when switching a fixed layout → Custom with 0 nodes).
+            // / 自定义布局同样没有脚键——而且它的 Keys 数组只有节点数那么长，往
+            // FootKeyBase(24) 起的脚键槽位写会越界（从固定布局切到无节点的自定义时
+            // OnGUI 崩溃即此）。
+            if (IsCustomLayout) return;
             SelectedKey = -1;
             perKeyColorSelected = -1;
             perKeyTextSelected = -1;
@@ -1679,14 +1737,23 @@ namespace JipperKeyViewer.KeyViewer
         public void RefreshAllCountDisplay()
         {
             if (Keys == null) return;
-            for (int i = 0; i < Keys.Length; i++)
+            if (IsCustomLayout)
             {
-                if (Keys[i] != null && Keys[i].value != null)
+                // Counts live on the nodes; per-key KPS drains each node's own log. /
+                // 计数内聚在节点上；每键 KPS 由节点自己的队列驱动。
+                RefreshCustomCountDisplays();
+            }
+            else
+            {
+                for (int i = 0; i < Keys.Length; i++)
                 {
-                    if (Settings.Data.EnablePerKeyKps)
-                        Keys[i].value.text = (keyPressTimes != null && i < keyPressTimes.Length && keyPressTimes[i] != null) ? keyPressTimes[i].Count.ToString() : "0";
-                    else
-                        Keys[i].value.text = FormatCount(Settings.Data.Count[i]);
+                    if (Keys[i] != null && Keys[i].value != null)
+                    {
+                        if (Settings.Data.EnablePerKeyKps)
+                            Keys[i].value.text = (keyPressTimes != null && i < keyPressTimes.Length && keyPressTimes[i] != null) ? keyPressTimes[i].Count.ToString() : "0";
+                        else
+                            Keys[i].value.text = FormatCount(Settings.Data.Count[i]);
+                    }
                 }
             }
             if (Total != null)

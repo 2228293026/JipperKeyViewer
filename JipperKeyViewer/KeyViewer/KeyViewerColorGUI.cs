@@ -157,6 +157,10 @@ namespace JipperKeyViewer.KeyViewer
             staleTextCtrlScratch.Clear();
             foreach (var key in textInputBuffer.Keys)
             {
+                // "fme_" buffers belong to the FreeMake editor window's own pass and are GC'd
+                // there — never here. / "fme_" 前缀缓冲归 FreeMake 编辑器自己的 pass 回收，
+                // 此处永不触碰。
+                if (key.StartsWith("fme_", System.StringComparison.Ordinal)) continue;
                 if (textCtrlsDrawnThisPass.Contains(key) || key == focused) continue;
                 staleTextCtrlScratch.Add(key);
             }
@@ -471,6 +475,15 @@ namespace JipperKeyViewer.KeyViewer
             if (KeyViewer.IsFullKeyboard)
             {
                 DrawFullKeyboardColorSection();
+                return;
+            }
+            if (IsCustomLayout)
+            {
+                // Per-key colors are per node in the editor; global colors still apply to
+                // nodes without custom colors. / 每键颜色在编辑器里按节点配置；全局颜色仍
+                // 作用于未开自定义配色的节点。
+                GUILayout.Label(I18n.Tr("fm_color_hint"));
+                DrawColorSettings();
                 return;
             }
             bool pk = GUILayout.Toggle(Settings.Data.EnablePerKeyColors, I18n.Tr("per_key_colors"));

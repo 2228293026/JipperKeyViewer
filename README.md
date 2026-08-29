@@ -51,7 +51,47 @@ Both build from the same solution (`JipperKeyViewer.slnx`) and share the same fe
 - Object pooling for zero GC allocation on hot path / 对象池，热路径零 GC 分配
 - Merged shape rendering: all key boxes draw into two meshes (background + outline layers) with a dedicated text sub-canvas — no per-key Image hierarchy, canvas rebuilds stay tiny / 合并形状渲染：所有按键框画进两个 mesh（背景+描边层）并配独立文本子画布——无每键 Image 层级，画布重建成本极小
 - Merged rain rendering: all rain drops draw into two meshes (solid quads + ghost sprite) from pooled data records — no per-key rain canvases, no per-drop GameObjects / 合并雨滴渲染：全部雨滴由对象池数据记录画进两个 mesh（纯色四边形 + 鬼雨贴图）——无每键雨滴画布，无逐雨滴 GameObject
+- **FreeMake custom layout editor**: independent in-game editor window for freely positioned nodes (keys, KPS/Total panels, background images) with snapping guides, multi-select, undo/redo / **FreeMake 自定义布局编辑器**：独立游戏内编辑器弹窗，自由摆放节点（按键、KPS/Total 面板、背景图片），带吸附参考线、多选、撤销重做
 - Custom font support: place .ttf/.otf in `CustomFont/`, auto-detected / 自定义字体支持
+
+## FreeMake Editor / FreeMake 编辑器
+
+Switch the layout to **自定义 (Custom)** in the Layout tab, then click **Open FreeMake Editor**. The editor is an independent floating window — edits apply to the live overlay on release.
+
+在「布局」页切换到**自定义**布局后，点击**打开 FreeMake 编辑器**。编辑器为独立浮动窗口，松开鼠标后改动即应用到游戏内覆盖层。
+
+| Action / 操作 | Control / 方式 |
+|---|---|
+| Move node / 移动节点 | Drag; Shift locks to an axis / 拖动；Shift 锁定轴向 |
+| Select / 选择 | Click; Ctrl+click toggles; double-click cycles through overlapping nodes / 点击；Ctrl+点击切换；双击在重叠节点间循环 |
+| Marquee select / 框选 | Drag on empty canvas / 空白处拖动 |
+| Zoom / 缩放 | Mouse wheel, anchored at cursor / 滚轮，以光标为锚 |
+| Pan / 平移 | Right-mouse drag / 右键拖动 |
+| Nudge / 微调 | Arrow keys (1px, OS repeat) / 方向键（1px，系统重复） |
+| Delete / 删除 | Del or Backspace |
+| Copy / Paste / 复制粘贴 | Ctrl+C / Ctrl+V (paste offset grows per paste) / 粘贴偏移逐次递增 |
+| Undo / Redo / 撤销重做 | Ctrl+Z / Ctrl+Y (50-step snapshot history) / 50 步快照历史 |
+| Select locked images / 选中锁定图片 | Shift+click / Shift+点击 |
+| Snap / 吸附 | Node edges/centers + screen edges/center, 5px screen-constant; Alt disables / 节点边/中心 + 屏幕边/中心，5px 屏幕恒定阈值；Alt 临时关闭 |
+| Resize / 缩放节点 | Handles: 8-way for single node (Shift locks aspect), 4-corner box scaling for multi-select / 手柄：单选八向（Shift 锁比例），多选四角整体缩放 |
+| Minimap / 小地图 | Bottom-right corner box; click to center, **drag the white viewport box to pan** / 右下角小框，单击居中，**拖动白色视口框平移视图** |
+| Layer groups / 图层组 | Named visibility batches — create/rename/hide/delete in the panel, assign selected nodes / 命名可见性分组——面板内新建/重命名/隐藏/删除，指派选中节点 |
+| Rain gradient / 雨滴渐变 | Per-node top/bottom colors + X/Y offsets (DM Note noteGradient/noteOffset) / 节点顶/底双色 + XY 偏移（DM Note noteGradient/noteOffset） |
+| Counter bounce / 计数器弹跳 | Per-node bounce animation (bezier ease, scale, duration) / 逐节点弹跳动画（贝塞尔、幅度、时长） |
+
+Node properties (binding with in-window key capture, custom/pressed text, depth, count-in-total, per-key KPS, rain, per-node colors, image opacity) are edited in the panel below the canvas. Every node's count, colors, and binding live on the node itself — deleting nodes never scrambles other nodes' counts or colors.
+
+节点属性（窗口内改键捕获、自定义/按压文案、深度、计入总数、每键 KPS、雨滴、节点配色、图片不透明度）在画布下方面板编辑。每个节点的计数、配色与绑定都内聚在节点自身——删除节点绝不会让其它节点的计数或配色串位。
+
+Images are loaded from `CustomImages/` under the mod directory (or absolute paths); use **Import** to copy a file there. FreeMake image loading shares the same reflection PNG loader as the FileBased variant.
+
+图片从 Mod 目录下的 `CustomImages/`（或绝对路径）加载；用「导入」把文件拷入该目录。FreeMake 的图片加载与 FileBased 变体共用同一条反射 PNG 加载路径。
+
+## Credits / 致谢
+
+The FreeMake editor's interaction design follows the editing paradigm of **DM Note** (open source, GPL-3.0, TypeScript), which the open-source editors of **CheryTools** and **Quartz** (both GPL-3.0) also implement. No code, assets, or data from those projects are included here — everything in this repository is an original Unity IMGUI/C# implementation written from behavior-level reference. Thanks to their authors for popularizing the paradigm.
+
+FreeMake 编辑器的交互设计遵循 **DM Note**（开源，GPL-3.0，TypeScript）的编辑范式；**CheryTools** 与 **Quartz**（均为 GPL-3.0）的开源编辑器亦实现同款机制。本仓库未包含上述项目的任何代码、资源或数据——全部为本仓库基于行为级参照的原创 Unity IMGUI/C# 实现。感谢它们让这套范式流行。
 
 ## Installation / 安装
 
@@ -239,11 +279,6 @@ Settings are saved to `config/settings.json` and can be edited via:
 - **MelonLoader**: Settings hotkey configurable in `UserData/MelonPreferences.cfg` (`[JipperKeyViewer]` section) / 设置热键可在配置文件中修改
 - **Input polling limitation**: key detection samples `Input.GetKey` once per frame — a complete press+release inside a single frame (very low FPS / long hitches) can be missed by the counter / KPS / rain / 按键检测每帧采样一次 `Input.GetKey`——极低帧率下同一帧内完整的按下+松开可能不被计数（Legacy Input 的固有行为）
 
-## Acknowledgements / 鸣谢
-- Key layout and visual style references [JipperResourcePack](https://github.com/Jongye0l/JipperResourcePack).
-
 ## License / 许可证
 
-- Primarily **MIT License** — see [LICENSE](./LICENSE.txt).
-
-- Code adapted from [JipperResourcePack](https://github.com/Jongye0l/JipperResourcePack) by Jongyeol is under **BSD 3-Clause** — see [LICENSE-BSD](./LICENSE-BSD).
+- **MIT License** — see [LICENSE](./LICENSE.txt).

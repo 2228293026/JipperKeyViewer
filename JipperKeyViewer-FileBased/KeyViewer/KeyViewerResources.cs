@@ -109,93 +109,12 @@ namespace JipperKeyViewer.KeyViewer
         /// Border values (11px) match the original Unity import settings / 边框值（11px）与原始 Unity 导入设置一致
         /// Uses ImageConversion.LoadImage via reflection since the module isn't referenced at compile time / 通过反射调用 ImageConversion.LoadImage
         /// </summary>
-        private static bool _loadImageCached;
-        private static MethodInfo _cachedLoadImage;
-        private static int _loadImageParamCount;
         private static Sprite LoadSpriteFromFile(string path)
         {
-            if (!File.Exists(path)) return null;
-            // Allocated outside the try so the catch can release it — every failure path below
-            // used to leak one texture per attempt. / 提到 try 外声明,catch 可释放——此前每条
-            // 失败路径每次尝试泄漏一张纹理。
-            Texture2D tex = null;
-            try
-            {
-                tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
-                byte[] bytes = File.ReadAllBytes(path);
-                if (!_loadImageCached)
-                {
-                    _loadImageCached = true;
-                    Type type = Type.GetType("UnityEngine.ImageConversion, UnityEngine.ImageConversionModule");
-                    if (type == null)
-                    {
-                        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-                        {
-                            type = asm.GetType("UnityEngine.ImageConversion");
-                            if (type != null) break;
-                        }
-                    }
-                    if (type != null)
-                    {
-                        foreach (var m in type.GetMethods(BindingFlags.Public | BindingFlags.Static))
-                        {
-                            if (m.Name != "LoadImage") continue;
-                            var parms = m.GetParameters();
-                            if (parms.Length >= 2 && parms[0].ParameterType == typeof(Texture2D) && parms[1].ParameterType == typeof(byte[]))
-                            {
-                                _cachedLoadImage = m;
-                                _loadImageParamCount = parms.Length;
-                                break;
-                            }
-                        }
-                    }
-                    if (_cachedLoadImage == null)
-                        Loader.Error("KeyViewer: ImageConversion.LoadImage not found via reflection, sprites will be missing");
-                }
-                if (_cachedLoadImage != null)
-                {
-                    // LoadImage returns false for corrupt data but still leaves a 2x2 garbage
-                    // texture — honoring the return value prevents a noise sprite wearing an 11px
-                    // 9-slice border (silently rendered stretched garbage).
-                    // LoadImage 对损坏数据返回 false 但留下 2x2 垃圾纹理——检查返回值,
-                    // 防止噪点精灵套上 11px 九宫格边框(静默渲染拉伸噪点)。
-                    object result = _loadImageParamCount == 2
-                        ? _cachedLoadImage.Invoke(null, new object[] { tex, bytes })
-                        : _cachedLoadImage.Invoke(null, new object[] { tex, bytes, false });
-                    if (result is bool ok && !ok)
-                    {
-                        Destroy(tex);
-                        Loader.Error($"KeyViewer: PNG data corrupt, cannot decode '{path}'");
-                        return null;
-                    }
-                }
-                else
-                {
-                    // No LoadImage available — destroy the stub texture instead of returning a
-                    // blank sprite. / 无 LoadImage 可用——销毁占位纹理而非返回空白精灵。
-                    Destroy(tex);
-                    return null;
-                }
-                // A decoded image smaller than the combined 11px borders can't carry the 9-slice
-                // frame; treat as corrupt. / 解码尺寸小于 11px 双边框和的图承载不了九宫格,按损坏处理。
-                if (tex.width < 22 || tex.height < 22)
-                {
-                    Destroy(tex);
-                    Loader.Error($"KeyViewer: sprite '{path}' too small ({tex.width}x{tex.height}) for the 11px 9-slice border");
-                    return null;
-                }
-                tex.filterMode = FilterMode.Bilinear;
-                tex.wrapMode = TextureWrapMode.Clamp;
-                return Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.Tight, new Vector4(11, 11, 11, 11));
-            }
-            catch (Exception e)
-            {
-                // The texture may already be allocated when anything below throws — release it.
-                // 下方任意一步抛异常时纹理可能已分配——必须释放。
-                if (tex != null) Destroy(tex);
-                Loader.Error($"KeyViewer: Failed to load sprite from '{path}': {e.Message}");
-                return null;
-            }
+            // Delegates to the shared loader — both variants now run the same reflection path
+            // (FreeMake image nodes use it too, without the 9-slice border). / 委托给共享加载
+            // 器——两个变体走同一条反射路径（FreeMake 图片节点同样使用它，无九宫格边框）。
+            return KvImageLoader.LoadSprite(path, new Vector4(11, 11, 11, 11));
         }
 
         /// <summary>

@@ -23,8 +23,29 @@ namespace JipperKeyViewer.KeyViewer
         // --- Render state / 渲染状态 ---
         /// <summary>Layer-space rect of the drop (computed each frame in RainSystem) / 雨滴在图层空间的矩形（RainSystem 每帧计算）</summary>
         public Rect rect;
-        /// <summary>Drop color (rain color or ghost color) / 雨滴颜色（普通雨色或鬼雨色）</summary>
+        /// <summary>Drop color (rain color or ghost color) — the trail gradient's BOTTOM end. /
+        /// 雨滴颜色（普通雨色或鬼雨色）——轨迹渐变的底端。</summary>
         public Color mainColor = Color.white;
+        /// <summary>Trail gradient's TOP end (alpha carries the base opacity; the fade multiplies
+        /// per-end at render time). / 轨迹渐变的顶端（alpha 承载基础不透明度，淡出在渲染时
+        /// 逐端相乘）。</summary>
+        public Color ColorTop = Color.white;
+        /// <summary>Per-node rain start Y offset (px), added to the row's start-Y at render. /
+        /// 节点级雨滴起始 Y 偏移（像素），渲染时加在所在排的起始 Y 上。</summary>
+        public float StartOffsetY;
+        /// <summary>Per-node rain parameter overrides (0 = follow the mapped row). /
+        /// 节点级雨滴参数覆盖（0 = 跟随所在排全局参数）。</summary>
+        public float NodeWidth;
+        public float NodeHeight;
+        public float NodeSpeed;
+        /// <summary>Custom nodes: absolute distance from the key's BOTTOM edge to the rain start
+        /// (= node height + gap, DM Note's trackBottom model). When set, it REPLACES the row's
+        /// start-Y — the 275px container constant is tuned for 50px keys and would spawn the
+        /// trail inside taller nodes. / 自定义节点：键底边到雨滴起点的绝对距离（= 节点高 +
+        /// 间隙，DM Note 的 trackBottom 模型）。设置后替换所在排起始 Y——275px 容器常量是为
+        /// 50px 键调校的，较高的节点会让轨迹从按键内部冒出来。</summary>
+        public bool HasTrackBase;
+        public float TrackBaseY;
         /// <summary>Fade-out alpha (1 = opaque) / 淡出透明度（1 = 不透明）</summary>
         public float alpha = 1f;
         /// <summary>Per-key press scale applied when this rect was computed (scales shadow/outline offsets at emit) / 计算此矩形时的每键按压缩放（发射时缩放阴影/描边偏移）</summary>
@@ -59,7 +80,7 @@ namespace JipperKeyViewer.KeyViewer
                 // but would otherwise never be recycled — floor keeps it recyclable and sane.
                 // 宽度下限与 RainSystem 的速度/高度下限同理:键入宽度不钳制,零/负宽度雨滴
                 // 被渲染器跳过但若不设下限将永不回收——下限保证可回收且尺寸正常。
-                float w = Mathf.Max(color switch
+                float w = Mathf.Max(NodeWidth > 0f ? NodeWidth : color switch
                 {
                     0 => isGhost ? KeyViewer.Settings.Data.GhostRainWidthRow1 : KeyViewer.Settings.Data.RainWidthRow1,
                     3 => isGhost ? KeyViewer.Settings.Data.GhostRainWidthRow3 : KeyViewer.Settings.Data.RainWidthRow3,

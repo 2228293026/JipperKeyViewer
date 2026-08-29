@@ -234,6 +234,8 @@ namespace JipperKeyViewer.KeyViewer
             Settings.Data.TotalCount = 0;
             for (int i = 0; i < Settings.Data.Count.Length; i++)
                 Settings.Data.Count[i] = 0;
+            foreach (KvNode node in Settings.Data.CustomNodes)
+                if (node != null) node.Count = 0;
             ClearKpsTimers();
             if (Keys != null)
                 for (int i = 0; i < Keys.Length; i++)
@@ -348,19 +350,34 @@ namespace JipperKeyViewer.KeyViewer
             }
             GUILayout.EndHorizontal();
 
-            bool newDownLocation = GUILayout.Toggle(Settings.Data.DownLocation, I18n.Tr("place_below"));
-            if (newDownLocation != Settings.Data.DownLocation)
+            // DownLocation shifts the fixed layouts' preset rows — custom nodes are absolute
+            // screen coordinates, the toggle is meaningless there. / 下移对固定布局的预设排生效
+            // ——自定义节点是绝对屏幕坐标，该开关对其无意义。
+            if (!IsCustomLayout)
             {
-                Settings.Data.DownLocation = newDownLocation;
-                // ResetKeyViewer recreates foot keys internally — no outer ResetFootKeyViewer.
-                // ResetKeyViewer 内部已重建脚键——无需外层 ResetFootKeyViewer。
-                ResetKeyViewer();
-                SaveSettingsFromGui();
+                bool newDownLocation = GUILayout.Toggle(Settings.Data.DownLocation, I18n.Tr("place_below"));
+                if (newDownLocation != Settings.Data.DownLocation)
+                {
+                    Settings.Data.DownLocation = newDownLocation;
+                    // ResetKeyViewer recreates foot keys internally — no outer ResetFootKeyViewer.
+                    // ResetKeyViewer 内部已重建脚键——无需外层 ResetFootKeyViewer。
+                    ResetKeyViewer();
+                    SaveSettingsFromGui();
+                }
             }
         }
 
         private void DrawCustomPositionSection()
         {
+            // Custom layout: node positions live in the FreeMake editor — the sliders here drive
+            // ResetKeyViewerPosition, which deliberately no-ops for custom (dead controls).
+            // / 自定义布局：节点位置在 FreeMake 编辑器里调——本区滑块驱动 ResetKeyViewerPosition，
+            // 而它对自定义布局刻意空操作（会变成死控件）。
+            if (IsCustomLayout)
+            {
+                GUILayout.Label(I18n.Tr("fm_custom_pos_hint"));
+                return;
+            }
             CustomPositionExpanded = DrawFoldoutButton(I18n.Tr("custom_pos"), CustomPositionExpanded);
             if (!CustomPositionExpanded) return;
 
@@ -459,7 +476,13 @@ namespace JipperKeyViewer.KeyViewer
                 SaveSettingsFromGui();
             }
 
-            if (!KeyViewer.IsFullKeyboard)
+            if (IsCustomLayout)
+            {
+                if (GUILayout.Button(I18n.Tr("fm_open_editor"), GUILayout.Height(26f)))
+                    OpenFreeMakeEditor();
+            }
+
+            if (!KeyViewer.IsFullKeyboard && !IsCustomLayout)
             {
                 // Standard key width toggle: only show for layouts with mixed-width back rows
                 // 标准按键宽度开关：仅在有宽窄键混排的布局显示
@@ -509,6 +532,7 @@ namespace JipperKeyViewer.KeyViewer
             // the 108-key view, so hide the whole section there. / 每键字号面向标准布局——
             // GetKeyCode/GetBackSequence 与 108 键视图不对应，全键盘下隐藏整个区块。
             if (KeyViewer.IsFullKeyboard) return;
+            if (IsCustomLayout) return; // custom nodes carry their own sizes / 自定义节点的字号在编辑器里配
             perKeyTextExpanded = DrawFoldoutButton(I18n.Tr("per_key_text_size"), perKeyTextExpanded);
             if (!perKeyTextExpanded) return;
 
@@ -631,8 +655,11 @@ namespace JipperKeyViewer.KeyViewer
         private void DrawDisplaySection()
         {
             // The main-count / per-key-KPS toggles only apply to the normal (non-full-keyboard) layouts;
-            // the full 108-key view shows key labels and has its own KPS/Total controls. / 主区域计数与每键KPS 开关仅对普通布局生效；全键盘显示键位字母、并有独立的 KPS/Total 控制，故全键盘下隐藏。
-            if (!KeyViewer.IsFullKeyboard)
+            // the full 108-key view shows key labels and has its own KPS/Total controls. Custom nodes
+            // carry their own HideCount / PerKeyKps per node. / 主区域计数与每键KPS 开关仅对普通布局
+            // 生效；全键盘显示键位字母、并有独立的 KPS/Total 控制。自定义节点逐节点自带
+            // HideCount / PerKeyKps。
+            if (!KeyViewer.IsFullKeyboard && !IsCustomLayout)
             {
                 bool newHideCount = GUILayout.Toggle(Settings.Data.HideMainKeyCount, I18n.Tr("hide_main_count"));
                 if (newHideCount != Settings.Data.HideMainKeyCount)

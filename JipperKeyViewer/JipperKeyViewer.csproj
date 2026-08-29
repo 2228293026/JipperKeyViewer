@@ -65,6 +65,15 @@
       <HintPath>..\libs\UnityEngine.TextRenderingModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- 游戏自带 Newtonsoft：自定义布局的节点/图层组列表用它持久化（运行时 JsonUtility 会
+         丢弃类数组字段）。游戏在 Managed 目录自带该 DLL，运行时可直接解析。 /
+         The game ships Newtonsoft: the custom layout node/group lists persist through it
+         (the runtime JsonUtility drops class-array fields). Resolvable at runtime from the
+         game's own Managed directory. -->
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\libs\Newtonsoft.Json.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>..\libs\UnityEngine.UI.dll</HintPath>
       <Private>false</Private>

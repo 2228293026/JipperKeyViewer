@@ -58,6 +58,12 @@ namespace JipperKeyViewer.KeyViewer
         private string fmPendingSnapshot;
         private readonly Dictionary<KvNode, Vector2> fmDragStart = new Dictionary<KvNode, Vector2>();
         private readonly List<KvNode> editorSelectionAtPress = new List<KvNode>();
+        /// <summary>The ACTIVE node of the selection — the last one the user clicked. The
+        /// property panel shows THIS node's values (falling back to the list head when the
+        /// selection came from a marquee/select-all, which has no click order). /
+        /// 选区的活动节点——用户最后点击的那个。属性面板显示它的值（框选/全选没有点击顺序，
+        /// 回落到列表首项）。</summary>
+        private KvNode fmActiveNode;
         private readonly List<KvNode> fmHitBuffer = new List<KvNode>();
         private float fmLastClickTime = -10f;
         private Vector2 fmLastClickPos = new Vector2(float.MinValue, float.MinValue);
@@ -1459,17 +1465,24 @@ namespace JipperKeyViewer.KeyViewer
             if (target == null)
             {
                 if (!ctrl && !doubleClick && editorSelection.Count > 0) editorSelection.Clear();
+                fmActiveNode = null;
                 return;
             }
             if (doubleClick)
             {
                 editorSelection.Clear();
                 editorSelection.Add(target);
+                fmActiveNode = target;
                 return;
             }
             if (ctrl)
             {
-                if (!editorSelection.Remove(target)) editorSelection.Add(target);
+                if (!editorSelection.Remove(target))
+                {
+                    editorSelection.Add(target);
+                    fmActiveNode = target; // added → becomes the active node / 新加入 → 成为活动节点
+                }
+                else if (fmActiveNode == target) fmActiveNode = null; // toggled off / 切换移除
                 return;
             }
             if (!editorSelection.Contains(target))
@@ -1477,6 +1490,7 @@ namespace JipperKeyViewer.KeyViewer
                 editorSelection.Clear();
                 editorSelection.Add(target);
             }
+            fmActiveNode = target;
         }
 
         private bool ConsumeEditorDoubleClick(Vector2 mousePos)
@@ -1752,10 +1766,16 @@ namespace JipperKeyViewer.KeyViewer
                 DrawEditorGroupManager();
                 return;
             }
-            KvNode first = editorSelection[0];
+            // Panel shows the ACTIVE node's values — the last clicked one; marquee/select-all
+            // (no click order) fall back to the list head. / 面板显示活动节点的值——最后点击
+            // 的那个；框选/全选（无点击顺序）回落到列表首项。
+            if (fmActiveNode == null || !editorSelection.Contains(fmActiveNode)) fmActiveNode = editorSelection[0];
+            KvNode first = fmActiveNode;
             bool single = editorSelection.Count == 1;
 
             GUILayout.Label(string.Format(I18n.Tr("fm_selected_count"), editorSelection.Count));
+            if (!single)
+                GUILayout.Label("<i>" + string.Format(I18n.Tr("fm_shown_node"), first.Id) + "</i>");
 
             if (single)
             {

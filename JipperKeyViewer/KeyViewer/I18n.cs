@@ -133,6 +133,7 @@ namespace JipperKeyViewer.KeyViewer
             ["tab_colors"] = "Colors",
 
             ["fm_open_editor"] = "Open FreeMake Editor",
+            ["fm_shown_node"] = "Fields show node #{0} (last clicked) — changes apply to all selected.",
             ["fm_presets"] = "Preset",
             ["fm_wipe"] = "Clear Canvas",
             ["fm_rain_shadow_custom"] = "Custom Rain Shadow",
@@ -328,6 +329,7 @@ namespace JipperKeyViewer.KeyViewer
             ["tab_colors"] = "颜色",
 
             ["fm_open_editor"] = "打开 FreeMake 编辑器",
+            ["fm_shown_node"] = "字段显示节点 #{0}（最后点击）的当前值——改动应用到全部选中。",
             ["fm_presets"] = "预设",
             ["fm_wipe"] = "清空画布",
             ["fm_rain_shadow_custom"] = "自定义雨滴阴影",
@@ -523,6 +525,7 @@ namespace JipperKeyViewer.KeyViewer
             ["tab_colors"] = "색상",
 
             ["fm_open_editor"] = "FreeMake 편집기 열기",
+            ["fm_shown_node"] = "필드는 마지막으로 클릭한 노드 #{0}의 값을 표시합니다 — 변경은 전체 선택에 적용됩니다.",
             ["fm_presets"] = "프리셋",
             ["fm_wipe"] = "캔버스 지우기",
             ["fm_rain_shadow_custom"] = "사용자 지정 빗줄 그림자",

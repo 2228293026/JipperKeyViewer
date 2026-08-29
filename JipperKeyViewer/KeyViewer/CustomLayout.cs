@@ -517,7 +517,11 @@ namespace JipperKeyViewer.KeyViewer
                         && ghostCode != KeyCode.None)
                     {
                         bool ghostNow = Input.GetKey(ghostCode);
-                        if (!customGhostStates.TryGetValue(node.Id, out bool ghostPrev)) ghostPrev = ghostNow;
+                        // First-sight default must be FALSE (key up), not the current reading —
+                        // defaulting to `ghostNow` swallowed the press edge every time and ghost
+                        // rain NEVER fired on custom layouts. / 首见默认必须是"未按下"而非当前
+                        // 读数——默认成 ghostNow 会每次吞掉按下边沿，自定义布局的鬼雨从未触发过。
+                        if (!customGhostStates.TryGetValue(node.Id, out bool ghostPrev)) ghostPrev = false;
                         if (ghostNow != ghostPrev)
                         {
                             customGhostStates[node.Id] = ghostNow;

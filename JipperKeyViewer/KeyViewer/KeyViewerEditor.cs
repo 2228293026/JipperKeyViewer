@@ -1911,13 +1911,13 @@ namespace JipperKeyViewer.KeyViewer
                     foreach (KvNode n in editorSelection) n.UseCustomRainColor = useRainColor;
                     EditorPropertyChanged();
                 }
-                if (single && first.UseCustomRainColor)
+                if (first.UseCustomRainColor)
                 {
                     // Two-color rain: separate top/bottom ends. /
                     // 雨滴双色：顶/底两端独立取色。
                     Color rowColor = rainSystem.GetRainColor(CustomRainRowByte(first));
-                    DrawEditorColorField(I18n.Tr("fm_rain_color_top"), first.RainColorTop, rowColor, arr => first.RainColorTop = arr);
-                    DrawEditorColorField(I18n.Tr("fm_rain_color_bottom"), first.RainColorBottom, rowColor, arr => first.RainColorBottom = arr);
+                    DrawEditorColorField(I18n.Tr("fm_rain_color_top"), first.RainColorTop, rowColor, arr => { foreach (KvNode n in editorSelection) n.RainColorTop = arr; });
+                    DrawEditorColorField(I18n.Tr("fm_rain_color_bottom"), first.RainColorBottom, rowColor, arr => { foreach (KvNode n in editorSelection) n.RainColorBottom = arr; });
                 }
                 DrawEditorFloatField(I18n.Tr("fm_rain_offset_x"), "fme_rox_" + first.Id, first.RainOffsetX, v =>
                 {
@@ -1950,8 +1950,7 @@ namespace JipperKeyViewer.KeyViewer
                 if (first.UseCustomRainShadow)
                 {
                     DrawEditorToggle(I18n.Tr("rain_shadow"), first.RainShadowEnabled, v => { foreach (KvNode n in editorSelection) n.RainShadowEnabled = v; });
-                    if (single)
-                        DrawEditorColorField(I18n.Tr("rain_shadow_color"), first.RainShadowColor, new Color(0f, 0f, 0f, 0.35f), arr => first.RainShadowColor = arr);
+                    DrawEditorColorField(I18n.Tr("rain_shadow_color"), first.RainShadowColor, new Color(0f, 0f, 0f, 0.35f), arr => { foreach (KvNode n in editorSelection) n.RainShadowColor = arr; });
                     DrawEditorFloatField("X", "fme_rshx_" + first.Id, first.RainShadowOffsetX, v =>
                     {
                         foreach (KvNode n in editorSelection) n.RainShadowOffsetX = Mathf.Clamp(v, -50f, 50f);
@@ -1976,8 +1975,7 @@ namespace JipperKeyViewer.KeyViewer
                 if (first.UseCustomRainOutline)
                 {
                     DrawEditorToggle(I18n.Tr("rain_outline"), first.RainOutlineEnabled, v => { foreach (KvNode n in editorSelection) n.RainOutlineEnabled = v; });
-                    if (single)
-                        DrawEditorColorField(I18n.Tr("rain_outline_color"), first.RainOutlineColor, new Color(1f, 1f, 1f, 0.5f), arr => first.RainOutlineColor = arr);
+                    DrawEditorColorField(I18n.Tr("rain_outline_color"), first.RainOutlineColor, new Color(1f, 1f, 1f, 0.5f), arr => { foreach (KvNode n in editorSelection) n.RainOutlineColor = arr; });
                     DrawEditorFloatField(I18n.Tr("rain_outline_width"), "fme_row_" + first.Id, first.RainOutlineWidth, v =>
                     {
                         foreach (KvNode n in editorSelection) n.RainOutlineWidth = Mathf.Clamp(v, 0f, 50f);

@@ -582,7 +582,7 @@ namespace JipperKeyViewer.KeyViewer
         private void EditorAddNode(int type)
         {
             if ((type == 1 || type == 2) && GroupHasStat("", type)) return;
-            if (type != 3 && CustomKeyNodeCount() >= CustomKeyNodeCap) return;
+            if (type != 3 && KeyLikeCountInGroup("") >= CustomKeyNodeCap) return;
             if (type == 3 && Settings.Data.CustomNodes.Count(n => n != null && n.NodeType == 3) >= 8) return;
             PushEditorHistory();
             Vector2 center = EditorViewCenter();
@@ -631,8 +631,6 @@ namespace JipperKeyViewer.KeyViewer
             // Paste honors the node caps — the data list used to grow past them and
             // EnsureCustomNodes silently trimmed the excess on the next load. /
             // 粘贴遵守节点上限——此前数据列表可超限，下次加载时被静默裁剪。
-            int keyRoom = CustomKeyNodeCap - CustomKeyNodeCount();
-            int imageRoom = 8 - Settings.Data.CustomNodes.Count(n => n != null && n.NodeType == 3 && string.IsNullOrWhiteSpace(n.KeyBind));
             List<FmNode> pasted = new List<FmNode>();
             foreach (FmNode template in editorClipboard)
             {
@@ -640,6 +638,10 @@ namespace JipperKeyViewer.KeyViewer
                 if (template.NodeType == 1 && GroupHasStat(template.GroupId, 1)) continue;
                 if (template.NodeType == 2 && GroupHasStat(template.GroupId, 2)) continue;
                 bool keyLike = template.NodeType != 3 || !string.IsNullOrWhiteSpace(template.KeyBind);
+                // Per-group budgets, recomputed per template (its group may differ). /
+                // 按组预算，逐模板重算（各组不同）。
+                int keyRoom = CustomKeyNodeCap - KeyLikeCountInGroup(template.GroupId);
+                int imageRoom = 8 - UnboundImageCountInGroup(template.GroupId);
                 if (keyLike && keyRoom <= 0) continue;
                 if (!keyLike && imageRoom <= 0) continue;
                 FmNode copy = template.Clone();
@@ -648,8 +650,6 @@ namespace JipperKeyViewer.KeyViewer
                 copy.Y += offset;
                 Settings.Data.CustomNodes.Add(copy);
                 pasted.Add(copy);
-                if (keyLike) keyRoom--;
-                else imageRoom--;
             }
             if (pasted.Count == 0) return;
             editorSelection.Clear();

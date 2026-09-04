@@ -235,27 +235,32 @@ namespace JipperKeyViewer.KeyViewer
                 node.TrailFadePx = float.IsNaN(node.TrailFadePx) ? 50f : Mathf.Clamp(node.TrailFadePx, 0f, 500f);
                 node.ReleaseFadeDuration = float.IsNaN(node.ReleaseFadeDuration) ? 0.5f : Mathf.Clamp(node.ReleaseFadeDuration, 0f, 5f);
             }
-            // Enforce caps: key-like and unbound-image node budgets. KPS/Total panels are
-            // deliberately UNCAPPED — layer groups gate their creation, so each group can carry
-            // its own panels (one visible set at a time by design). / 强制上限：按键类与未绑定
-            // 图片节点预算。KPS/Total 面板有意不设上限——图层组门控其创建，每组可带自己的
-            // 面板（设计上同一时刻显示一组）。
-            int keyLike = 0, images = 0;
+            // Per-GROUP caps: each layer group (and the ungrouped bucket) gets its own key-like
+            // and unbound-image budgets — a 108K preset group no longer eats every other group's
+            // allowance. Stat panels count toward their group's key-like pool. /
+            // 按组上限：每个图层组（与未分组桶）各有一份按键类/未绑定图片预算——108K 预设组
+            // 不再吃光其它组的额度。面板计入所在组的按键类池。
+            var keyLikeByGroup = new Dictionary<string, int>();
+            var imagesByGroup = new Dictionary<string, int>();
+            int GroupCount(Dictionary<string, int> map, string g)
+            {
+                return map.TryGetValue(g, out int v) ? v : 0;
+            }
             for (int i = nodes.Count - 1; i >= 0; i--)
             {
                 FmNode node = nodes[i];
-                switch (node.NodeType)
+                string g = node.GroupId ?? "";
+                if (node.NodeType == 3 && !CustomNodeHasKey(node))
                 {
-                    case 0: // key
-                        if (++keyLike > CustomKeyNodeCap) nodes.RemoveAt(i);
-                        break;
-                    case 1: // KPS — uncapped; each layer group may carry one
-                    case 2: // Total — uncapped; each layer group may carry one
-                        break;
-                    case 3:
-                        if (CustomNodeHasKey(node)) { if (++keyLike > CustomKeyNodeCap) nodes.RemoveAt(i); }
-                        else if (++images > 8) nodes.RemoveAt(i);
-                        break;
+                    int im = GroupCount(imagesByGroup, g) + 1;
+                    imagesByGroup[g] = im;
+                    if (im > 8) nodes.RemoveAt(i);
+                }
+                else
+                {
+                    int k = GroupCount(keyLikeByGroup, g) + 1;
+                    keyLikeByGroup[g] = k;
+                    if (k > CustomKeyNodeCap) nodes.RemoveAt(i);
                 }
             }
             // Layer groups: drop null/degenerate entries and ungroup dangling references. /
@@ -269,12 +274,40 @@ namespace JipperKeyViewer.KeyViewer
                     node.GroupId = "";
         }
 
+        /// <summary>Key-like node count within ONE group ("" = ungrouped bucket). /
+        /// 单个组内的按键类节点数（"" = 未分组桶）。</summary>
+        private static int KeyLikeCountInGroup(string groupId)
+        {
+            string g = groupId ?? "";
+            int c = 0;
+            foreach (FmNode n in Settings.Data.CustomNodes)
+            {
+                if (n == null || (n.GroupId ?? "") != g) continue;
+                if (n.NodeType != 3 || CustomNodeHasKey(n)) c++;
+            }
+            return c;
+        }
+
+        /// <summary>Unbound decorative-image count within ONE group. /
+        /// 单个组内的未绑定装饰图片数。</summary>
+        private static int UnboundImageCountInGroup(string groupId)
+        {
+            string g = groupId ?? "";
+            int c = 0;
+            foreach (FmNode n in Settings.Data.CustomNodes)
+            {
+                if (n == null || (n.GroupId ?? "") != g || n.NodeType != 3) continue;
+                if (!CustomNodeHasKey(n)) c++;
+            }
+            return c;
+        }
+
         private static int CustomKeyNodeCount()
         {
             int count = 0;
             foreach (FmNode node in Settings.Data.CustomNodes)
                 if (CustomNodeHasKey(node) && CustomNodeVisible(node)) count++;
-            return Math.Min(count, CustomKeyNodeCap);
+            return count; // per-group caps enforced in EnsureCustomNodes / 按组上限由 EnsureCustomNodes 执行
         }
 
         /// <summary>Runtime center Y of a node: stored top-left origin converted to the overlay's
@@ -333,7 +366,7 @@ namespace JipperKeyViewer.KeyViewer
                 .Where(CustomNodeVisible)
                 .Where(CustomNodeHasKey)
                 .OrderBy(n => n.Depth)
-                .Take(CustomKeyNodeCap)
+                .Take(2048) // absolute guard vs pathological files only — per-group caps live in EnsureCustomNodes / 仅防病态文件的绝对上限——按组上限在 EnsureCustomNodes
                 .ToList();
             int slot = 0;
             foreach (FmNode node in slotNodes)

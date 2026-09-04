@@ -32,6 +32,49 @@ namespace JipperKeyViewer.KeyViewer
         /// its OWN slot (KeyIndex(-1/-2) collapsed them all onto one). /
         /// 自定义构建期间面板形状槽位游标——每块面板独占一槽（KeyIndex(-1/-2) 曾全部压成一槽）。</summary>
         private int customStatSlotCursor;
+
+        // Per-GROUP press timestamps for grouped stat panels: a panel in group G shows the KPS
+        // of G's keys only. Ungrouped panels keep the global PressTimes semantics. /
+        // 按组的按压时间戳：G 组的面板只显示 G 组按键的 KPS。未分组面板保持全局语义。
+        private readonly Dictionary<string, Queue<long>> customGroupPresses = new Dictionary<string, Queue<long>>();
+        private readonly Dictionary<string, int> customShownKps = new Dictionary<string, int>();
+        private readonly Dictionary<string, long> customShownTotal = new Dictionary<string, long>();
+
+        /// <summary>Append a press stamp to a group's queue ("" = global bucket). /
+        /// 向组队列追加按压时间戳（"" = 全局桶）。</summary>
+        internal void EnqueueCustomGroupPress(string groupId, long timeMs)
+        {
+            string g = groupId ?? "";
+            if (!customGroupPresses.TryGetValue(g, out Queue<long> q))
+                customGroupPresses[g] = q = new Queue<long>(64);
+            q.Enqueue(timeMs);
+        }
+
+        /// <summary>Group KPS right now: drains stale stamps, then counts. Ungrouped ("")
+        /// mirrors the already-drained global PressTimes. / 组的当前 KPS：排掉过期戳后计数。
+        /// 未分组（""）沿用调用方已排过的全局 PressTimes。</summary>
+        private int CustomGroupKps(string groupId, long nowMs)
+        {
+            string g = groupId ?? "";
+            if (g.Length == 0) return PressTimes != null ? PressTimes.Count : 0;
+            if (!customGroupPresses.TryGetValue(g, out Queue<long> q)) return 0;
+            while (q.Count > 0 && nowMs - q.Peek() > 1000) q.Dequeue();
+            return q.Count;
+        }
+
+        /// <summary>Group total: sum of its counting keys' node counts. Ungrouped ("") is the
+        /// global accumulated TotalCount. / 组总数：该组计入按键的节点计数之和。未分组（""）
+        /// 为全局累计 TotalCount。</summary>
+        private long CustomGroupTotal(string groupId)
+        {
+            string g = groupId ?? "";
+            if (g.Length == 0) return Settings.Data.TotalCount;
+            long sum = 0;
+            foreach (FmNode n in Settings.Data.CustomNodes)
+                if (n != null && n.GroupId == g && n.CountInTotal && (n.NodeType == 0 || n.NodeType == 3))
+                    sum += n.Count;
+            return sum;
+        }
         /// <summary>Keys with a live counter bounce animation / 正在进行计数器弹跳动画的按键</summary>
         private readonly List<Key> counterBounces = new List<Key>();
 
@@ -281,6 +324,9 @@ namespace JipperKeyViewer.KeyViewer
             // Stat panels draw after the key slots, one shape slot each. /
             // 面板排在按键槽位之后绘制，各占一个形状槽。
             customStatSlotCursor = Keys.Length;
+            customGroupPresses.Clear();
+            customShownKps.Clear();
+            customShownTotal.Clear();
             // Slot nodes in Depth order so the merged mesh draws lowest Depth first. /
             // 按 Depth 排序分配槽位，使合并 mesh 从低 Depth 先画。
             List<FmNode> slotNodes = nodes
@@ -681,6 +727,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 d.TotalCount++;
                 PressTimes.Enqueue(timeMs);
+                EnqueueCustomGroupPress(node.GroupId, timeMs);
             }
             // Counter bounce : kick on press — on whichever text is
             // visible (label when the count is hidden). / 计数器弹跳

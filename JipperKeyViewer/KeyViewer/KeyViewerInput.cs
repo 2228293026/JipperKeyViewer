@@ -358,14 +358,37 @@ namespace JipperKeyViewer.KeyViewer
             while (PressTimes.Count > 0 && elapsedMilliseconds - PressTimes.Peek() > 1000)
                 PressTimes.Dequeue();
             int currentKps = PressTimes.Count;
+            if (IsCustomLayout)
+            {
+                // Per-GROUP values: a panel in group G shows the KPS/Total of G's keys only;
+                // ungrouped panels keep the global semantics. / 按组取值：G 组的面板只显示 G
+                // 组按键的 KPS/Total；未分组面板保持全局语义。
+                foreach (Key k in StatKeys(1))
+                {
+                    string g = k.CustomNode.GroupId ?? "";
+                    int kps = CustomGroupKps(g, elapsedMilliseconds);
+                    if (customShownKps.TryGetValue(g, out int shown) && shown == kps) continue;
+                    customShownKps[g] = kps;
+                    SetKpsTotalDisplay(k, "KPS", FormatStatNumber(kps));
+                }
+                foreach (Key k in StatKeys(2))
+                {
+                    string g = k.CustomNode.GroupId ?? "";
+                    long total = CustomGroupTotal(g);
+                    if (customShownTotal.TryGetValue(g, out long shownT) && shownT == total) continue;
+                    customShownTotal[g] = total;
+                    SetKpsTotalDisplay(k, "Total", FormatStatNumber(total));
+                }
+                lastKps = currentKps;   // keep the global cache in step for the forced refresh /
+                                        // 同步全局缓存，供强制刷新路径使用
+                lastTotal = Settings.Data.TotalCount;
+                return;
+            }
             if (lastKps != currentKps)
             {
                 lastKps = currentKps;
                 NumBuffer.Format(currentKps, Settings.Data.EnableCountFormatting, out var buf, out int off, out int len);
-                // Custom layouts may carry several KPS panels (one per visible group) — all
-                // visible panels show the same value. / 自定义布局可携带多块 KPS 面板（每个
-                // 可见组各一）——全部可见面板显示同一数值。
-                foreach (Key k in IsCustomLayout ? StatKeys(1) : SinglePanel(Kps))
+                foreach (Key k in SinglePanel(Kps))
                 {
                     if (KpsTotalCenteredApplies())
                         SetKpsTotalDisplay(k, "KPS", new string(buf, off, len));
@@ -383,7 +406,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 lastTotal = Settings.Data.TotalCount;
                 NumBuffer.Format(lastTotal, Settings.Data.EnableCountFormatting, out var buf2, out int off2, out int len2);
-                foreach (Key k in IsCustomLayout ? StatKeys(2) : SinglePanel(Total))
+                foreach (Key k in SinglePanel(Total))
                 {
                     if (KpsTotalCenteredApplies())
                         SetKpsTotalDisplay(k, "Total", new string(buf2, off2, len2));
@@ -393,6 +416,15 @@ namespace JipperKeyViewer.KeyViewer
                         k.value.SetText(buf2, off2, len2);
                 }
             }
+        }
+
+        /// <summary>Format a stat number with the count-formatting setting (KPS is int-safe). /
+        /// 按计数格式化设置格式化面板数值（KPS 用 int 安全路径）。</summary>
+        private string FormatStatNumber(long value)
+        {
+            NumBuffer.Format((int)System.Math.Min(value, int.MaxValue), Settings.Data.EnableCountFormatting,
+                out var buf, out int off, out int len);
+            return new string(buf, off, len);
         }
 
         /// <summary>Wrap a single (possibly null) panel ref as a list — keeps the fixed-layout

@@ -484,11 +484,15 @@ namespace JipperKeyViewer.KeyViewer
                     OpenFreeMakeEditor();
             }
 
-            if (!KeyViewer.IsFullKeyboard && !IsCustomLayout)
+            // Custom layouts keep the width toggle visible — it picks WHICH variant (standard
+            // 50px vs mixed-width) the FreeMake PRESET generator builds for 12K/20K styles. /
+            // 自定义布局保留宽度开关——它决定 FreeMake 预设生成器为 12K/20K 等样式构建哪套
+            // 变体（标准 50px 还是宽窄混排）。
+            if (!KeyViewer.IsFullKeyboard)
             {
                 // Standard key width toggle: only show for layouts with mixed-width back rows
                 // 标准按键宽度开关：仅在有宽窄键混排的布局显示
-                bool hasNonStandardWidth = Settings.Data.KeyViewerStyle switch
+                bool hasNonStandardWidth = IsCustomLayout || Settings.Data.KeyViewerStyle switch
                 {
                     KeyviewerStyle.Key10 or KeyviewerStyle.Key12 or KeyviewerStyle.Key20 => true,
                     _ => false

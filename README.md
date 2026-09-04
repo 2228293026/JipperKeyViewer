@@ -239,7 +239,7 @@ Mods/JipperKeyViewer-FileBased/
 - [ ] `AssemblyInfo` 版本号更新，CHANGELOG 中英双语补记 / version bumped, changelog updated (EN+ZH)
 - [ ] AssetBundle 变体：资源包与 `.meta` 边框同步 / bundle in sync with `.meta` borders
 - [ ] 游戏内冒烟：启动加载 → 固定布局 → 自定义布局预设/图层组/雨滴 → 保存重启回读 / in-game smoke test
-- [ ] 许可证与致谢段复核 / license & credits reviewed
+- [ ] 许可证复核 / license reviewed
 
 ## 11. 常见问题排查 / FAQ
 
@@ -249,11 +249,6 @@ Mods/JipperKeyViewer-FileBased/
 
 **自定义布局雨滴异常 / Odd rain behavior in custom layouts**：逐节点速度与排滑杆同单位；手改配置写入的 0/NaN 加载时自动净化。/ Per-node speeds share the row-slider unit; hand-edited 0/NaN values are sanitized at load.
 
-## 12. 致谢 / Credits
-
-- The FreeMake editor is an original interaction design.
-- FreeMake 编辑器为原创交互设计。
-
-## 13. 许可证 / License
+## 12. 许可证 / License
 
 - **MIT License** — see [LICENSE](./LICENSE.txt).

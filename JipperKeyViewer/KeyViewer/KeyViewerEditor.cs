@@ -223,13 +223,47 @@ namespace JipperKeyViewer.KeyViewer
             List<KvNode> nodes = BuildPresetNodes(style, out int nextId);
             if (!newProfile)
             {
-                // In-place replace: push undo FIRST — one Ctrl+Z restores the previous canvas. /
-                // 就地替换：先入撤销栈——一步 Ctrl+Z 恢复原画布。
+                // ADD into the current canvas — existing nodes stay untouched (a replace here
+                // wiped the user's layout once). Skip duplicate KPS/Total panels; shift the
+                // batch out of overlap if it lands on existing nodes. / 追加进当前画布——现有
+                // 节点原封不动（此前误做成整画布替换）。跳过重复的 KPS/Total 面板；与现有节点
+                // 重叠时整体挪到空白处。
                 PushEditorHistory();
+                List<KvNode> currentNodes = Settings.Data.CustomNodes;
+                bool hasKps = currentNodes.Any(n => n != null && n.NodeType == 1);
+                bool hasTotal = currentNodes.Any(n => n != null && n.NodeType == 2);
+                List<KvNode> add = nodes
+                    .Where(n => !(n.NodeType == 1 && hasKps) && !(n.NodeType == 2 && hasTotal))
+                    .ToList();
+                if (add.Count > 0 && currentNodes.Count > 0)
+                {
+                    float exMinX = currentNodes.Min(n => n.X), exMaxX = currentNodes.Max(n => n.X + n.Width);
+                    float exMinY = currentNodes.Min(n => n.Y), exMaxY = currentNodes.Max(n => n.Y + n.Height);
+                    float nxMin = add.Min(n => n.X), nxMax = add.Max(n => n.X + n.Width);
+                    float nyMin = add.Min(n => n.Y), nyMax = add.Max(n => n.Y + n.Height);
+                    bool overlap = nxMin < exMaxX && nxMax > exMinX && nyMin < exMaxY && nyMax > exMinY;
+                    if (overlap)
+                    {
+                        // Prefer the free space to the right; fall below when it would run past
+                        // the canvas reference width. / 优先放到现有内容右侧；超出画布参考宽度
+                        // 则放到下方。
+                        float dx = exMaxX + 20f - nxMin;
+                        if (nxMax + dx > 1920f)
+                        {
+                            float dy = exMaxY + 20f - nyMin;
+                            foreach (KvNode n in add) n.Y += dy;
+                        }
+                        else
+                        {
+                            foreach (KvNode n in add) n.X += dx;
+                        }
+                    }
+                }
                 Settings.Data.CustomNodeNextId = nextId;
-                Settings.Data.CustomNodes = nodes;
+                Settings.Data.CustomNodes.AddRange(add);
                 EnsureCustomNodes();
                 editorSelection.Clear();
+                editorSelection.AddRange(add);
                 EditorMutated();
                 return;
             }

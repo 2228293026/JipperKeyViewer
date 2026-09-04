@@ -204,6 +204,44 @@ dotnet run --project Harness -c Release -- test
 
 72 项断言：8 种预设生成（节点数/绑定映射/计数种子/发射线偏移）、节点校验/钳制/上限、按组预算、空组清理、全字段克隆与序列化往返。
 
+## Tech Stack & Module Map / 技术栈与模块
+
+### Tech stack / 技术栈
+
+| Layer / 层 | Technology | Why / 用途 |
+|---|---|---|
+| Language / 语言 | C# 9 on .NET Framework 4.8.1 (SDK-style csproj) | matches the game's Mono runtime / 与游戏 Mono 运行时一致 |
+| Editor UI / 编辑器 UI | Unity IMGUI (`OnGUI` + `GUI.Window`) | independent floating window, no game-UI dependency / 独立浮动窗，不依赖游戏 UI |
+| Settings UI / 设置界面 | Unity IMGUI (same windowing) | tabs, sliders, color pickers / 标签页、滑杆、取色器 |
+| Overlay rendering / 覆盖层渲染 | uGUI + TextMeshPro, custom `MaskableGraphic` merged meshes | all key boxes / rain drops draw into a handful of meshes — tiny canvas rebuilds / 全部按键框与雨滴画进极少数 mesh |
+| Input / 输入 | `UnityEngine.InputLegacy` (`Input.GetKey` polling) | one poll per key per frame / 每键每帧一次轮询 |
+| Persistence / 持久化 | Newtonsoft.Json 13.0.2 (game-shipped), Fields-mode contract + custom `JsonConverter` for Unity structs | the runtime `JsonUtility` drops class-array fields; atomic write via temp+replace / 运行时 JsonUtility 丢类数组字段；临时文件+替换原子写 |
+| Text / 文本 | TextMeshPro (dynamic font conversion, per-key sizes) | crisp text at any scale / 任意缩放下清晰 |
+| Assets / 资源 | AssetBundle variant + file-based variant (reflection PNG loading) | both loaders supported / 双变体 |
+| Mod loading / 加载 | UnityModManager & MelonLoader (thin loader-entry projects) | dual-loader support / 双加载器 |
+| Build & CI / 构建与 CI | `dotnet build`, GitHub Actions | / |
+| Testing / 测试 | Harness — offline data-layer regression (72 assertions, reflection against the built DLL) | preset/validation/serialization regressions caught without launching the game / 免启动游戏即拦回归 |
+
+### Module map / 模块表
+
+| File / 文件 | Responsibility / 职责 |
+|---|---|
+| `ModLoader.cs` | Loader glue, logging / 加载器胶合、日志 |
+| `KeyViewer.cs` | Lifecycle, config & profile management, migrations / 生命周期、配置与 Profile 管理、版本迁移 |
+| `KeyViewerSettings.cs` | Data model (`ProfileData` / `FmNode` / `FmLayerGroup`) + Newtonsoft persistence / 数据模型与持久化 |
+| `KeyViewerLayout.cs` | Overlay construction, fixed layouts, 108K geometry, KPS/Total text modes / 覆盖层构建、固定布局、108K 几何、面板文本模式 |
+| `KeyViewerInput.cs` | Input polling, KPS/Total pipelines (per-group stats) / 输入轮询、KPS/Total 管线（按组统计）|
+| `CustomLayout.cs` | FreeMake runtime: per-node input/count/colors/rain, groups, validation & caps / FreeMake 运行时：逐节点输入/计数/配色/雨滴、图层组、校验与上限 |
+| `KeyViewerEditor.cs` | FreeMake IMGUI editor: canvas gestures, presets, property panel / FreeMake 编辑器：画布手势、预设、属性面板 |
+| `EditorHistory.cs` | Timeline undo — snapshot cursor + nudge coalescing / 时间线撤销——快照游标 + 微调合并 |
+| `KeyShapeLayer.cs` | Merged key-box meshes (bg + outline) / 合并按键框 mesh |
+| `RainSystem.cs` / `RawRain.cs` / `RainLayer.cs` | Pooled rain simulation + merged-mesh rendering, normal & ghost / 对象池雨滴模拟 + 合并渲染，普通与鬼雨 |
+| `Key.cs` | Per-key runtime state / 每键运行时状态 |
+| `KvImageLoader.cs` | Reflection PNG loader (shared by both variants) / 反射 PNG 加载器（双变体共享）|
+| `KeyViewerGUI.cs` / `...SettingsGUI` / `...ColorGUI` / `...RainGUI` / `...BindingGUI` | Settings window tabs / 设置窗口各标签页 |
+| `KeyViewerResources.cs` | AssetBundle resource loading (AssetBundle variant) / 资源包加载 |
+| `I18n.cs` | EN / 中文 / 한국어 strings / 三语言词条 |
+
 ## Files / 文件
 
 ```

@@ -230,10 +230,9 @@ namespace JipperKeyViewer.KeyViewer
                 // 重叠时整体挪到空白处。
                 PushEditorHistory();
                 List<FmNode> currentNodes = Settings.Data.CustomNodes;
-                bool hasKps = currentNodes.Any(n => n != null && n.NodeType == 1);
-                bool hasTotal = currentNodes.Any(n => n != null && n.NodeType == 2);
                 List<FmNode> add = nodes
-                    .Where(n => !(n.NodeType == 1 && hasKps) && !(n.NodeType == 2 && hasTotal))
+                    .Where(n => !(n.NodeType == 1 && GroupHasStat(n.GroupId, 1))
+                             && !(n.NodeType == 2 && GroupHasStat(n.GroupId, 2)))
                     .ToList();
                 if (add.Count > 0 && currentNodes.Count > 0)
                 {
@@ -553,10 +552,21 @@ namespace JipperKeyViewer.KeyViewer
             n.ReleaseFadeDuration = d.RainFadeDuration;
         }
 
+        /// <summary>Return true if the target group already carries a stat node of the given type.
+        /// When groupId is null/empty, fall back to the legacy "single KPS / single Total" rule
+        /// so ungrouped mode is unchanged. / 若目标 group 已携带同类型面板返 true；groupId 为
+        /// 空时退回旧版"全图 1 个 KPS / 1 个 Total"规则。</summary>
+        private static bool GroupHasStat(string groupId, int statType)
+        {
+            if (string.IsNullOrEmpty(groupId))
+                return Settings.Data.CustomNodes.Any(n => n != null && n.NodeType == statType);
+            return Settings.Data.CustomNodes.Any(n => n != null
+                && n.NodeType == statType && n.GroupId == groupId);
+        }
+
         private void EditorAddNode(int type)
         {
-            if (type == 1 && Settings.Data.CustomNodes.Any(n => n != null && n.NodeType == 1)) return;
-            if (type == 2 && Settings.Data.CustomNodes.Any(n => n != null && n.NodeType == 2)) return;
+            if ((type == 1 || type == 2) && GroupHasStat("", type)) return;
             if (type != 3 && CustomKeyNodeCount() >= CustomKeyNodeCap) return;
             if (type == 3 && Settings.Data.CustomNodes.Count(n => n != null && n.NodeType == 3) >= 8) return;
             PushEditorHistory();
@@ -603,8 +613,6 @@ namespace JipperKeyViewer.KeyViewer
             PushEditorHistory();
             editorPasteSerial++;
             float offset = 20f * editorPasteSerial;
-            bool hasKps = Settings.Data.CustomNodes.Any(n => n != null && n.NodeType == 1);
-            bool hasTotal = Settings.Data.CustomNodes.Any(n => n != null && n.NodeType == 2);
             // Paste honors the node caps — the data list used to grow past them and
             // EnsureCustomNodes silently trimmed the excess on the next load. /
             // 粘贴遵守节点上限——此前数据列表可超限，下次加载时被静默裁剪。
@@ -614,8 +622,8 @@ namespace JipperKeyViewer.KeyViewer
             foreach (FmNode template in editorClipboard)
             {
                 if (template == null) continue;
-                if (template.NodeType == 1 && hasKps) continue;
-                if (template.NodeType == 2 && hasTotal) continue;
+                if (template.NodeType == 1 && GroupHasStat(template.GroupId, 1)) continue;
+                if (template.NodeType == 2 && GroupHasStat(template.GroupId, 2)) continue;
                 bool keyLike = template.NodeType != 3 || !string.IsNullOrWhiteSpace(template.KeyBind);
                 if (keyLike && keyRoom <= 0) continue;
                 if (!keyLike && imageRoom <= 0) continue;
@@ -625,8 +633,6 @@ namespace JipperKeyViewer.KeyViewer
                 copy.Y += offset;
                 Settings.Data.CustomNodes.Add(copy);
                 pasted.Add(copy);
-                if (copy.NodeType == 1) hasKps = true;
-                if (copy.NodeType == 2) hasTotal = true;
                 if (keyLike) keyRoom--;
                 else imageRoom--;
             }
@@ -2415,9 +2421,9 @@ namespace JipperKeyViewer.KeyViewer
             int newType = GUILayout.SelectionGrid(type, names, 4, GUILayout.Height(20f));
             GUILayout.EndHorizontal();
             if (newType == type || newType < 0 || newType > 3) return;
-            if ((newType == 1 && Settings.Data.CustomNodes.Any(n => n != null && n.NodeType == 1 && n != node))
-                || (newType == 2 && Settings.Data.CustomNodes.Any(n => n != null && n.NodeType == 2 && n != node)))
-                return; // uniqueness / 唯一性
+            if ((newType == 1 && GroupHasStat(node.GroupId, 1))
+                || (newType == 2 && GroupHasStat(node.GroupId, 2)))
+                return; // one stat panel per group / 每组最多 1 个统计面板
             PushEditorHistory();
             node.NodeType = newType;
             EditorMutated();

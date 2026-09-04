@@ -1284,8 +1284,7 @@ namespace JipperKeyViewer.KeyViewer
             UpdateAllKeyColors();
             if (Settings.Data.StreamerMode && !IsFullKeyboard)
             {
-                SetKeyObjectActive(Kps, false);
-                SetKeyObjectActive(Total, false);
+                SetStatsVisible(false);
             }
             SaveSettings();
             return true;

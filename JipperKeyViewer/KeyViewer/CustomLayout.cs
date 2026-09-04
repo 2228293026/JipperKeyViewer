@@ -175,26 +175,26 @@ namespace JipperKeyViewer.KeyViewer
                 node.TrailFadePx = float.IsNaN(node.TrailFadePx) ? 50f : Mathf.Clamp(node.TrailFadePx, 0f, 500f);
                 node.ReleaseFadeDuration = float.IsNaN(node.ReleaseFadeDuration) ? 0.5f : Mathf.Clamp(node.ReleaseFadeDuration, 0f, 5f);
             }
-            // Enforce caps: at most one KPS + one Total panel, limited key and image nodes. /
-            // 强制上限：KPS/Total 各最多一个，按键与图片节点限量。
-            int keyLike = 0, images = 0, kps = 0, total = 0;
+            // Enforce caps: key-like and unbound-image node budgets. KPS/Total panels are
+            // deliberately UNCAPPED — layer groups gate their creation, so each group can carry
+            // its own panels (one visible set at a time by design). / 强制上限：按键类与未绑定
+            // 图片节点预算。KPS/Total 面板有意不设上限——图层组门控其创建，每组可带自己的
+            // 面板（设计上同一时刻显示一组）。
+            int keyLike = 0, images = 0;
             for (int i = nodes.Count - 1; i >= 0; i--)
             {
                 FmNode node = nodes[i];
                 switch (node.NodeType)
                 {
-                    case 1:
-                        if (++kps > 1) { nodes.RemoveAt(i); Loader.Warning("KeyViewer: removed extra custom KPS node (only one is allowed)"); }
+                    case 0: // key
+                        if (++keyLike > CustomKeyNodeCap) nodes.RemoveAt(i);
                         break;
-                    case 2:
-                        if (++total > 1) { nodes.RemoveAt(i); Loader.Warning("KeyViewer: removed extra custom Total node (only one is allowed)"); }
+                    case 1: // KPS — uncapped; each layer group may carry one
+                    case 2: // Total — uncapped; each layer group may carry one
                         break;
                     case 3:
                         if (CustomNodeHasKey(node)) { if (++keyLike > CustomKeyNodeCap) nodes.RemoveAt(i); }
                         else if (++images > 8) nodes.RemoveAt(i);
-                        break;
-                    default:
-                        if (++keyLike > CustomKeyNodeCap) nodes.RemoveAt(i);
                         break;
                 }
             }
@@ -222,6 +222,40 @@ namespace JipperKeyViewer.KeyViewer
         private static float CustomNodeCenterY(FmNode node)
         {
             return 1080f - node.Y - node.Height * 0.5f;
+        }
+
+        /// <summary>All CREATED runtime keys of a stat type (custom layouts may carry several
+        /// panels — one per visible layer group; hidden groups' nodes are never created). Fixed
+        /// layouts return an empty list — they use the single Kps/Total refs. /
+        /// 某面板类型的全部已创建运行时按键（自定义布局可携带多块——每个可见图层组各一；
+        /// 隐藏组的节点不会创建）。固定布局返回空列表——它们用单一 Kps/Total 引用。</summary>
+        private List<Key> StatKeys(int type)
+        {
+            var list = new List<Key>();
+            if (Keys == null) return list;
+            for (int i = 0; i < Keys.Length; i++)
+            {
+                Key k = Keys[i];
+                if (k != null && k.CustomNode != null && k.CustomNode.NodeType == type) list.Add(k);
+            }
+            return list;
+        }
+
+        /// <summary>Show/hide every stat panel (streamer mode). Custom layouts iterate all
+        /// created panels; fixed layouts toggle the single refs. / 显隐全部面板（主播模式）。
+        /// 自定义布局遍历全部已创建面板；固定布局切换单一引用。</summary>
+        private void SetStatsVisible(bool active)
+        {
+            if (IsCustomLayout)
+            {
+                foreach (Key k in StatKeys(1)) SetKeyObjectActive(k, active);
+                foreach (Key k in StatKeys(2)) SetKeyObjectActive(k, active);
+            }
+            else
+            {
+                SetKeyObjectActive(Kps, active);
+                SetKeyObjectActive(Total, active);
+            }
         }
 
         private void InitializeCustomLayout()

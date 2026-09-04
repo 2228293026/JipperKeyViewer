@@ -87,8 +87,7 @@ namespace JipperKeyViewer.KeyViewer
             // 应用主播模式（隐藏 KPS/Total）——仅普通布局生效；全键盘有专属开关，不与之冲突。
             if (Settings.Data.StreamerMode && !IsFullKeyboard)
             {
-                SetKeyObjectActive(Kps, false);
-                SetKeyObjectActive(Total, false);
+                SetStatsVisible(false);
             }
             // Persist the overlay across scene loads / 使覆盖层在场景加载中持久化
             Object.DontDestroyOnLoad(KeyViewerObject);
@@ -1128,10 +1127,10 @@ namespace JipperKeyViewer.KeyViewer
             // otherwise show a wrong 0 indefinitely. lastKps = -1 also forces a rewrite next frame.
             // 用实时 KPS 值而非硬编码 "0":ProcessKpsInUpdate 只在计数变化时重写文本,匀速游玩时
             // 数值框会无限期显示错误的 0。lastKps = -1 同时强制下帧重写。
-            if (Kps != null)
-                SetKpsTotalDisplay(Kps, "KPS", (PressTimes?.Count ?? 0).ToString());
-            if (Total != null)
-                SetKpsTotalDisplay(Total, "Total", FormatCount(Settings.Data.TotalCount));
+            foreach (Key k in IsCustomLayout ? StatKeys(1) : SinglePanel(Kps))
+                SetKpsTotalDisplay(k, "KPS", (PressTimes?.Count ?? 0).ToString());
+            foreach (Key k in IsCustomLayout ? StatKeys(2) : SinglePanel(Total))
+                SetKpsTotalDisplay(k, "Total", FormatCount(Settings.Data.TotalCount));
             lastKps = -1;
         }
 
@@ -1567,8 +1566,7 @@ namespace JipperKeyViewer.KeyViewer
             ResetFootKeyViewer();
             if (Settings.Data.StreamerMode && !IsFullKeyboard)
             {
-                SetKeyObjectActive(Kps, false);
-                SetKeyObjectActive(Total, false);
+                SetStatsVisible(false);
             }
             if (Settings.Data.CustomPositionEnabled)
                 ResetKeyViewerPosition();
@@ -1772,8 +1770,8 @@ namespace JipperKeyViewer.KeyViewer
                     }
                 }
             }
-            if (Total != null)
-                SetKpsTotalDisplay(Total, "Total", FormatCount(Settings.Data.TotalCount));
+            foreach (Key k in IsCustomLayout ? StatKeys(2) : SinglePanel(Total))
+                SetKpsTotalDisplay(k, "Total", FormatCount(Settings.Data.TotalCount));
         }
 
         public void AutoAssignRainbowColors()

@@ -241,8 +241,10 @@ namespace JipperKeyViewer.KeyViewer
                 for (int i = 0; i < Keys.Length; i++)
                     if (Keys[i] != null && Keys[i].value != null) // Unity overload catches destroyed keys / Unity 重载可识别已销毁按键
                         Keys[i].value.text = "0";
-            if (Kps != null) SetKpsTotalDisplay(Kps, "KPS", "0");
-            if (Total != null) SetKpsTotalDisplay(Total, "Total", "0");
+            foreach (Key k in IsCustomLayout ? StatKeys(1) : SinglePanel(Kps))
+                SetKpsTotalDisplay(k, "KPS", "0");
+            foreach (Key k in IsCustomLayout ? StatKeys(2) : SinglePanel(Total))
+                SetKpsTotalDisplay(k, "Total", "0");
             SaveSettingsFromGui();
         }
 
@@ -697,8 +699,7 @@ namespace JipperKeyViewer.KeyViewer
                 if (newStreamer != Settings.Data.StreamerMode)
                 {
                     Settings.Data.StreamerMode = newStreamer;
-                    SetKeyObjectActive(Kps, !newStreamer);
-                    SetKeyObjectActive(Total, !newStreamer);
+                    SetStatsVisible(!newStreamer);
                     SaveSettingsFromGui();
                 }
             }

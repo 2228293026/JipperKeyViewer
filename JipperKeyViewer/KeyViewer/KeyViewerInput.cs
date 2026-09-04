@@ -361,32 +361,48 @@ namespace JipperKeyViewer.KeyViewer
             if (lastKps != currentKps)
             {
                 lastKps = currentKps;
-                if (Kps != null)
+                NumBuffer.Format(currentKps, Settings.Data.EnableCountFormatting, out var buf, out int off, out int len);
+                // Custom layouts may carry several KPS panels (one per visible group) — all
+                // visible panels show the same value. / 自定义布局可携带多块 KPS 面板（每个
+                // 可见组各一）——全部可见面板显示同一数值。
+                foreach (Key k in IsCustomLayout ? StatKeys(1) : SinglePanel(Kps))
                 {
-                    NumBuffer.Format(currentKps, Settings.Data.EnableCountFormatting, out var buf, out int off, out int len);
                     if (KpsTotalCenteredApplies())
-                        SetKpsTotalDisplay(Kps, "KPS", new string(buf, off, len));
+                        SetKpsTotalDisplay(k, "KPS", new string(buf, off, len));
                     else if (!KpsTotalIsSlim() && Settings.Data.HideKpsTotalLabel)
-                        Kps.text.SetText(buf, off, len);
-                    else if (Kps.value != null)
-                        Kps.value.SetText(buf, off, len);
+                        k.text.SetText(buf, off, len);
+                    else if (k.value != null)
+                        k.value.SetText(buf, off, len);
                 }
             }
             // The Total display update lives HERE (not in ProcessMainAndFootKeys) so both input
             // paths — fixed layouts AND the FreeMake custom path, which never runs the former —
             // refresh it every frame. / Total 计数显示更新放在此处（而非 ProcessMainAndFootKeys），
             // 使固定布局与 FreeMake 自定义两条输入路径（后者不经过前者）都会逐帧刷新。
-            if (Total != null && lastTotal != Settings.Data.TotalCount)
+            if (lastTotal != Settings.Data.TotalCount)
             {
                 lastTotal = Settings.Data.TotalCount;
-                NumBuffer.Format(lastTotal, Settings.Data.EnableCountFormatting, out var buf, out int off, out int len);
-                if (KpsTotalCenteredApplies())
-                    SetKpsTotalDisplay(Total, "Total", new string(buf, off, len));
-                else if (!KpsTotalIsSlim() && Settings.Data.HideKpsTotalLabel)
-                    Total.text.SetText(buf, off, len);
-                else if (Total.value != null)
-                    Total.value.SetText(buf, off, len);
+                NumBuffer.Format(lastTotal, Settings.Data.EnableCountFormatting, out var buf2, out int off2, out int len2);
+                foreach (Key k in IsCustomLayout ? StatKeys(2) : SinglePanel(Total))
+                {
+                    if (KpsTotalCenteredApplies())
+                        SetKpsTotalDisplay(k, "Total", new string(buf2, off2, len2));
+                    else if (!KpsTotalIsSlim() && Settings.Data.HideKpsTotalLabel)
+                        k.text.SetText(buf2, off2, len2);
+                    else if (k.value != null)
+                        k.value.SetText(buf2, off2, len2);
+                }
             }
+        }
+
+        /// <summary>Wrap a single (possibly null) panel ref as a list — keeps the fixed-layout
+        /// path uniform with the multi-panel iteration. / 把单个（可能为空的）面板引用包装成
+        /// 列表——让固定布局路径与多面板遍历统一。</summary>
+        private static List<Key> SinglePanel(Key k)
+        {
+            var list = new List<Key>(1);
+            if (k != null) list.Add(k);
+            return list;
         }
 
         /// <summary>

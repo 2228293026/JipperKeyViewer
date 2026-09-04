@@ -55,22 +55,33 @@ dotnet build JipperKeyViewer-FileBased/JipperKeyViewer-FileBased.csproj -c Relea
 JipperKeyViewer/
 ├─ JipperKeyViewer/                    # AssetBundle variant / AssetBundle 变体（主工程）
 │  └─ KeyViewer/
-│     ├─ KeyViewer.cs                  # Lifecycle, config/profile management, migrations / 生命周期、配置管理、版本迁移
-│     ├─ KeyViewerSettings.cs          # Data model + Newtonsoft persistence / 数据模型与持久化
-│     ├─ KeyViewerLayout.cs            # Overlay construction, fixed layouts, 108K geometry / 覆盖层构建、固定布局、108K 几何
-│     ├─ KeyViewerInput.cs             # Input polling, KPS/Total pipelines (per-group) / 输入轮询、KPS/Total 管线（按组）
-│     ├─ CustomLayout.cs               # FreeMake runtime: per-node input/count/rain, groups, caps / FreeMake 运行时
-│     ├─ KeyViewerEditor.cs            # FreeMake editor (IMGUI window) / FreeMake 编辑器
-│     ├─ EditorHistory.cs              # Timeline undo (snapshot cursor) / 时间线撤销
-│     ├─ KeyShapeLayer.cs              # Merged key-box meshes / 合并按键框 mesh
-│     ├─ RainSystem.cs                 # Rain simulation (pooled, per-node overrides) / 雨滴模拟
-│     ├─ RawRain.cs                    # Per-drop data record & kinematics / 单滴数据与运动学
-│     ├─ RainLayer.cs                  # Merged rain meshes (quads + ghost sprite) / 合并雨滴 mesh
-│     ├─ Key.cs                        # Per-key runtime state / 每键运行时状态
-│     ├─ KvImageLoader.cs              # Reflection PNG loader (shared) / 反射 PNG 加载器
-│     ├─ KeyViewerGUI.cs               # Settings window skeleton + partials / 设置窗口骨架与各页
-│     ├─ KeyViewerResources.cs         # AssetBundle resource loading / 资源包加载
-│     └─ I18n.cs                       # EN/ZH/KO strings / 三语词条
+│     ├─ Core/                         # Runtime core / 运行时核心
+│     │  ├─ KeyViewer.cs               # Lifecycle, config/profile management, migrations / 生命周期、配置管理、版本迁移
+│     │  ├─ KeyViewerInput.cs          # Input polling, KPS/Total pipelines (per-group) / 输入轮询、KPS/Total 管线（按组）
+│     │  ├─ KeyViewerLayout.cs         # Overlay construction, fixed layouts, 108K geometry / 覆盖层构建、固定布局、108K 几何
+│     │  ├─ CustomLayout.cs            # FreeMake runtime: per-node input/count/rain, groups, caps / FreeMake 运行时
+│     │  └─ Key.cs                     # Per-key runtime state / 每键运行时状态
+│     ├─ Settings/                     # Data model / 数据模型
+│     │  ├─ KeyViewerSettings.cs       # ProfileData/FmNode/FmLayerGroup + Newtonsoft persistence / 数据模型与持久化
+│     │  ├─ KeyviewerStyle.cs          # Layout enums / 布局枚举
+│     │  └─ FootKeyviewerStyle.cs      # Foot-key enums / 脚键枚举
+│     ├─ Editor/                       # FreeMake editor / FreeMake 编辑器
+│     │  ├─ KeyViewerEditor.cs         # IMGUI editor window / 编辑器弹窗
+│     │  └─ EditorHistory.cs           # Timeline undo (snapshot cursor) / 时间线撤销
+│     ├─ GUI/                          # Settings window partials / 设置窗口各页
+│     │  └─ KeyViewerGUI.cs / KeyViewerSettingsGUI / KeyViewerColorGUI / KeyViewerRainGUI / KeyViewerBindingGUI
+│     ├─ Rendering/                    # Merged meshes / 合并网格渲染
+│     │  ├─ KeyShapeLayer.cs           # Key-box meshes (bg + outline) / 按键框 mesh
+│     │  └─ RainLayer.cs               # Rain meshes (quads + ghost sprite) / 雨滴 mesh
+│     ├─ Rain/                         # Rain simulation / 雨滴模拟
+│     │  ├─ RainSystem.cs              # Pooled simulation, per-node overrides / 对象池模拟、逐节点覆盖
+│     │  └─ RawRain.cs                 # Per-drop data record & kinematics / 单滴数据与运动学
+│     ├─ Loader/                       # Loading glue / 加载胶合
+│     │  ├─ ModLoader.cs               # Loader glue & logging / 加载器胶合与日志
+│     │  └─ KeyViewerResources.cs      # AssetBundle resource loading / 资源包加载
+│     └─ Util/                         # Shared utilities / 共享工具
+│        ├─ I18n.cs                    # EN/ZH/KO strings / 三语词条
+│        └─ KvImageLoader.cs           # Reflection PNG loader (shared) / 反射 PNG 加载器
 ├─ JipperKeyViewer-FileBased/          # File-based variant (shared sources) / 文件变体
 ├─ JipperKeyViewer-Loader.UMM/         # UMM loader entry / UMM 加载入口
 ├─ JipperKeyViewer.Loader.Melon/       # Melon loader entry / Melon 加载入口

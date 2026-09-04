@@ -88,7 +88,7 @@
        excluded — this project carries its own file-based implementation under KeyViewer\
        (explicit exclude keeps the wildcard from double-defining the type). -->
   <ItemGroup>
-    <Compile Include="..\JipperKeyViewer\KeyViewer\*.cs" Exclude="..\JipperKeyViewer\KeyViewer\KeyViewerResources.cs" Link="KeyViewer\%(FileName)%(Extension)" />
+    <Compile Include="..\JipperKeyViewer\KeyViewer\**\*.cs" Exclude="..\JipperKeyViewer\KeyViewer\Loader\KeyViewerResources.cs" Link="KeyViewer\%(RecursiveDir)%(FileName)%(Extension)" />
     <Compile Include="..\JipperKeyViewer\Main.cs" Link="Main.cs" />
   </ItemGroup>
 

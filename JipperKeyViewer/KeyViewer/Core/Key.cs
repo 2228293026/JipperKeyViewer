@@ -10,6 +10,9 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+using JipperKeyViewer.KeyViewer.Settings;
+using JipperKeyViewer.KeyViewer.Rain;
+
 namespace JipperKeyViewer.KeyViewer
 {
     /// <summary>

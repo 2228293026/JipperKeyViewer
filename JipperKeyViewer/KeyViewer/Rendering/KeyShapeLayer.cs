@@ -10,7 +10,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace JipperKeyViewer.KeyViewer
+namespace JipperKeyViewer.KeyViewer.Rendering
 {
     /// <summary>
     /// Draws all key boxes (9-sliced background or outline sprite) into one mesh / 将所有按键框（九宫格背景或描边贴图）绘制进单一 mesh

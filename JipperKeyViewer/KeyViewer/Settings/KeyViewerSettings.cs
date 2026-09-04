@@ -8,7 +8,7 @@ using Newtonsoft.Json.Serialization;
 using TMPro;
 using UnityEngine;
 
-namespace JipperKeyViewer.KeyViewer
+namespace JipperKeyViewer.KeyViewer.Settings
 {
     [System.Serializable]
     [JsonObject(MemberSerialization.Fields)]

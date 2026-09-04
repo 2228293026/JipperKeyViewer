@@ -1,6 +1,7 @@
 ﻿// Foot key layout style enum / 脚键布局样式枚举
 
-namespace JipperKeyViewer.KeyViewer
+namespace JipperKeyViewer.KeyViewer.Settings
+
 {
     /// <summary>
     /// Foot key layout styles supported by the mod / Mod 支持的脚键布局样式

@@ -1,7 +1,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace JipperKeyViewer.KeyViewer
+using JipperKeyViewer.KeyViewer.Settings;
+using JipperKeyViewer.KeyViewer.Rendering;
+
+namespace JipperKeyViewer.KeyViewer.Rain
 {
     /// <summary>
     /// Rain effect state machine. Drops are pooled RawRain records; rendering happens in the merged

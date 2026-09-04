@@ -4,6 +4,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+using JipperKeyViewer.KeyViewer.Settings;
+using JipperKeyViewer.KeyViewer.Util;
+
 namespace JipperKeyViewer.KeyViewer
 {
     public partial class KeyViewer : MonoBehaviour

@@ -1,6 +1,7 @@
 using UnityEngine;
 
-namespace JipperKeyViewer.KeyViewer
+namespace JipperKeyViewer.KeyViewer.Rain
+
 {
     /// <summary>
     /// Pooled rain-drop state: motion data updated by RainSystem, render data consumed by RainLayer.

@@ -5,6 +5,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
+using JipperKeyViewer.KeyViewer.Settings;
+using JipperKeyViewer.KeyViewer.Rendering;
+
 namespace JipperKeyViewer.KeyViewer
 {
     /// <summary>

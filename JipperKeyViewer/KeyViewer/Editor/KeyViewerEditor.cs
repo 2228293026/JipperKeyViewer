@@ -17,6 +17,10 @@ using System.Linq;
 using Newtonsoft.Json;
 using UnityEngine;
 
+using JipperKeyViewer.KeyViewer.Settings;
+using JipperKeyViewer.KeyViewer.Util;
+using JipperKeyViewer.KeyViewer.Editor;
+
 namespace JipperKeyViewer.KeyViewer
 {
     public partial class KeyViewer

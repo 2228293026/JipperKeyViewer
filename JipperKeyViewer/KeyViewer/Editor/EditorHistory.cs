@@ -6,10 +6,9 @@
 // 追加（丢弃已重做的未来），撤销/重做移动游标并把要恢复的状态交还给调用方。方向键连发
 // 按短窗口合并：窗口内首次微调记录，其余搭车。
 
-using System;
 using System.Collections.Generic;
 
-namespace JipperKeyViewer.KeyViewer
+namespace JipperKeyViewer.KeyViewer.Editor
 {
     internal sealed class EditorHistory
     {

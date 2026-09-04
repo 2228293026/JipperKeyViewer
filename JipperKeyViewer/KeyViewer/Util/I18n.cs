@@ -5,7 +5,8 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace JipperKeyViewer.KeyViewer
+namespace JipperKeyViewer.KeyViewer.Util
+
 {
     /// <summary>
     /// Static i18n helper providing translated strings / 静态国际化辅助类，提供翻译字符串

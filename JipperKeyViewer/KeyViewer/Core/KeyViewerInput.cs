@@ -5,6 +5,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+using JipperKeyViewer.KeyViewer.Settings;
+
 namespace JipperKeyViewer.KeyViewer
 {
     /// <summary>Pre-allocated char buffer for TMP text updates (no per-call ToString allocation) / 预分配的字符缓冲区，用于 TMP 文本更新（无每调用 ToString 分配）</summary>

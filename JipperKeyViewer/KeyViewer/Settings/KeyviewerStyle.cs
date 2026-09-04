@@ -1,6 +1,7 @@
 ﻿// Main key layout style enum / 主按键布局样式枚举
 
-namespace JipperKeyViewer.KeyViewer
+namespace JipperKeyViewer.KeyViewer.Settings
+
 {
     /// <summary>
     /// Main key layout styles supported by the mod / Mod 支持的主按键布局样式

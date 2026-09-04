@@ -4,6 +4,12 @@
 using System;
 using UnityEngine;
 
+using JipperKeyViewer.KeyViewer.Settings;
+using JipperKeyViewer.KeyViewer.Rain;
+using JipperKeyViewer.KeyViewer.Rendering;
+using JipperKeyViewer.KeyViewer.Util;
+using JipperKeyViewer.KeyViewer.Editor;
+
 namespace JipperKeyViewer.KeyViewer
 {
     public partial class KeyViewer : MonoBehaviour

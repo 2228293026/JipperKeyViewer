@@ -12,7 +12,10 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace JipperKeyViewer.KeyViewer
+using JipperKeyViewer.KeyViewer.Rain;
+
+namespace JipperKeyViewer.KeyViewer.Rendering
+
 {
     /// <summary>
     /// Solid-color rain quads: normal drop bodies + ghost shadow/outline / 纯色雨滴四边形：普通本体 + 鬼雨阴影/描边

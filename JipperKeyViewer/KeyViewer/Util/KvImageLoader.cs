@@ -11,7 +11,7 @@ using System.IO;
 using System.Reflection;
 using UnityEngine;
 
-namespace JipperKeyViewer.KeyViewer
+namespace JipperKeyViewer.KeyViewer.Util
 {
     internal static class KvImageLoader
     {

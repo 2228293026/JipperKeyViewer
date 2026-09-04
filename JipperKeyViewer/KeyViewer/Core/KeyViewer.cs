@@ -8,6 +8,11 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+using JipperKeyViewer.KeyViewer.Settings;
+using JipperKeyViewer.KeyViewer.Rain;
+using JipperKeyViewer.KeyViewer.Rendering;
+using JipperKeyViewer.KeyViewer.Util;
+
 namespace JipperKeyViewer.KeyViewer
 {
     /// <summary>

@@ -2,11 +2,13 @@
 // Loads built-in sprites from PNG, fonts from OTF/TTF, custom font files, and sets up shadow materials and fallback chains / 从 PNG 文件加载内置精灵，从 OTF/TTF 文件加载字体，以及自定义字体文件，设置阴影材质和后备链
 
 using System;
+using JipperKeyViewer.KeyViewer.Settings;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using TMPro;
 using UnityEngine;
+using JipperKeyViewer.KeyViewer.Util;
 
 namespace JipperKeyViewer.KeyViewer
 {

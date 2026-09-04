@@ -22,6 +22,9 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+using JipperKeyViewer.KeyViewer.Settings;
+using JipperKeyViewer.KeyViewer.Util;
+
 namespace JipperKeyViewer.KeyViewer
 {
     public partial class KeyViewer

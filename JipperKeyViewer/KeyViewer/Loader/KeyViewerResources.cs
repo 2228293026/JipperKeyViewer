@@ -9,6 +9,8 @@ using System.Reflection;
 using TMPro;
 using UnityEngine;
 
+using JipperKeyViewer.KeyViewer.Settings;
+
 namespace JipperKeyViewer.KeyViewer
 {
     /// <summary>

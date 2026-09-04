@@ -484,6 +484,7 @@ namespace JipperKeyViewer.KeyViewer
             if (Settings.Data.CustomNodes.Count == 0) return;
             PushEditorHistory();
             Settings.Data.CustomNodes = new List<FmNode>();
+            EnsureCustomNodes(); // wipe every group too — no members survive / 连组一并清——无成员存活
             editorSelection.Clear();
             EditorMutated();
         }
@@ -611,6 +612,9 @@ namespace JipperKeyViewer.KeyViewer
             for (int i = editorSelection.Count - 1; i >= 0; i--)
                 Settings.Data.CustomNodes.Remove(editorSelection[i]);
             editorSelection.Clear();
+            // Prune groups that just lost their last member. /
+            // 剔除刚刚失去全部成员的组。
+            EnsureCustomNodes();
             EditorMutated();
         }
 

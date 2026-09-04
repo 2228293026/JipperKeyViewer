@@ -272,6 +272,18 @@ namespace JipperKeyViewer.KeyViewer
             foreach (FmNode node in nodes)
                 if (!string.IsNullOrEmpty(node.GroupId) && !groups.Exists(g => g.Id == node.GroupId))
                     node.GroupId = "";
+
+            // Groups with no surviving members serve no purpose — drop them, or empty groups
+            // linger after deleting a whole batch. / 无存活成员的组没有意义——剔除，否则整批
+            // 删除后空组残留。
+            for (int i = groups.Count - 1; i >= 0; i--)
+            {
+                string gid = groups[i].Id;
+                bool any = false;
+                foreach (FmNode node in nodes)
+                    if (node.GroupId == gid) { any = true; break; }
+                if (!any) groups.RemoveAt(i);
+            }
         }
 
         /// <summary>Key-like node count within ONE group ("" = ungrouped bucket). /

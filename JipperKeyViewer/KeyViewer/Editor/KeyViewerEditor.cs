@@ -82,6 +82,7 @@ namespace JipperKeyViewer.KeyViewer
         private readonly List<string> fmScratchKeys = new List<string>();
         private readonly List<FmNode> fmOrderBuffer = new List<FmNode>();
         private bool fmGroupsExpanded;
+        private string fmActiveGroupId = ""; // target group for new stat panels / 新建面板的目标组
         private Rect fmLastCanvasRect;
         private int fmResizeHandle = -1;
         private bool fmResizeMoved;
@@ -157,34 +158,34 @@ namespace JipperKeyViewer.KeyViewer
         private void DrawEditorToolbar()
         {
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button(I18n.Tr("fm_add_key"), GUILayout.Width(64f))) EditorAddNode(0);
-            if (GUILayout.Button(I18n.Tr("fm_add_kps"), GUILayout.Width(58f))) EditorAddNode(1);
-            if (GUILayout.Button(I18n.Tr("fm_add_total"), GUILayout.Width(64f))) EditorAddNode(2);
-            if (GUILayout.Button(I18n.Tr("fm_add_image"), GUILayout.Width(64f))) EditorAddNode(3);
+            if (GUILayout.Button(I18n.Tr("fm_add_key"), GUILayout.MinWidth(48f))) EditorAddNode(0);
+            if (GUILayout.Button(I18n.Tr("fm_add_kps"), GUILayout.MinWidth(42f))) EditorAddNode(1);
+            if (GUILayout.Button(I18n.Tr("fm_add_total"), GUILayout.MinWidth(48f))) EditorAddNode(2);
+            if (GUILayout.Button(I18n.Tr("fm_add_image"), GUILayout.MinWidth(48f))) EditorAddNode(3);
             GUILayout.Space(6f);
-            if (GUILayout.Button(I18n.Tr("fm_copy"), GUILayout.Width(46f))) EditorCopySelection();
-            if (GUILayout.Button(I18n.Tr("fm_paste"), GUILayout.Width(46f))) EditorPaste();
-            if (GUILayout.Button(I18n.Tr("fm_delete"), GUILayout.Width(46f))) EditorDeleteSelection();
+            if (GUILayout.Button(I18n.Tr("fm_copy"), GUILayout.MinWidth(42f))) EditorCopySelection();
+            if (GUILayout.Button(I18n.Tr("fm_paste"), GUILayout.MinWidth(42f))) EditorPaste();
+            if (GUILayout.Button(I18n.Tr("fm_delete"), GUILayout.MinWidth(42f))) EditorDeleteSelection();
             GUILayout.Space(6f);
             GUI.enabled = editorHistory.CanUndo;
-            if (GUILayout.Button(I18n.Tr("fm_undo"), GUILayout.Width(46f))) EditorUndo();
+            if (GUILayout.Button(I18n.Tr("fm_undo"), GUILayout.MinWidth(42f))) EditorUndo();
             GUI.enabled = editorHistory.CanRedo;
-            if (GUILayout.Button(I18n.Tr("fm_redo"), GUILayout.Width(46f))) EditorRedo();
+            if (GUILayout.Button(I18n.Tr("fm_redo"), GUILayout.MinWidth(42f))) EditorRedo();
             GUI.enabled = true;
             GUILayout.Space(6f);
-            if (GUILayout.Button(I18n.Tr("fm_select_all"), GUILayout.Width(56f))) EditorSelectAll();
-            if (GUILayout.Button(I18n.Tr("fm_clear_sel"), GUILayout.Width(56f))) editorSelection.Clear();
+            if (GUILayout.Button(I18n.Tr("fm_select_all"), GUILayout.MinWidth(42f))) EditorSelectAll();
+            if (GUILayout.Button(I18n.Tr("fm_clear_sel"), GUILayout.MinWidth(42f))) editorSelection.Clear();
             GUILayout.Space(6f);
             // Built-in layout presets (the fixed layouts' hardcoded arrangements, generated as
             // editable nodes) + canvas wipe. Both push history — Ctrl+Z restores. /
             // 内置布局预设（固定布局的硬编码排布生成为可编辑节点）与清空画布。两者都入撤销栈
             // ——Ctrl+Z 可恢复。
-            if (GUILayout.Button(I18n.Tr("fm_presets"), GUILayout.Width(46f))) fmPresetStripOpen = !fmPresetStripOpen;
-            if (GUILayout.Button(I18n.Tr("fm_wipe"), GUILayout.Width(66f))) EditorWipeCanvas();
+            if (GUILayout.Button(I18n.Tr("fm_presets"), GUILayout.MinWidth(42f))) fmPresetStripOpen = !fmPresetStripOpen;
+            if (GUILayout.Button(I18n.Tr("fm_wipe"), GUILayout.MinWidth(42f))) EditorWipeCanvas();
             GUILayout.FlexibleSpace();
             GUILayout.Label(string.Format(I18n.Tr("fm_status"), Settings.Data.CustomNodes.Count, editorSelection.Count),
                 GUILayout.Width(120f));
-            if (GUILayout.Button(I18n.Tr("fm_close"), GUILayout.Width(46f)))
+            if (GUILayout.Button(I18n.Tr("fm_close"), GUILayout.MinWidth(42f)))
             {
                 // Closing the editor flushes any pending debounced changes. /
                 // 关闭编辑器时冲刷挂起的去抖变更。
@@ -199,7 +200,7 @@ namespace JipperKeyViewer.KeyViewer
             if (fmPresetStripOpen)
             {
                 GUILayout.BeginHorizontal();
-                fmPresetNewProfile = GUILayout.Toggle(fmPresetNewProfile, I18n.Tr("fm_preset_new_profile"), GUILayout.Width(120f));
+                fmPresetNewProfile = GUILayout.Toggle(fmPresetNewProfile, I18n.Tr("fm_preset_new_profile"), GUILayout.MinWidth(120f));
                 string[] names = new string[KeyLayoutNames.Length - 1]; // skip only Custom / 仅跳过「自定义」
                 Array.Copy(KeyLayoutNames, names, names.Length);
                 int picked = GUILayout.SelectionGrid(-1, names, names.Length, GUILayout.MinHeight(22f));
@@ -587,8 +588,9 @@ namespace JipperKeyViewer.KeyViewer
 
         private void EditorAddNode(int type)
         {
-            if ((type == 1 || type == 2) && GroupHasStat("", type)) return;
-            if (type != 3 && KeyLikeCountInGroup("") >= CustomKeyNodeCap) return;
+            string targetGroup = fmActiveGroupId;
+            if ((type == 1 || type == 2) && GroupHasStat(targetGroup, type)) return;
+            if (type != 3 && KeyLikeCountInGroup(targetGroup) >= CustomKeyNodeCap) return;
             if (type == 3 && Settings.Data.CustomNodes.Count(n => n != null && n.NodeType == 3) >= 8) return;
             PushEditorHistory();
             Vector2 center = EditorViewCenter();
@@ -604,6 +606,7 @@ namespace JipperKeyViewer.KeyViewer
             };
             if (type == 1) node.CustomText = Settings.Data.KpsLabel;
             if (type == 2) node.CustomText = Settings.Data.TotalLabel;
+            if (!string.IsNullOrEmpty(targetGroup)) node.GroupId = targetGroup;
             Settings.Data.CustomNodes.Add(node);
             editorSelection.Clear();
             editorSelection.Add(node);
@@ -1362,13 +1365,18 @@ namespace JipperKeyViewer.KeyViewer
                     g.Name = name;
                     SaveSettingsFromGui();
                 }
-                bool vis = GUILayout.Toggle(g.Visible, I18n.Tr("fm_group_show"), GUILayout.Width(52f));
+                bool vis = GUILayout.Toggle(g.Visible, I18n.Tr("fm_group_show"), GUILayout.MinWidth(52f));
                 if (vis != g.Visible)
                 {
                     g.Visible = vis;
                     EditorMutated();
                 }
-                if (GUILayout.Button(I18n.Tr("fm_group_select"), GUILayout.Width(52f)))
+                bool isActive = g.Id == fmActiveGroupId;
+                if (GUILayout.Button(isActive ? "◢" : "○", GUILayout.Width(26f)))
+                {
+                    fmActiveGroupId = isActive ? "" : g.Id;
+                }
+                if (GUILayout.Button(I18n.Tr("fm_group_select"), GUILayout.MinWidth(52f)))
                 {
                     editorSelection.Clear();
                     foreach (FmNode n in Settings.Data.CustomNodes)
@@ -1376,26 +1384,27 @@ namespace JipperKeyViewer.KeyViewer
                     fmActiveNode = editorSelection.Count > 0 ? editorSelection[0] : null;
                 }
                 GUI.enabled = editorSelection.Count > 0;
-                if (GUILayout.Button(I18n.Tr("fm_group_assign") + "(" + editorSelection.Count + ")", GUILayout.Width(80f)))
+                if (GUILayout.Button(I18n.Tr("fm_group_assign") + "(" + editorSelection.Count + ")", GUILayout.MinWidth(80f)))
                 {
                     PushEditorHistory();
                     foreach (FmNode n in editorSelection) n.GroupId = g.Id;
                     EditorMutated();
                 }
                 GUI.enabled = true;
-                if (GUILayout.Button(I18n.Tr("fm_group_del"), GUILayout.Width(52f)))
+                if (GUILayout.Button(I18n.Tr("fm_group_del"), GUILayout.MinWidth(52f)))
                 {
                     PushEditorHistory();
                     string deadId = g.Id;
                     groups.RemoveAt(i);
                     foreach (FmNode n in Settings.Data.CustomNodes)
                         if (n != null && n.GroupId == deadId) n.GroupId = "";
+                    if (fmActiveGroupId == deadId) fmActiveGroupId = "";
                     EditorMutated();
                     break;
                 }
                 GUILayout.EndHorizontal();
             }
-            if (GUILayout.Button(I18n.Tr("fm_group_add"), GUILayout.Width(140f)))
+            if (GUILayout.Button(I18n.Tr("fm_group_add"), GUILayout.MinWidth(140f)))
             {
                 PushEditorHistory();
                 // Id stays monotonic (uniqueness); the NAME reuses the smallest free number —
@@ -2071,8 +2080,8 @@ namespace JipperKeyViewer.KeyViewer
                     EditorPropertyChanged();
                 });
                 GUILayout.BeginHorizontal();
-                if (GUILayout.Button(I18n.Tr("fm_import"), GUILayout.Width(90f))) EditorImportImages();
-                if (GUILayout.Button(I18n.Tr("fm_open_dir"), GUILayout.Width(90f))) OpenCustomImagesDir();
+                if (GUILayout.Button(I18n.Tr("fm_import"), GUILayout.MinWidth(90f))) EditorImportImages();
+                if (GUILayout.Button(I18n.Tr("fm_open_dir"), GUILayout.MinWidth(90f))) OpenCustomImagesDir();
                 GUILayout.EndHorizontal();
                 DrawEditorFloatField(I18n.Tr("fm_opacity"), "fme_o_" + first.Id, n => n.Opacity, v =>
                 {
@@ -2082,40 +2091,60 @@ namespace JipperKeyViewer.KeyViewer
                 if (!single)
                     GUILayout.Label(I18n.Tr("fm_bind_image_hint"));
             }
-            // Stat nodes: per-node text layout (the Display tab's centered/stacked/hide-label
-            // sunk to the panel node). / 面板节点：节点级文本布局（显示页的居中/堆叠/隐藏标签
-            // 下沉到面板节点）。
+            // Stat nodes: centered/stacked toggles sit DIRECTLY on the panel (like the Display
+            // tab) — clicking one takes over from the current global state automatically; no
+            // master switch to discover first. "Follow global" resets the override. /
+            // 面板节点：居中/堆叠开关直接平铺（与显示页同款）——点按即以当前全局状态为基准
+            // 自动接管，无需先找总开关。「跟随全局」重置回跟随。
             if (first.NodeType == 1 || first.NodeType == 2)
             {
-                bool useStatLayout = GUILayout.Toggle(first.UseCustomStatLayout, I18n.Tr("fm_stat_layout"));
-                if (useStatLayout != first.UseCustomStatLayout)
+                // Display values: the override's when active, the global's when following. /
+                // 显示值：接管时用节点值，跟随时用全局值。
+                bool effCentered = first.UseCustomStatLayout ? first.StatCentered : KpsTotalCenteredApplies();
+                bool effStacked = first.UseCustomStatLayout ? first.StatStacked : KpsTotalStackedApplies();
+                void EnableOverride()
                 {
                     foreach (FmNode n in editorSelection)
                     {
                         if (n.NodeType != 1 && n.NodeType != 2) continue;
-                        n.UseCustomStatLayout = useStatLayout;
-                        if (useStatLayout)
-                        {
-                            // Seed from the CURRENT effective global mode — enabling the override
-                            // used to snap the panel to the field defaults (flat label+value),
-                            // which looked like centered/stacked "disappearing". /
-                            // 用当前生效的全局模式做种子——此前开启覆盖会瞬间回到字段默认值
-                            //（平铺标签+数值），看起来像居中/堆叠"消失"了。
-                            n.StatCentered = KpsTotalCenteredApplies();
-                            n.StatStacked = KpsTotalStackedApplies();
-                            n.HideLabel = !KpsTotalIsSlim() && Settings.Data.HideKpsTotalLabel;
-                        }
+                        if (n.UseCustomStatLayout) continue; // already independent / 已独立
+                        n.StatCentered = KpsTotalCenteredApplies();
+                        n.StatStacked = KpsTotalStackedApplies();
+                        n.HideLabel = !KpsTotalIsSlim() && Settings.Data.HideKpsTotalLabel;
+                        n.UseCustomStatLayout = true;
                     }
+                }
+                bool newCentered = GUILayout.Toggle(effCentered, I18n.Tr("fk_kps_total_centered"));
+                if (newCentered != effCentered)
+                {
+                    EnableOverride();
+                    foreach (FmNode n in editorSelection)
+                        if (n.NodeType == 1 || n.NodeType == 2) n.StatCentered = newCentered;
                     EditorPropertyChanged();
+                }
+                if (newCentered)
+                {
+                    bool newStacked = GUILayout.Toggle(effStacked, I18n.Tr("kps_total_stacked"));
+                    if (newStacked != effStacked)
+                    {
+                        EnableOverride();
+                        foreach (FmNode n in editorSelection)
+                            if (n.NodeType == 1 || n.NodeType == 2) n.StatStacked = newStacked;
+                        EditorPropertyChanged();
+                    }
                 }
                 if (first.UseCustomStatLayout)
                 {
-                    DrawEditorToggle(I18n.Tr("fk_kps_total_centered"), first.StatCentered,
-                        v => { foreach (FmNode n in editorSelection) if (n.NodeType == 1 || n.NodeType == 2) n.StatCentered = v; });
-                    if (first.StatCentered)
-                        DrawEditorToggle(I18n.Tr("kps_total_stacked"), first.StatStacked,
-                            v => { foreach (FmNode n in editorSelection) if (n.NodeType == 1 || n.NodeType == 2) n.StatStacked = v; });
-                    GUILayout.Label("<i>" + I18n.Tr("fm_stat_hide_label_hint") + "</i>");
+                    if (GUILayout.Button(I18n.Tr("fm_stat_follow_global"), GUILayout.MinWidth(110f)))
+                    {
+                        foreach (FmNode n in editorSelection)
+                            if (n.NodeType == 1 || n.NodeType == 2) n.UseCustomStatLayout = false;
+                        EditorPropertyChanged();
+                    }
+                }
+                else
+                {
+                    GUILayout.Label("<i>" + I18n.Tr("fm_stat_following_global") + "</i>");
                 }
             }
             // Rain: keys and image keys (an image needs a binding to have a trigger source). /
@@ -2396,7 +2425,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 FmLayerGroup grp = Settings.Data.LayerGroups.FirstOrDefault(g => g != null && g.Id == first.GroupId);
                 GUILayout.Label(I18n.Tr("fm_group") + ": " + (grp != null ? grp.Name : first.GroupId));
-                if (GUILayout.Button(I18n.Tr("fm_group_ungroup"), GUILayout.Width(140f)))
+                if (GUILayout.Button(I18n.Tr("fm_group_ungroup"), GUILayout.MinWidth(140f)))
                 {
                     PushEditorHistory();
                     foreach (FmNode n in editorSelection) n.GroupId = "";
@@ -2433,7 +2462,7 @@ namespace JipperKeyViewer.KeyViewer
                 }
             }
 
-            if (single && first.NodeType == 0 && GUILayout.Button(I18n.Tr("fm_reset_count"), GUILayout.Width(140f)))
+            if (single && first.NodeType == 0 && GUILayout.Button(I18n.Tr("fm_reset_count"), GUILayout.MinWidth(140f)))
             {
                 first.Count = 0;
                 if (first.RuntimeKey != null) first.RuntimeKey.LastShownKps = int.MinValue;
@@ -2476,9 +2505,9 @@ namespace JipperKeyViewer.KeyViewer
             string bound = string.IsNullOrWhiteSpace(node.GhostKey) ? "None" : node.GhostKey;
             GUILayout.Label(I18n.Tr("fm_ghost_bind") + ": " + bound, GUILayout.Width(160f));
             bool capturing = fmCaptureGhostNode == node;
-            if (GUILayout.Button(capturing ? I18n.Tr("fm_wait_key") : I18n.Tr("fm_bind"), GUILayout.Width(90f)))
+            if (GUILayout.Button(capturing ? I18n.Tr("fm_wait_key") : I18n.Tr("fm_bind"), GUILayout.MinWidth(90f)))
                 fmCaptureGhostNode = capturing ? null : node;
-            if (GUILayout.Button(I18n.Tr("fm_clear"), GUILayout.Width(60f)))
+            if (GUILayout.Button(I18n.Tr("fm_clear"), GUILayout.MinWidth(60f)))
             {
                 node.GhostKey = "";
                 fmCaptureGhostNode = null;
@@ -2515,9 +2544,9 @@ namespace JipperKeyViewer.KeyViewer
             string bound = string.IsNullOrEmpty(node.KeyBind) ? "None" : node.KeyBind;
             GUILayout.Label(I18n.Tr("fm_bind") + ": " + bound, GUILayout.Width(160f));
             bool capturing = fmCaptureNode == node;
-            if (GUILayout.Button(capturing ? I18n.Tr("fm_wait_key") : I18n.Tr("fm_bind"), GUILayout.Width(90f)))
+            if (GUILayout.Button(capturing ? I18n.Tr("fm_wait_key") : I18n.Tr("fm_bind"), GUILayout.MinWidth(90f)))
                 fmCaptureNode = capturing ? null : node;
-            if (GUILayout.Button(I18n.Tr("fm_clear"), GUILayout.Width(60f)))
+            if (GUILayout.Button(I18n.Tr("fm_clear"), GUILayout.MinWidth(60f)))
             {
                 node.KeyBind = "";
                 node.CustomText = "";

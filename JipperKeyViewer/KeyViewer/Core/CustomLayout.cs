@@ -775,8 +775,12 @@ namespace JipperKeyViewer.KeyViewer
             {
                 d.TotalCount++;
                 PressTimes.Enqueue(timeMs);
-                EnqueueCustomGroupPress(node.GroupId, timeMs);
             }
+            // KPS group queues must record EVERY press in the group, not just those whose
+            // nodes opt into CountInTotal — otherwise a group with CountInTotal=false on all
+            // its keys would always show KPS 0. / KPS 组队列必须记录该组的每次按压，而非仅
+            // 记录选择 CountInTotal 的节点——否则全组 CountInTotal=false 时 KPS 恒为 0。
+            EnqueueCustomGroupPress(node.GroupId, timeMs);
             // Counter bounce : kick on press — on whichever text is
             // visible (label when the count is hidden). / 计数器弹跳
             // （计数器弹跳动画）：按下时启动——作用在当前可见的文本上（计数隐藏时为标签）。

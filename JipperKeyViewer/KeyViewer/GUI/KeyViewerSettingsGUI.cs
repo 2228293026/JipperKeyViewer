@@ -67,21 +67,21 @@ namespace JipperKeyViewer.KeyViewer
 
         private static bool DrawFoldoutButton(string label, bool expanded)
         {
-            if (GUILayout.Button((expanded ? "◢ " : "▶ ") + label, GUI.skin.label))
+            if (GUILayout.Button((expanded ? "◢ " : "▶ ") + label, GUI.skin.label, GUILayout.MinWidth(200)))
                 return !expanded;
             return expanded;
         }
 
         private static int DrawFoldoutButton(string label, int expandedType, int expandValue = 0)
         {
-            if (GUILayout.Button((expandedType >= 0 ? "◢ " : "▶ ") + label, GUI.skin.label))
+            if (GUILayout.Button((expandedType >= 0 ? "◢ " : "▶ ") + label, GUI.skin.label, GUILayout.MinWidth(200)))
                 return expandedType >= 0 ? -1 : expandValue;
             return expandedType;
         }
 
         private static void DrawFoldoutItemButton(string label, ref int state, int itemIndex)
         {
-            if (GUILayout.Button((state == itemIndex ? "◢ " : "▶ ") + label, GUI.skin.label))
+            if (GUILayout.Button((state == itemIndex ? "◢ " : "▶ ") + label, GUI.skin.label, GUILayout.MinWidth(200)))
                 state = state == itemIndex ? -1 : itemIndex;
         }
 

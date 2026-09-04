@@ -134,6 +134,8 @@ namespace JipperKeyViewer.KeyViewer.Util
             ["tab_colors"] = "Colors",
 
             ["fm_open_editor"] = "Open FreeMake Editor",
+            ["fm_stat_follow_global"] = "↺ Follow global",
+            ["fm_stat_following_global"] = "Following the global Display-tab setting.",
             ["fm_preset_new_profile"] = "Save as new profile",
             ["fm_group_show"] = "Show",
             ["fm_group_select"] = "Select",
@@ -339,6 +341,8 @@ namespace JipperKeyViewer.KeyViewer.Util
             ["tab_colors"] = "颜色",
 
             ["fm_open_editor"] = "打开 FreeMake 编辑器",
+            ["fm_stat_follow_global"] = "↺ 跟随全局",
+            ["fm_stat_following_global"] = "当前跟随显示页的全局设置。",
             ["fm_preset_new_profile"] = "保存为新配置",
             ["fm_group_show"] = "显示",
             ["fm_group_select"] = "选中",
@@ -542,6 +546,8 @@ namespace JipperKeyViewer.KeyViewer.Util
             ["tab_rain"] = "빗줄",
             ["tab_keys"] = "키",
             ["tab_colors"] = "색상",
+            ["fm_stat_follow_global"] = "↺ 전역 따르기",
+            ["fm_stat_following_global"] = "현재 표시 탭의 전역 설정을 따릅니다.",
 
             ["fm_open_editor"] = "FreeMake 편집기 열기",
             ["fm_preset_new_profile"] = "새 프로필로 저장",

@@ -1393,11 +1393,23 @@ namespace JipperKeyViewer.KeyViewer
             if (GUILayout.Button(I18n.Tr("fm_group_add"), GUILayout.Width(140f)))
             {
                 PushEditorHistory();
+                // Id stays monotonic (uniqueness); the NAME reuses the smallest free number —
+                // it used to follow the Id counter, so names climbed to "组 18" forever even
+                // after deleting old groups. / Id 保持单调（保唯一性）；名称复用最小空闲编号
+                // ——此前跟随 Id 计数器，删掉旧组后编号仍一路涨到"组 18"。
                 int n = Settings.Data.LayerGroupNextId++;
-                groups.Add(new FmLayerGroup { Id = "g" + n, Name = I18n.Tr("fm_group") + " " + n, Visible = true });
+                string name = I18n.Tr("fm_group") + " " + (groups.Count + 1);
+                while (groups.Exists(g => g != null && g.Name == name))
+                {
+                    int sep = name.LastIndexOf(' ');
+                    if (sep < 0) break;
+                    if (!int.TryParse(name.Substring(sep + 1), out int num)) break;
+                    name = name.Substring(0, sep + 1) + (num + 1);
+                }
+                groups.Add(new FmLayerGroup { Id = "g" + n, Name = name, Visible = true });
                 SaveSettingsFromGui();
-            }
         }
+            }
 
         private void PushEditorHistorySnapshot(string snapshot)
         {

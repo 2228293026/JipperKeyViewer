@@ -49,7 +49,7 @@ namespace JipperKeyViewer.KeyViewer
         /// <summary>Rain column width (key width; 50 when redirected to a front column) / 雨滴列宽（按键宽度；重指向前列时为 50）</summary>
         public float rainWidth = 50f;
         /// <summary>Backing node when this key belongs to a Custom layout / 自定义布局时对应的节点</summary>
-        public KvNode CustomNode;
+        public FmNode CustomNode;
         /// <summary>Parsed KeyBind of CustomNode, cached with the raw string it was parsed from / CustomNode 绑定键的解析缓存（附解析时的原始字符串）</summary>
         public KeyCode CustomKeyCode;
         public string CustomKeyBindCached;

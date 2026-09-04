@@ -234,7 +234,7 @@ namespace JipperKeyViewer.KeyViewer
             Settings.Data.TotalCount = 0;
             for (int i = 0; i < Settings.Data.Count.Length; i++)
                 Settings.Data.Count[i] = 0;
-            foreach (KvNode node in Settings.Data.CustomNodes)
+            foreach (FmNode node in Settings.Data.CustomNodes)
                 if (node != null) node.Count = 0;
             ClearKpsTimers();
             if (Keys != null)

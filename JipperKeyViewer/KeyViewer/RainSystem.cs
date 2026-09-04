@@ -506,7 +506,7 @@ namespace JipperKeyViewer.KeyViewer
             // 节点颜色为空时保留排颜色。普通雨与鬼雨各有独立的覆盖组（鬼雨排仍是鬼雨的回退）。
             if (key.CustomNode != null)
             {
-                KvNode cn = key.CustomNode;
+                FmNode cn = key.CustomNode;
                 if (!isGhost)
                 {
                     if (cn.UseCustomRainShadow)
@@ -574,7 +574,7 @@ namespace JipperKeyViewer.KeyViewer
             // top of the shared ones. / 独立参数的鬼雨：自有的形状/偏移覆盖，叠加在共享覆盖之上。
             if (isGhost && key.CustomNode != null && key.CustomNode.UseCustomGhostRainParams)
             {
-                KvNode g = key.CustomNode;
+                FmNode g = key.CustomNode;
                 if (g.GhostRainWidth > 0f) rawRain.NodeWidth = g.GhostRainWidth;
                 if (g.GhostRainHeight > 0f) rawRain.NodeHeight = g.GhostRainHeight;
                 if (g.GhostRainSpeed > 0f) rawRain.NodeSpeed = g.GhostRainSpeed;

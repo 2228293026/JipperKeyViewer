@@ -3,13 +3,13 @@
 // carrying a binding (key nodes, KPS/Total panels, AND image nodes with a KeyBind) gets a
 // runtime Key slot and participates in input / counting / rain; image nodes without a binding
 // are pure decoration. Per-node state (count / colors / bindings / rain row) lives ON the
-// KvNode, so list reordering from deletes can never scramble counts or colors across nodes.
+// FmNode, so list reordering from deletes can never scramble counts or colors across nodes.
 // Rain: each node maps onto one of the three global parameter rows (speed / height / width /
 // start-Y / shadow / outline) via RainRow, so every existing rain slider applies to custom
 // nodes; the rain column anchors to the node's own rect.
 // 以 ProfileData.CustomNodes 构建覆盖层而非固定 LayoutDesc。所有携带绑定的节点（按键、
 // KPS/Total 面板、以及带 KeyBind 的图片节点）都获得运行时 Key 槽位并参与输入/计数/雨滴；
-// 未绑定按键的图片节点为纯装饰。节点状态（计数/配色/绑定/雨滴排）内聚在 KvNode 上，删除
+// 未绑定按键的图片节点为纯装饰。节点状态（计数/配色/绑定/雨滴排）内聚在 FmNode 上，删除
 // 导致的列表序号位移绝不会让计数或配色串位。雨滴：每个节点经 RainRow 映射到全局三排参数
 //（速度/高度/宽度/起始Y/阴影/描边），全部现有雨滴滑块对自定义节点生效；雨滴列锚定在节点
 // 自身矩形上。
@@ -39,7 +39,7 @@ namespace JipperKeyViewer.KeyViewer
             for (int i = counterBounces.Count - 1; i >= 0; i--)
             {
                 Key key = counterBounces[i];
-                KvNode node = key != null ? key.CustomNode : null;
+                FmNode node = key != null ? key.CustomNode : null;
                 if (key == null || node == null)
                 {
                     if (i < counterBounces.Count) counterBounces.RemoveAt(i);
@@ -104,14 +104,14 @@ namespace JipperKeyViewer.KeyViewer
 
         /// <summary>Whether a node takes a runtime Key slot: everything except an unbound image. /
         /// 节点是否占用运行时 Key 槽位：除未绑定按键的图片节点外全部占用。</summary>
-        private static bool CustomNodeHasKey(KvNode node)
+        private static bool CustomNodeHasKey(FmNode node)
         {
             return node != null && (node.NodeType != 3 || !string.IsNullOrWhiteSpace(node.KeyBind));
         }
 
         /// <summary>Rain row (0/1/2) → the RawRain color byte (0 = row 1, 1 = row 2, 3 = row 3). /
         /// 雨滴排（0/1/2）→ RawRain 颜色字节（0=第1排，1=第2排，3=第3排）。</summary>
-        private static byte CustomRainRowByte(KvNode node)
+        private static byte CustomRainRowByte(FmNode node)
         {
             int row = Mathf.Clamp(node.RainRow, 0, 2);
             return row == 0 ? (byte)0 : row == 2 ? (byte)3 : (byte)1;
@@ -122,14 +122,14 @@ namespace JipperKeyViewer.KeyViewer
         /// 强制上限与合理边界。</summary>
         private static void EnsureCustomNodes()
         {
-            List<KvNode> nodes = Settings.Data.CustomNodes;
+            List<FmNode> nodes = Settings.Data.CustomNodes;
             if (nodes == null)
             {
-                Settings.Data.CustomNodes = nodes = new List<KvNode>();
+                Settings.Data.CustomNodes = nodes = new List<FmNode>();
             }
             for (int i = nodes.Count - 1; i >= 0; i--)
             {
-                KvNode node = nodes[i];
+                FmNode node = nodes[i];
                 if (node == null)
                 {
                     nodes.RemoveAt(i);
@@ -180,7 +180,7 @@ namespace JipperKeyViewer.KeyViewer
             int keyLike = 0, images = 0, kps = 0, total = 0;
             for (int i = nodes.Count - 1; i >= 0; i--)
             {
-                KvNode node = nodes[i];
+                FmNode node = nodes[i];
                 switch (node.NodeType)
                 {
                     case 1:
@@ -200,11 +200,11 @@ namespace JipperKeyViewer.KeyViewer
             }
             // Layer groups: drop null/degenerate entries and ungroup dangling references. /
             // 图层组：剔除空/退化条目，悬空引用取消分组。
-            List<KvLayerGroup> groups = Settings.Data.LayerGroups;
-            if (groups == null) Settings.Data.LayerGroups = groups = new List<KvLayerGroup>();
+            List<FmLayerGroup> groups = Settings.Data.LayerGroups;
+            if (groups == null) Settings.Data.LayerGroups = groups = new List<FmLayerGroup>();
             for (int i = groups.Count - 1; i >= 0; i--)
                 if (groups[i] == null || string.IsNullOrEmpty(groups[i].Id)) groups.RemoveAt(i);
-            foreach (KvNode node in nodes)
+            foreach (FmNode node in nodes)
                 if (!string.IsNullOrEmpty(node.GroupId) && !groups.Exists(g => g.Id == node.GroupId))
                     node.GroupId = "";
         }
@@ -212,31 +212,31 @@ namespace JipperKeyViewer.KeyViewer
         private static int CustomKeyNodeCount()
         {
             int count = 0;
-            foreach (KvNode node in Settings.Data.CustomNodes)
+            foreach (FmNode node in Settings.Data.CustomNodes)
                 if (CustomNodeHasKey(node) && CustomNodeVisible(node)) count++;
             return Math.Min(count, CustomKeyNodeCap);
         }
 
         /// <summary>Runtime center Y of a node: stored top-left origin converted to the overlay's
         /// bottom-left pivot. / 节点运行时中心 Y：存储的左上原点换算为覆盖层左下轴心。</summary>
-        private static float CustomNodeCenterY(KvNode node)
+        private static float CustomNodeCenterY(FmNode node)
         {
             return 1080f - node.Y - node.Height * 0.5f;
         }
 
         private void InitializeCustomLayout()
         {
-            List<KvNode> nodes = Settings.Data.CustomNodes;
+            List<FmNode> nodes = Settings.Data.CustomNodes;
             // Slot nodes in Depth order so the merged mesh draws lowest Depth first. /
             // 按 Depth 排序分配槽位，使合并 mesh 从低 Depth 先画。
-            List<KvNode> slotNodes = nodes
+            List<FmNode> slotNodes = nodes
                 .Where(CustomNodeVisible)
                 .Where(CustomNodeHasKey)
                 .OrderBy(n => n.Depth)
                 .Take(CustomKeyNodeCap)
                 .ToList();
             int slot = 0;
-            foreach (KvNode node in slotNodes)
+            foreach (FmNode node in slotNodes)
             {
                 Keys[slot] = CreateCustomKey(node, slot);
                 slot++;
@@ -246,12 +246,12 @@ namespace JipperKeyViewer.KeyViewer
             Kps = slotNodes.FirstOrDefault(n => n.NodeType == 1)?.RuntimeKey;
             Total = slotNodes.FirstOrDefault(n => n.NodeType == 2)?.RuntimeKey;
             // Unbound image nodes are pure decoration. / 未绑定按键的图片节点为纯装饰。
-            foreach (KvNode node in nodes)
+            foreach (FmNode node in nodes)
                 if (node != null && node.NodeType == 3 && !CustomNodeHasKey(node) && CustomNodeVisible(node))
                     CreateCustomImageObject(node);
         }
 
-        private Key CreateCustomKey(KvNode node, int slot)
+        private Key CreateCustomKey(FmNode node, int slot)
         {
             float cy = CustomNodeCenterY(node);
             bool isStat = node.NodeType == 1 || node.NodeType == 2;
@@ -320,7 +320,7 @@ namespace JipperKeyViewer.KeyViewer
         /// hide-main-count), and hiding the label centers the count. / HideLabel/HideCount
         /// 切换后重排标签/计数文本：隐藏计数后标签居中占满整框（与固定布局的隐藏主键计数
         /// 同款观感），隐藏文字后计数居中。</summary>
-        private static void LayoutCustomTexts(Key key, KvNode node)
+        private static void LayoutCustomTexts(Key key, FmNode node)
         {
             if (key.text == null) return;
             bool hideLabel = node.HideLabel;
@@ -348,7 +348,7 @@ namespace JipperKeyViewer.KeyViewer
         /// <summary>Create the RawImage for an image node. With a Key it becomes the key's
         /// visual (textures swap on press); without one it is pure decoration. / 为图片节点创建
         /// RawImage。携带按键时它就是按键的视觉本体（按压时切换贴图）；否则为纯装饰。</summary>
-        private void CreateCustomImageObject(KvNode node, Key key = null)
+        private void CreateCustomImageObject(FmNode node, Key key = null)
         {
             GameObject go = new GameObject("CustomImage_" + node.Id);
             RectTransform rt = go.AddComponent<RectTransform>();
@@ -411,16 +411,16 @@ namespace JipperKeyViewer.KeyViewer
 
         /// <summary>Runtime visibility of a node: the Hidden flag AND its layer group's toggle. /
         /// 节点运行时可见性：Hidden 标志与其图层组开关的组合。</summary>
-        private static bool CustomNodeVisible(KvNode node)
+        private static bool CustomNodeVisible(FmNode node)
         {
             if (node.Hidden) return false;
             if (string.IsNullOrEmpty(node.GroupId)) return true;
-            foreach (KvLayerGroup group in Settings.Data.LayerGroups)
+            foreach (FmLayerGroup group in Settings.Data.LayerGroups)
                 if (group != null && group.Id == node.GroupId) return group.Visible;
             return true;
         }
 
-        private void ApplyCustomKeyColors(Key key, KvNode node, bool pressed)
+        private void ApplyCustomKeyColors(Key key, FmNode node, bool pressed)
         {
             ProfileData d = Settings.Data;
             // Image keys draw no box — only their texts follow the press colors. /
@@ -448,7 +448,7 @@ namespace JipperKeyViewer.KeyViewer
         /// override fields. / KPS/Total 面板跟随专属 Kps*/Total* 颜色，
         /// 节点配色覆盖（UseCustomColor）优先——所有节点类型共用同一组覆盖字段。
         /// KPS/Total 专属色没有按压变体，节点覆盖色有。</summary>
-        private void ApplyCustomSpecialColors(Key key, KvNode node, bool pressed)
+        private void ApplyCustomSpecialColors(Key key, FmNode node, bool pressed)
         {
             bool isKps = node.NodeType == 1;
             Color bg, bgP, ol, olP;
@@ -481,12 +481,12 @@ namespace JipperKeyViewer.KeyViewer
             if (key.value != null) key.value.color = key.text.color;
         }
 
-        private void UpdateCustomKeyText(Key key, KvNode node)
+        private void UpdateCustomKeyText(Key key, FmNode node)
         {
             UpdateCustomKeyText(key, node, false);
         }
 
-        private void UpdateCustomKeyText(Key key, KvNode node, bool pressed)
+        private void UpdateCustomKeyText(Key key, FmNode node, bool pressed)
         {
             string label = pressed && !string.IsNullOrEmpty(node.PressedText) ? node.PressedText
                 : !string.IsNullOrEmpty(node.CustomText)
@@ -497,7 +497,7 @@ namespace JipperKeyViewer.KeyViewer
                 key.value.text = FormatCount(node.Count);
         }
 
-        internal static KeyCode CustomNodeKeyCode(KvNode node)
+        internal static KeyCode CustomNodeKeyCode(FmNode node)
         {
             if (string.IsNullOrWhiteSpace(node.KeyBind)) return KeyCode.None;
             return Enum.TryParse(node.KeyBind, true, out KeyCode parsed) ? parsed : KeyCode.None;
@@ -513,7 +513,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 Key key = Keys[i];
                 if (key == null || key.CustomNode == null) continue;
-                KvNode node = key.CustomNode;
+                FmNode node = key.CustomNode;
 
                 if (node.NodeType == 0 || node.NodeType == 3)
                 {
@@ -590,7 +590,7 @@ namespace JipperKeyViewer.KeyViewer
             if (rainEnabled) rainSystem.UpdateEffects(Keys);
         }
 
-        private void ApplyCustomKeyEdge(Key key, KvNode node, bool down, long timeMs, ProfileData d)
+        private void ApplyCustomKeyEdge(Key key, FmNode node, bool down, long timeMs, ProfileData d)
         {
             key.isPressed = down;
             // Press scale — the same animation the fixed layouts run from ProcessKeyGroup; the
@@ -663,7 +663,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 Key key = Keys[i];
                 if (key == null || key.CustomNode == null) continue;
-                KvNode node = key.CustomNode;
+                FmNode node = key.CustomNode;
                 if (node.NodeType == 0 || node.NodeType == 3) ApplyCustomKeyColors(key, node, key.isPressed);
                 else ApplyCustomSpecialColors(key, node, key.isPressed);
             }
@@ -675,7 +675,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 Key key = Keys[i];
                 if (key == null || key.CustomNode == null || key.value == null) continue;
-                KvNode node = key.CustomNode;
+                FmNode node = key.CustomNode;
                 if (node.NodeType == 0 || node.NodeType == 3)
                 {
                     if (node.PerKeyKps)

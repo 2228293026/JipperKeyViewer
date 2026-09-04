@@ -272,43 +272,43 @@ namespace JipperKeyViewer.KeyViewer
         // JsonUtility 会丢弃类数组/类列表——转义字符串载体只是权宜）。代码侧 API 是
         // CustomNodes/LayerGroups 列表属性；序列化 ProfileData 前调用 SyncListsToArrays()，
         // 填充后调用 SyncArraysFromLists()。
-        [JsonProperty("CustomNodes")] public KvNode[] CustomNodesData = new KvNode[0];
-        [JsonProperty("LayerGroups")] public KvLayerGroup[] LayerGroupsData = new KvLayerGroup[0];
+        [JsonProperty("CustomNodes")] public FmNode[] CustomNodesData = new FmNode[0];
+        [JsonProperty("LayerGroups")] public FmLayerGroup[] LayerGroupsData = new FmLayerGroup[0];
         public int CustomNodeNextId = 1;
         public int LayerGroupNextId = 1;
 
-        [System.NonSerialized] private List<KvNode> _customNodes;
-        [System.NonSerialized] private List<KvLayerGroup> _layerGroups;
+        [System.NonSerialized] private List<FmNode> _customNodes;
+        [System.NonSerialized] private List<FmLayerGroup> _layerGroups;
 
         /// <summary>Typed node list (built from the persisted array on first access). /
         /// 类型化节点列表（首次访问时从持久化数组构建）。</summary>
-        [JsonIgnore] public List<KvNode> CustomNodes
+        [JsonIgnore] public List<FmNode> CustomNodes
         {
             get
             {
                 if (_customNodes == null)
-                    _customNodes = new List<KvNode>(CustomNodesData ?? new KvNode[0]);
+                    _customNodes = new List<FmNode>(CustomNodesData ?? new FmNode[0]);
                 return _customNodes;
             }
             set
             {
-                _customNodes = value ?? new List<KvNode>();
+                _customNodes = value ?? new List<FmNode>();
                 CustomNodesData = _customNodes.ToArray();
             }
         }
 
         /// <summary>Typed layer-group list / 类型化图层组列表。</summary>
-        [JsonIgnore] public List<KvLayerGroup> LayerGroups
+        [JsonIgnore] public List<FmLayerGroup> LayerGroups
         {
             get
             {
                 if (_layerGroups == null)
-                    _layerGroups = new List<KvLayerGroup>(LayerGroupsData ?? new KvLayerGroup[0]);
+                    _layerGroups = new List<FmLayerGroup>(LayerGroupsData ?? new FmLayerGroup[0]);
                 return _layerGroups;
             }
             set
             {
-                _layerGroups = value ?? new List<KvLayerGroup>();
+                _layerGroups = value ?? new List<FmLayerGroup>();
                 LayerGroupsData = _layerGroups.ToArray();
             }
         }
@@ -318,8 +318,8 @@ namespace JipperKeyViewer.KeyViewer
         /// 必须调用。</summary>
         public void SyncListsToArrays()
         {
-            CustomNodesData = (CustomNodes ?? new List<KvNode>()).ToArray();
-            LayerGroupsData = (LayerGroups ?? new List<KvLayerGroup>()).ToArray();
+            CustomNodesData = (CustomNodes ?? new List<FmNode>()).ToArray();
+            LayerGroupsData = (LayerGroups ?? new List<FmLayerGroup>()).ToArray();
         }
 
         /// <summary>Rebuild the working lists from the persisted array fields (after load). /
@@ -327,8 +327,8 @@ namespace JipperKeyViewer.KeyViewer
         public void SyncArraysFromLists()
         {
             ImportLegacyCarriers();
-            _customNodes = new List<KvNode>(CustomNodesData ?? new KvNode[0]);
-            _layerGroups = new List<KvLayerGroup>(LayerGroupsData ?? new KvLayerGroup[0]);
+            _customNodes = new List<FmNode>(CustomNodesData ?? new FmNode[0]);
+            _layerGroups = new List<FmLayerGroup>(LayerGroupsData ?? new FmLayerGroup[0]);
         }
 
         // Interim-build string carriers (that build persisted the lists as escaped JSON strings
@@ -351,8 +351,8 @@ namespace JipperKeyViewer.KeyViewer
             {
                 try
                 {
-                    CustomNodesData = JsonConvert.DeserializeObject<List<KvNode>>(
-                        LegacyCustomNodesJson, ProfileSerializer)?.ToArray() ?? new KvNode[0];
+                    CustomNodesData = JsonConvert.DeserializeObject<List<FmNode>>(
+                        LegacyCustomNodesJson, ProfileSerializer)?.ToArray() ?? new FmNode[0];
                 }
                 catch (Exception e)
                 {
@@ -364,8 +364,8 @@ namespace JipperKeyViewer.KeyViewer
             {
                 try
                 {
-                    LayerGroupsData = JsonConvert.DeserializeObject<List<KvLayerGroup>>(
-                        LegacyLayerGroupsJson, ProfileSerializer)?.ToArray() ?? new KvLayerGroup[0];
+                    LayerGroupsData = JsonConvert.DeserializeObject<List<FmLayerGroup>>(
+                        LegacyLayerGroupsJson, ProfileSerializer)?.ToArray() ?? new FmLayerGroup[0];
                 }
                 catch (Exception e)
                 {
@@ -590,7 +590,7 @@ namespace JipperKeyViewer.KeyViewer
     /// </summary>
     [System.Serializable]
     [JsonObject(MemberSerialization.Fields)]
-    public class KvNode
+    public class FmNode
     {
         public int NodeType;
         public int Id;
@@ -729,14 +729,14 @@ namespace JipperKeyViewer.KeyViewer
         /// （绝不序列化——JsonUtility 会把 UnityEngine.Object 引用写成实例 ID）。</summary>
         [System.NonSerialized] internal Key RuntimeKey;
 
-        public KvNode() { }
+        public FmNode() { }
 
-        /// <summary>Deep copy via a JSON round-trip (KvNode contains only primitives, strings
-        /// and float arrays — no Unity computed-property traps). / 经 JSON 往返的深拷贝（KvNode
+        /// <summary>Deep copy via a JSON round-trip (FmNode contains only primitives, strings
+        /// and float arrays — no Unity computed-property traps). / 经 JSON 往返的深拷贝（FmNode
         /// 仅含基础类型/字符串/浮点数组，无 Unity 计算属性陷阱）。</summary>
-        public KvNode Clone()
+        public FmNode Clone()
         {
-            return JsonConvert.DeserializeObject<KvNode>(JsonConvert.SerializeObject(this));
+            return JsonConvert.DeserializeObject<FmNode>(JsonConvert.SerializeObject(this));
         }
     }
 
@@ -744,7 +744,7 @@ namespace JipperKeyViewer.KeyViewer
     /// 自定义节点的命名可见性分组（命名可见性分组）。</summary>
     [System.Serializable]
     [JsonObject(MemberSerialization.Fields)]
-    public class KvLayerGroup
+    public class FmLayerGroup
     {
         public string Id = "";
         public string Name = "";

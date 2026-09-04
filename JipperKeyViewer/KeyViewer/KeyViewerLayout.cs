@@ -370,7 +370,7 @@ namespace JipperKeyViewer.KeyViewer
         /// hideLabel (value-only) only pairs with slim=false, mirroring the fixed designs.
         /// / 面板按键的生效文本模式：FreeMake 节点开启覆盖时用节点值，否则跟随全局开关
         /// （固定布局传入空节点）。hideLabel（仅数值）与非 slim 配对，与固定设计一致。</summary>
-        private void StatTextMode(KvNode node, out bool slim, out bool centered, out bool stacked, out bool hideLabel)
+        private void StatTextMode(FmNode node, out bool slim, out bool centered, out bool stacked, out bool hideLabel)
         {
             if (node != null && (node.NodeType == 1 || node.NodeType == 2) && node.UseCustomStatLayout)
             {

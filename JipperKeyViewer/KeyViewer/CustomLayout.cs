@@ -140,10 +140,13 @@ namespace JipperKeyViewer.KeyViewer
                 // Hand-edited profiles may carry an unknown node type — treat as a key node. /
                 // 手改配置可能带未知节点类型——按按键节点处理。
                 if (node.NodeType is not (0 or 1 or 2 or 3)) node.NodeType = 0;
-                node.X = Mathf.Clamp(node.X, -8000f, 8000f);
-                node.Y = Mathf.Clamp(node.Y, -8000f, 8000f);
-                node.Width = Mathf.Clamp(node.Width, 10f, 2000f);
-                node.Height = Mathf.Clamp(node.Height, 10f, 2000f);
+                // Mathf.Clamp passes NaN through (both comparisons are false) — sanitize first or
+                // a hand-edited NaN reaches the geometry. / Mathf.Clamp 对 NaN 原样穿透（两个
+                // 比较都为假）——先净化，否则手改的 NaN 会进入几何渲染。
+                node.X = float.IsNaN(node.X) || float.IsInfinity(node.X) ? 0f : Mathf.Clamp(node.X, -8000f, 8000f);
+                node.Y = float.IsNaN(node.Y) || float.IsInfinity(node.Y) ? 0f : Mathf.Clamp(node.Y, -8000f, 8000f);
+                node.Width = float.IsNaN(node.Width) || float.IsInfinity(node.Width) ? 60f : Mathf.Clamp(node.Width, 10f, 2000f);
+                node.Height = float.IsNaN(node.Height) || float.IsInfinity(node.Height) ? 60f : Mathf.Clamp(node.Height, 10f, 2000f);
                 node.Opacity = float.IsNaN(node.Opacity) ? 1f : Mathf.Clamp01(node.Opacity);
                 node.RainRow = Mathf.Clamp(node.RainRow, 0, 2);
                 node.FontSize = float.IsNaN(node.FontSize) || node.FontSize < 0f ? 0f : Mathf.Min(node.FontSize, 72f);

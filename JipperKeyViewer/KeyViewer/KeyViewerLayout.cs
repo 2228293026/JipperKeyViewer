@@ -762,7 +762,11 @@ namespace JipperKeyViewer.KeyViewer
                 if (size > 8 && row == 1)
                     x += (8 - (size - 8)) * 17;
                 int y = baseY - row * 34;
-                Keys[i] = CreateKey(i, x, y, 30, -1, true, false, 0f, true);
+                // Foot keys show their count too (the FreeMake preset foot nodes do; the
+                // hardcoded count:false here made the fixed layout inconsistent). /
+                // 脚键同样显示计数（FreeMake 预设的脚键节点有计数；此处写死 count:false
+                // 造成固定布局不一致）。
+                Keys[i] = CreateKey(i, x, y, 30, -1, true, true, 0f, true);
             }
         }
 

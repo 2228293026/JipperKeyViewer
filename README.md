@@ -16,7 +16,6 @@
 - 固定布局按键显示（8K–24K / 108 键全键盘 / 脚键 2K–16K）/ fixed layouts (8K–24K, 108-key, foot keys 2K–16K)
 - FreeMake 自定义布局编辑器（节点式、IMGUI 独立弹窗、内置预设、图层组）/ FreeMake node editor (IMGUI window, presets, layer groups)
 - 合并网格渲染的按键框与雨滴系统（对象池、热路径零 GC）/ merged-mesh rendering with pooling, zero hot-path GC
-- 离线数据层回归测试工程（72 项断言）/ offline data-layer regression suite (72 assertions)
 
 核心信息 / Key facts:
 
@@ -46,9 +45,6 @@ cd JipperKeyViewer
 # Build both mod variants / 构建两变体
 dotnet build JipperKeyViewer/JipperKeyViewer.csproj -c Release
 dotnet build JipperKeyViewer-FileBased/JipperKeyViewer-FileBased.csproj -c Release
-
-# Run the data-layer regression suite / 运行数据层回归测试（72 项断言）
-dotnet run --project Harness -c Release -- test
 ```
 
 将 `bin/Release` 产物连同 Loader 入口、`Info.json`、`assets/` 拷入游戏的 `Mods/JipperKeyViewer/`（见 §9）/ Copy outputs + loader entries + `Info.json` + `assets/` into the game's `Mods/` folder (see §9).
@@ -79,7 +75,6 @@ JipperKeyViewer/
 ├─ JipperKeyViewer-Loader.UMM/         # UMM loader entry / UMM 加载入口
 ├─ JipperKeyViewer.Loader.Melon/       # Melon loader entry / Melon 加载入口
 ├─ JipperKeyViewer-Unity/              # AssetBundle build project / 资源包构建工程
-├─ Harness/                            # Offline regression suite / 离线回归测试
 ├─ libs/                               # Reference DLLs / 引用 DLL
 └─ CHANGELOG.md / 更新日志.md
 ```
@@ -198,7 +193,6 @@ flowchart LR
 | `KeyViewerSettings.cs` | 数据模型 + 序列化 / data model + serialization | FmNode 79 字段 / fields |
 | `RainSystem.cs` | 雨滴池/模拟/参数覆盖 / rain pool, sim, overrides | — |
 | `EditorHistory.cs` | 撤销栈 / undo stack | ~100 行 / lines |
-| `Harness/` | 回归测试 / regression suite | 72 断言 / assertions |
 
 ## 8. FreeMake 编辑器速览 / FreeMake Editor Quick Reference
 
@@ -242,7 +236,6 @@ Mods/JipperKeyViewer-FileBased/
 ## 10. 发布清单 / Release Checklist
 
 - [ ] 两变体 `dotnet build -c Release` 0 警告 0 错误 / both variants build clean
-- [ ] `Harness test` 72 断言全绿 / all 72 assertions pass
 - [ ] `AssemblyInfo` 版本号更新，CHANGELOG 中英双语补记 / version bumped, changelog updated (EN+ZH)
 - [ ] AssetBundle 变体：资源包与 `.meta` 边框同步 / bundle in sync with `.meta` borders
 - [ ] 游戏内冒烟：启动加载 → 固定布局 → 自定义布局预设/图层组/雨滴 → 保存重启回读 / in-game smoke test

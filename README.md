@@ -89,9 +89,8 @@ Images are loaded from `CustomImages/` under the mod directory (or absolute path
 
 ## Credits / 致谢
 
-The FreeMake editor's interaction design follows the editing paradigm of **DM Note** (open source, GPL-3.0, TypeScript), which the open-source editors of **CheryTools** and **Quartz** (both GPL-3.0) also implement. No code, assets, or data from those projects are included here — everything in this repository is an original Unity IMGUI/C# implementation written from behavior-level reference. Thanks to their authors for popularizing the paradigm.
-
-FreeMake 编辑器的交互设计遵循 **DM Note**（开源，GPL-3.0，TypeScript）的编辑范式；**CheryTools** 与 **Quartz**（均为 GPL-3.0）的开源编辑器亦实现同款机制。本仓库未包含上述项目的任何代码、资源或数据——全部为本仓库基于行为级参照的原创 Unity IMGUI/C# 实现。感谢它们让这套范式流行。
+- The FreeMake editor's interaction paradigm draws inspiration from DM Note's layout editor and similar community editors. Everything here is an original implementation.
+- FreeMake 编辑器的交互范式参考了 DM Note 的布局编辑器及社区同类编辑器，本仓库为原创实现。
 
 ## Installation / 安装
 

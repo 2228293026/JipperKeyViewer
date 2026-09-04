@@ -133,6 +133,7 @@ namespace JipperKeyViewer.KeyViewer
             ["tab_colors"] = "Colors",
 
             ["fm_open_editor"] = "Open FreeMake Editor",
+            ["fm_preset_new_profile"] = "Save as new profile",
             ["fm_group_show"] = "Show",
             ["fm_group_select"] = "Select",
             ["fm_groups_hint"] = "Select nodes on the canvas, then click Assign(n) on a group; Show toggles the whole group.",
@@ -337,6 +338,7 @@ namespace JipperKeyViewer.KeyViewer
             ["tab_colors"] = "颜色",
 
             ["fm_open_editor"] = "打开 FreeMake 编辑器",
+            ["fm_preset_new_profile"] = "保存为新配置",
             ["fm_group_show"] = "显示",
             ["fm_group_select"] = "选中",
             ["fm_groups_hint"] = "先在画布选中节点，再点目标组的「指派(n)」入组；「显示」整组显隐。",
@@ -541,6 +543,7 @@ namespace JipperKeyViewer.KeyViewer
             ["tab_colors"] = "색상",
 
             ["fm_open_editor"] = "FreeMake 편집기 열기",
+            ["fm_preset_new_profile"] = "새 프로필로 저장",
             ["fm_group_show"] = "표시",
             ["fm_group_select"] = "선택",
             ["fm_groups_hint"] = "캔버스에서 노드를 선택한 뒤 그룹의 '지정(n)'을 누릅니다; '표시'는 그룹 전체 표시/숨김입니다.",

@@ -188,33 +188,51 @@ namespace JipperKeyViewer.KeyViewer
                 SaveSettings();
             }
             GUILayout.EndHorizontal();
-            // Preset strip: one click applies a built-in layout as editable nodes. /
-            // 预设条：一键把内置布局生成为可编辑节点。
+            // Preset strip: one click applies a built-in layout as editable nodes. The toggle
+            // picks the target — a NEW profile (default, non-destructive) or the CURRENT
+            // canvas (undoable replace). / 预设条：一键把内置布局生成为可编辑节点。开关选择
+            // 目标——新建配置（默认，非破坏）或当前配置画布（可撤销的替换）。
             if (fmPresetStripOpen)
             {
+                GUILayout.BeginHorizontal();
+                fmPresetNewProfile = GUILayout.Toggle(fmPresetNewProfile, I18n.Tr("fm_preset_new_profile"), GUILayout.Width(120f));
                 string[] names = new string[KeyLayoutNames.Length - 1]; // skip only Custom / 仅跳过「自定义」
                 Array.Copy(KeyLayoutNames, names, names.Length);
-                int picked = GUILayout.SelectionGrid(-1, names, names.Length, GUILayout.Height(22f));
+                int picked = GUILayout.SelectionGrid(-1, names, names.Length, GUILayout.MinHeight(22f));
+                GUILayout.EndHorizontal();
                 if (picked >= 0)
                 {
                     fmPresetStripOpen = false;
-                    EditorApplyPreset(picked);
+                    EditorApplyPreset(picked, fmPresetNewProfile);
                 }
             }
         }
 
         private bool fmPresetStripOpen;
+        private bool fmPresetNewProfile = true;
 
-        /// <summary>Apply a built-in layout preset NON-DESTRUCTIVELY: the preset lands in a NEW
-        /// profile (global settings cloned from the current one, nodes replaced by the preset) and
-        /// the editor switches to it — the current layout is untouched. / 非破坏性地应用内置布局
-        /// 预设：预设落进一个新建的 Profile（全局设置克隆自当前配置，节点替换为预设）并切换
-        /// 过去——当前布局原封不动。</summary>
-        private void EditorApplyPreset(int styleIndex)
+        /// <summary>Apply a built-in layout preset. `newProfile` (default) lands it in a NEW
+        /// profile cloned from the current one — the current layout untouched; otherwise it
+        /// REPLACES the current canvas in place (undoable, one Ctrl+Z). /
+        /// 应用内置布局预设。`newProfile`（默认）落进克隆自当前配置的新建 Profile——当前布局
+        /// 原封不动；否则就地替换当前画布（可撤销，一步 Ctrl+Z 找回）。</summary>
+        private void EditorApplyPreset(int styleIndex, bool newProfile = true)
         {
             if (styleIndex < 0 || styleIndex >= 8) return; // 0-7 = 12K/16K/20K/10K/8K/14K/24K/108K
             KeyviewerStyle style = (KeyviewerStyle)styleIndex;
             List<KvNode> nodes = BuildPresetNodes(style, out int nextId);
+            if (!newProfile)
+            {
+                // In-place replace: push undo FIRST — one Ctrl+Z restores the previous canvas. /
+                // 就地替换：先入撤销栈——一步 Ctrl+Z 恢复原画布。
+                PushEditorHistory();
+                Settings.Data.CustomNodeNextId = nextId;
+                Settings.Data.CustomNodes = nodes;
+                EnsureCustomNodes();
+                editorSelection.Clear();
+                EditorMutated();
+                return;
+            }
             // Flush the CURRENT layout to its file before switching. / 切换前先把当前布局落盘。
             SaveCurrentProfile();
             // Free profile name: "16K-预设", "16K-预设 2", ... / 空闲配置名。

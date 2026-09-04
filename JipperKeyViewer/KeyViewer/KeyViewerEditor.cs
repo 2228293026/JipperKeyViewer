@@ -1250,7 +1250,10 @@ namespace JipperKeyViewer.KeyViewer
 
         private void DrawEditorGroupManager()
         {
-            fmGroupsExpanded = GUILayout.Toggle(fmGroupsExpanded, I18n.Tr("fm_groups"), GUILayout.Height(20f));
+            // Button-style foldout (◢/▶) matching the settings window — a checkbox-looking
+            // toggle here read as an "enable groups" switch. / 与设置窗一致的按钮式折叠
+            // （◢/▶）——此前复选框样式看起来像"启用图层组"的功能开关。
+            fmGroupsExpanded = DrawFoldoutButton(I18n.Tr("fm_groups"), fmGroupsExpanded);
             if (!fmGroupsExpanded) return;
             GUILayout.Label("<i>" + I18n.Tr("fm_groups_hint") + "</i>");
             List<KvLayerGroup> groups = Settings.Data.LayerGroups;

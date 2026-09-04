@@ -258,8 +258,8 @@ Mods/JipperKeyViewer-FileBased/
 
 ## 12. 致谢 / Credits
 
-- The FreeMake editor's interaction paradigm draws inspiration from DM Note's layout editor and similar community editors. Everything here is an original implementation.
-- FreeMake 编辑器的交互范式参考了 DM Note 的布局编辑器及社区同类编辑器，本仓库为原创实现。
+- The FreeMake editor is an original interaction design.
+- FreeMake 编辑器为原创交互设计。
 
 ## 13. 许可证 / License
 

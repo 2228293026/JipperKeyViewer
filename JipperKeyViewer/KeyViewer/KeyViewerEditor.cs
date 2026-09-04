@@ -540,12 +540,20 @@ namespace JipperKeyViewer.KeyViewer
             float offset = 20f * editorPasteSerial;
             bool hasKps = Settings.Data.CustomNodes.Any(n => n != null && n.NodeType == 1);
             bool hasTotal = Settings.Data.CustomNodes.Any(n => n != null && n.NodeType == 2);
+            // Paste honors the node caps — the data list used to grow past them and
+            // EnsureCustomNodes silently trimmed the excess on the next load. /
+            // 粘贴遵守节点上限——此前数据列表可超限，下次加载时被静默裁剪。
+            int keyRoom = CustomKeyNodeCap - CustomKeyNodeCount();
+            int imageRoom = 8 - Settings.Data.CustomNodes.Count(n => n != null && n.NodeType == 3 && string.IsNullOrWhiteSpace(n.KeyBind));
             List<KvNode> pasted = new List<KvNode>();
             foreach (KvNode template in editorClipboard)
             {
                 if (template == null) continue;
                 if (template.NodeType == 1 && hasKps) continue;
                 if (template.NodeType == 2 && hasTotal) continue;
+                bool keyLike = template.NodeType != 3 || !string.IsNullOrWhiteSpace(template.KeyBind);
+                if (keyLike && keyRoom <= 0) continue;
+                if (!keyLike && imageRoom <= 0) continue;
                 KvNode copy = template.Clone();
                 copy.Id = Settings.Data.CustomNodeNextId++;
                 copy.X += offset;
@@ -554,6 +562,8 @@ namespace JipperKeyViewer.KeyViewer
                 pasted.Add(copy);
                 if (copy.NodeType == 1) hasKps = true;
                 if (copy.NodeType == 2) hasTotal = true;
+                if (keyLike) keyRoom--;
+                else imageRoom--;
             }
             if (pasted.Count == 0) return;
             editorSelection.Clear();
@@ -2518,6 +2528,17 @@ namespace JipperKeyViewer.KeyViewer
 
         private void EditorPropertyChanged()
         {
+            // Property edits are undoable too: record the pre-change state once per change burst
+            // (the 0.4s nudge window coalesces slider drags). Without this, Ctrl+Z after a color
+            // tweak didn't revert it — it undid the last STRUCTURAL op instead, destroying
+            // unrelated work. / 属性修改同样可撤销：每个修改突发记录一次变更前状态（0.4 秒
+            // 微调窗口合并滑杆拖动）。此前改完颜色按 Ctrl+Z 不会回退——反而会误撤销上一个
+            // 结构性操作，破坏无关改动。
+            try
+            {
+                editorHistory.PushNudge(SnapshotCustomNodes(), Time.unscaledTime);
+            }
+            catch (Exception) { /* snapshot failure must not block the edit / 快照失败不阻塞编辑 */ }
             SaveSettingsFromGui();
             RequestEditorRebuild();
         }

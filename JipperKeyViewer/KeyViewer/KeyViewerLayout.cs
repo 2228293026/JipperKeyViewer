@@ -70,7 +70,7 @@ namespace JipperKeyViewer.KeyViewer
             rainSystem.AttachLayers(rainLayer, ghostRainLayer);
             // Initialize main keys based on selected layout / 根据选中的布局初始化主按键
             Keys = new Key[GetKeyCount()];
-            keyShapeLayer.Init(Keys.Length + 2); // + KPS/Total slots / 加上 KPS/Total 槽位
+            keyShapeLayer.Init(Keys.Length + CustomStatSlotCount()); // + stat panel slots (custom: one per panel / 面板槽位：自定义每面板一个)
             rainLayer.Init(Keys.Length); // per-key rain press scales / 每键雨滴按压缩放
             InitializeMainKeys(GetLayout(Settings.Data.KeyViewerStyle));
             // Initialize foot keys based on selected layout (full keyboard and the FreeMake custom
@@ -777,7 +777,7 @@ namespace JipperKeyViewer.KeyViewer
         /// <param name="slim">Use slim style (for KPS/Total display) / 使用窄样式（用于 KPS/Total 显示）</param>
         /// <param name="count">Show press count text / 显示按下计数文本</param>
         /// <param name="hideLabel">Hide label text, center value (non-slim KPS/Total only) / 隐藏标签文字，数值居中（仅非 slim 的 KPS/Total）</param>
-        private Key CreateKey(int i, float x, float y, float sizeX, int raining, bool slim = false, bool count = true, float sizeY = 0f, bool isFootKey = false, bool hideLabel = false, bool? forceCentered = null, bool? forceStacked = null)
+        private Key CreateKey(int i, float x, float y, float sizeX, int raining, bool slim = false, bool count = true, float sizeY = 0f, bool isFootKey = false, bool hideLabel = false, bool? forceCentered = null, bool? forceStacked = null, int? explicitShapeSlot = null)
         {
             // Custom nodes own their count visibility (node.HideCount) — the global hide-main-count
             // toggle is a fixed-layout control and used to strip the value texts of every custom
@@ -819,7 +819,12 @@ namespace JipperKeyViewer.KeyViewer
             key.isPressed = false;
             key.keySize = new Vector2(sizeX, h);
             // Box goes into the merged shape layer (bottom-left rect coordinates) / 按键框进合并形状层（左下角矩形坐标）
-            key.shapeSlot = KeyIndex(i);
+            // Box goes into the merged shape layer (bottom-left rect coordinates). Custom stat
+            // panels pass an EXPLICIT slot — KeyIndex(-1/-2) collapses every KPS onto one slot,
+            // which stacked multiple panels onto the last one's box. /
+            // 按键框进合并形状层（左下角矩形坐标）。自定义面板传入显式槽位——KeyIndex(-1/-2)
+            // 会把所有 KPS 压到同一个槽，多面板时全部叠到最后一个的框上。
+            key.shapeSlot = explicitShapeSlot ?? KeyIndex(i);
             if (keyShapeLayer != null && key.shapeSlot >= 0)
             {
                 keyShapeLayer.SetRect(key.shapeSlot, x, y - h * 0.5f, sizeX, h);
@@ -1555,7 +1560,7 @@ namespace JipperKeyViewer.KeyViewer
             // Array length must match the target layout (40 standard / 105 full keyboard).
             // 数组长度必须匹配目标布局（标准40/全键盘105）。
             Keys = new Key[GetKeyCount()];
-            if (keyShapeLayer != null) keyShapeLayer.Init(Keys.Length + 2); // resets slots, bumps Generation / 重置槽位并递增 Generation
+            if (keyShapeLayer != null) keyShapeLayer.Init(Keys.Length + CustomStatSlotCount()); // resets slots, bumps Generation / 重置槽位并递增 Generation
             if (rainLayer != null) rainLayer.Init(Keys.Length); // resets per-key rain press scales / 重置每键雨滴按压缩放
             Total = null;
             Kps = null;

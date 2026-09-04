@@ -28,6 +28,10 @@ namespace JipperKeyViewer.KeyViewer
     {
         /// <summary>Ghost-key press states for Custom nodes, keyed by node Id / 自定义节点鬼键按下态（按节点 Id）</summary>
         private readonly Dictionary<int, bool> customGhostStates = new Dictionary<int, bool>();
+        /// <summary>Shape-slot cursor for stat panels during a custom build — each panel gets
+        /// its OWN slot (KeyIndex(-1/-2) collapsed them all onto one). /
+        /// 自定义构建期间面板形状槽位游标——每块面板独占一槽（KeyIndex(-1/-2) 曾全部压成一槽）。</summary>
+        private int customStatSlotCursor;
         /// <summary>Keys with a live counter bounce animation / 正在进行计数器弹跳动画的按键</summary>
         private readonly List<Key> counterBounces = new List<Key>();
 
@@ -101,6 +105,19 @@ namespace JipperKeyViewer.KeyViewer
         // MaxKeySlots(40) tie couldn't hold a 108K preset. / 108 键（全键盘预设）+ KPS/Total
         // 面板 + 少量余量。此前与 MaxKeySlots(40) 绑定的上限装不下 108K 预设。
         internal static int CustomKeyNodeCap => 112;
+
+        /// <summary>Shape-layer slot budget for stat panels: custom layouts carry one slot PER
+        /// VISIBLE panel (several may exist — one per layer group); fixed layouts have exactly
+        /// the classic two. / 面板占用的形状层槽位数：自定义布局每个可见面板一槽（可存在
+        /// 多块——每个图层组各一）；固定布局恒为经典的两块。</summary>
+        private static int CustomStatSlotCount()
+        {
+            if (!IsCustomLayout) return 2;
+            int count = 0;
+            foreach (FmNode n in Settings.Data.CustomNodes)
+                if (n != null && (n.NodeType == 1 || n.NodeType == 2) && CustomNodeVisible(n)) count++;
+            return count;
+        }
 
         /// <summary>Whether a node takes a runtime Key slot: everything except an unbound image. /
         /// 节点是否占用运行时 Key 槽位：除未绑定按键的图片节点外全部占用。</summary>
@@ -261,6 +278,9 @@ namespace JipperKeyViewer.KeyViewer
         private void InitializeCustomLayout()
         {
             List<FmNode> nodes = Settings.Data.CustomNodes;
+            // Stat panels draw after the key slots, one shape slot each. /
+            // 面板排在按键槽位之后绘制，各占一个形状槽。
+            customStatSlotCursor = Keys.Length;
             // Slot nodes in Depth order so the merged mesh draws lowest Depth first. /
             // 按 Depth 排序分配槽位，使合并 mesh 从低 Depth 先画。
             List<FmNode> slotNodes = nodes
@@ -301,7 +321,7 @@ namespace JipperKeyViewer.KeyViewer
                 //（SetKpsTotalDisplay 等）。文本模式来自 StatTextMode——节点的布局覆盖
                 //（UseCustomStatLayout）或全局开关。
                 StatTextMode(node, out bool statSlim, out bool statCentered, out bool statStacked, out bool statHideLabel);
-                key = CreateKey(node.NodeType == 1 ? -1 : -2, node.X, cy, node.Width, -1, statSlim, true, node.Height, false, statHideLabel, statCentered, statStacked);
+                key = CreateKey(node.NodeType == 1 ? -1 : -2, node.X, cy, node.Width, -1, statSlim, true, node.Height, false, statHideLabel, statCentered, statStacked, customStatSlotCursor++);
             }
             else
             {

@@ -377,6 +377,17 @@ namespace JipperKeyViewer.KeyViewer
                 nextId = id;
                 return nodes;
             }
+            // Rain start offsets: reproduce the fixed layout's launch line. The fixed rows tune
+            // each row's start-Y so every row's trail head starts at the SAME height; custom
+            // nodes always launch from node-top+2, which only matches row 1 by numbers. Seed
+            // offY = rowStartY + 273 - height so preset rows 2/3 launch from the same line as
+            // the fixed layout does (front row computes to 0 with the stock -223). /
+            // 雨滴起始偏移：复刻固定布局的发射线。固定布局各排起始高度经过调校，各排雨滴头从
+            // 同一高度起跳；自定义节点恒从节点顶边+2起跳，数值上只与第 1 排吻合。按
+            // offY = 排起始Y + 273 - 节点高 播种，让预设的第 2/3 排也跳到同一条线（前排按
+            // 出厂 -223 计算恰好为 0）。
+            float RowStartY(int rainRow) => rainRow <= 0 ? Settings.Data.RainStartYRow1
+                : rainRow == 1 ? Settings.Data.RainStartYRow2 : Settings.Data.RainStartYRow3;
             // Front row: 8 keys at the fixed layout's front-Y. Counts and custom texts carry over
             // from the source profile's per-slot arrays. / 前排：固定布局前排 Y 上的 8 键。
             // 计数与自定义文本按槽位从源配置的数组继承。
@@ -387,6 +398,7 @@ namespace JipperKeyViewer.KeyViewer
                 if (i < counts.Length) n.Count = counts[i];
                 if (texts != null && i < texts.Length) n.CustomText = texts[i] ?? "";
                 n.RainEnabled = true;
+                n.RainOffsetY = RowStartY(0) + 273f - 50f;
                 nodes.Add(n);
             }
             // Back extras + KPS/Total from the same LayoutDesc the fixed layout uses. /
@@ -409,6 +421,7 @@ namespace JipperKeyViewer.KeyViewer
                         if (texts != null && e.index < texts.Length) n.CustomText = texts[e.index] ?? "";
                         n.RainEnabled = true;
                         n.RainRow = Mathf.Clamp(e.rainRow, 0, 2);
+                        n.RainOffsetY = RowStartY(n.RainRow) + 273f - 50f;
                         nodes.Add(n);
                     }
                 }

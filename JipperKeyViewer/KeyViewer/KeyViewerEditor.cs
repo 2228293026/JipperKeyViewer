@@ -468,6 +468,7 @@ namespace JipperKeyViewer.KeyViewer
                     if (footSize > 8 && row == 1) x += (8 - (footSize - 8)) * 17;
                     FmNode n = NewNode(0, x, baseY - row * 34, 30f, 30f);
                     if (footBinds[i] != KeyCode.None) n.KeyBind = footBinds[i].ToString();
+                    n.HideCount = true; // foot keys hide counts by default (fixed-layout look) / 脚键默认隐藏计数（固定布局同款）
                     int slot = FootKeyBase + i;
                     if (slot < counts.Length) n.Count = counts[slot];
                     if (footTexts != null && i < footTexts.Length) n.CustomText = footTexts[i] ?? "";

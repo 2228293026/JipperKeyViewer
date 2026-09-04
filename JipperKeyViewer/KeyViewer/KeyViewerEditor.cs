@@ -224,11 +224,21 @@ namespace JipperKeyViewer.KeyViewer
             if (!newProfile)
             {
                 // ADD into the current canvas — existing nodes stay untouched (a replace here
-                // wiped the user's layout once). Skip duplicate KPS/Total panels; shift the
-                // batch out of overlap if it lands on existing nodes. / 追加进当前画布——现有
-                // 节点原封不动（此前误做成整画布替换）。跳过重复的 KPS/Total 面板；与现有节点
-                // 重叠时整体挪到空白处。
+                // wiped the user's layout once). The batch lands in its OWN new layer group FIRST —
+                // per-group stat uniqueness then keeps the preset's KPS/Total even when other
+                // groups already carry panels. Shift out of overlap when needed. /
+                // 追加进当前画布——现有节点原封不动（此前误做成整画布替换）。批次先落入自己的
+                // 新建图层组——按组的面板唯一性因此能保住预设的 KPS/Total（即使其它组已有
+                // 面板）。与现有节点重叠时整体挪到空白处。
                 PushEditorHistory();
+                string presetGroupId = "g" + Settings.Data.LayerGroupNextId++;
+                Settings.Data.LayerGroups.Add(new FmLayerGroup
+                {
+                    Id = presetGroupId,
+                    Name = KeyLayoutNames[styleIndex] + "-" + I18n.Tr("fm_presets"),
+                    Visible = true,
+                });
+                foreach (FmNode n in nodes) n.GroupId = presetGroupId;
                 List<FmNode> currentNodes = Settings.Data.CustomNodes;
                 List<FmNode> add = nodes
                     .Where(n => !(n.NodeType == 1 && GroupHasStat(n.GroupId, 1))
@@ -279,6 +289,11 @@ namespace JipperKeyViewer.KeyViewer
                 JsonConvert.SerializeObject(Settings.Data, ProfileData.ProfileSerializer),
                 ProfileData.ProfileSerializer);
             if (pd == null) return;
+            // The preset batch lands in its own layer group here too. /
+            // 新建配置路径同样让预设批次落入自己的图层组。
+            string newGroupId = "g" + pd.LayerGroupNextId++;
+            pd.LayerGroups.Add(new FmLayerGroup { Id = newGroupId, Name = KeyLayoutNames[styleIndex] + "-" + I18n.Tr("fm_presets"), Visible = true });
+            foreach (FmNode n in nodes) n.GroupId = newGroupId;
             pd.CustomNodes = nodes;
             pd.CustomNodeNextId = nextId;
             Settings.CurrentProfile = name;

@@ -198,12 +198,12 @@ flowchart LR
 
 | 模块 / Module | 主要职责 / Responsibility | 备注 / Notes |
 |---|---|---|
-| `KeyViewerEditor.cs` | 画布手势、预设生成、属性面板、图层组管理 / canvas gestures, presets, property panel, groups | 最大单文件 / largest file |
-| `KeyViewerLayout.cs` | 覆盖层构建、108K 槽位表、CreateKey 管线 / overlay build, 108K slot table | 105 项槽位表 |
-| `CustomLayout.cs` | FreeMake 运行时全部逻辑 / full FreeMake runtime | partial |
-| `KeyViewerSettings.cs` | 数据模型 + 序列化 / data model + serialization | FmNode 79 字段 / fields |
-| `RainSystem.cs` | 雨滴池/模拟/参数覆盖 / rain pool, sim, overrides | — |
-| `EditorHistory.cs` | 撤销栈 / undo stack | ~100 行 / lines |
+| `Editor/KeyViewerEditor.cs` | 画布手势、预设生成、属性面板、图层组管理 / canvas gestures, presets, property panel, groups | 最大单文件 / largest file |
+| `Core/KeyViewerLayout.cs` | 覆盖层构建、108K 槽位表、CreateKey 管线 / overlay build, 108K slot table | 105 项槽位表 |
+| `Core/CustomLayout.cs` | FreeMake 运行时全部逻辑 / full FreeMake runtime | partial |
+| `Settings/KeyViewerSettings.cs` | 数据模型 + 序列化 / data model + serialization | FmNode 79 字段 / fields |
+| `Rain/RainSystem.cs` | 雨滴池/模拟/参数覆盖 / rain pool, sim, overrides | — |
+| `Editor/EditorHistory.cs` | 撤销栈 / undo stack | ~100 行 / lines |
 
 ## 8. FreeMake 编辑器速览 / FreeMake Editor Quick Reference
 

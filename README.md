@@ -233,15 +233,7 @@ Mods/JipperKeyViewer-FileBased/
 
 首次启动后创建 `config/`（`settings.json` + `profiles/` 每配置一个 JSON，游戏内切换）；`CustomFont/` 放字体，`CustomImages/` 放 FreeMake 图片。/ First launch creates `config/` (meta + one JSON per profile, switchable in-game); fonts in `CustomFont/`, FreeMake images in `CustomImages/`.
 
-## 10. 发布清单 / Release Checklist
-
-- [ ] 两变体 `dotnet build -c Release` 0 警告 0 错误 / both variants build clean
-- [ ] `AssemblyInfo` 版本号更新，CHANGELOG 中英双语补记 / version bumped, changelog updated (EN+ZH)
-- [ ] AssetBundle 变体：资源包与 `.meta` 边框同步 / bundle in sync with `.meta` borders
-- [ ] 游戏内冒烟：启动加载 → 固定布局 → 自定义布局预设/图层组/雨滴 → 保存重启回读 / in-game smoke test
-- [ ] 许可证复核 / license reviewed
-
-## 11. 常见问题排查 / FAQ
+## 10. 常见问题排查 / FAQ
 
 **Profile 变成 `*.corrupt` / 配置丢失**：不可解析文件会先备份为 `.corrupt` 再回退默认，不会覆盖原件；旧过渡格式自动导入。/ Unparseable files are backed up as `.corrupt` before falling back; legacy interim formats import automatically.
 
@@ -249,6 +241,6 @@ Mods/JipperKeyViewer-FileBased/
 
 **自定义布局雨滴异常 / Odd rain behavior in custom layouts**：逐节点速度与排滑杆同单位；手改配置写入的 0/NaN 加载时自动净化。/ Per-node speeds share the row-slider unit; hand-edited 0/NaN values are sanitized at load.
 
-## 12. 许可证 / License
+## 11. 许可证 / License
 
 - **MIT License** — see [LICENSE](./LICENSE.txt).

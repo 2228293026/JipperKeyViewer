@@ -675,7 +675,7 @@ namespace JipperKeyViewer.KeyViewer
                         // 绑定变更 → 屏幕文本跟随新按键。
                         UpdateCustomKeyText(key, node);
                     }
-                    bool current = key.CustomKeyCode != KeyCode.None && Input.GetKey(key.CustomKeyCode);
+                    bool current = key.CustomKeyCode != KeyCode.None && KeySource.GetKey(key.CustomKeyCode);
                     if (current != key.isPressed)
                         ApplyCustomKeyEdge(key, node, current, nowMs, d);
 
@@ -685,7 +685,7 @@ namespace JipperKeyViewer.KeyViewer
                         && Enum.TryParse(node.GhostKey, true, out KeyCode ghostCode)
                         && ghostCode != KeyCode.None)
                     {
-                        bool ghostNow = Input.GetKey(ghostCode);
+                        bool ghostNow = KeySource.GetKey(ghostCode);
                         // First-sight default must be FALSE (key up), not the current reading —
                         // defaulting to `ghostNow` swallowed the press edge every time and ghost
                         // rain NEVER fired on custom layouts. / 首见默认必须是"未按下"而非当前
@@ -727,7 +727,7 @@ namespace JipperKeyViewer.KeyViewer
                     bool statPressed = !string.IsNullOrWhiteSpace(node.KeyBind)
                         && Enum.TryParse(node.KeyBind, true, out KeyCode statCode)
                         && statCode != KeyCode.None
-                        && Input.GetKey(statCode);
+                        && KeySource.GetKey(statCode);
                     if (statPressed != key.isPressed)
                     {
                         key.isPressed = statPressed;

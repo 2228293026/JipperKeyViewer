@@ -123,7 +123,7 @@ namespace JipperKeyViewer.KeyViewer
                         // (one extra ghost-rain release) for the key the user just chose.
                         // 同步到物理状态(与下方主键同款吞边沿):绑定键仍被按住,鬼键轮询器
                         // 不能为用户刚选的键触发全新按下边沿(多放一次鬼雨)。
-                        ghostKeyStates[SelectedKey] = Input.GetKey(keyCode);
+                        ghostKeyStates[SelectedKey] = KeySource.GetKey(keyCode);
                 }
                 SelectedKey = -1;
                 changeState = 0;
@@ -165,7 +165,7 @@ namespace JipperKeyViewer.KeyViewer
                 Keys[SelectedKey].text.text = displayText;
                 // Absorb the binding press itself (see comment at the top of this method).
                 // 吞掉绑定按键本身的按下边沿(见方法开头注释)。
-                Keys[SelectedKey].isPressed = Input.GetKey(keyCode);
+                Keys[SelectedKey].isPressed = KeySource.GetKey(keyCode);
             }
             SelectedKey = -1;
             changeState = 0;
@@ -304,7 +304,7 @@ namespace JipperKeyViewer.KeyViewer
                 if (idx >= Keys.Length) continue;
                 Key key = Keys[idx];
                 if (key == null) continue;
-                bool current = Input.GetKey(keyCodes[i]);
+                bool current = KeySource.GetKey(keyCodes[i]);
                 if (current != key.isPressed)
                 {
                     UpdateKeyColors(idx, current, d);
@@ -485,7 +485,7 @@ namespace JipperKeyViewer.KeyViewer
             {
                 if (ghosts[i] == KeyCode.None) continue;
 
-                bool current = Input.GetKey(ghosts[i]);
+                bool current = KeySource.GetKey(ghosts[i]);
                 if (current == ghostKeyStates[i]) continue;
                 ghostKeyStates[i] = current;
                 // Keep tracking state even while the rain gates are off, so re-enabling them mid-hold

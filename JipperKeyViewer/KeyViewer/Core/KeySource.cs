@@ -32,18 +32,6 @@ namespace JipperKeyViewer.KeyViewer
             return Input.GetKey(code);
         }
 
-        public static bool GetKeyDown(KeyCode code)
-        {
-            if (AsyncAvailable)
-            {
-                KeyLabel? label = ToKeyLabel(code);
-                if (label.HasValue)
-                    return AsyncInput.GetKeyDown(label.Value, false);
-                return Input.GetKeyDown(code);
-            }
-            return Input.GetKeyDown(code);
-        }
-
         /// <summary>Unity KeyCode → SkyHook KeyLabel (the exact mapping the game's replay
         /// pipeline consumes). Only keys a key-viewer can meaningfully display are mapped;
         /// null falls back to legacy polling at the call site. / Unity KeyCode → SkyHook

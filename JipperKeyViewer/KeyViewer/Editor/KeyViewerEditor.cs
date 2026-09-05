@@ -2437,10 +2437,15 @@ namespace JipperKeyViewer.KeyViewer
             // Color overrides work for multi-select too: fields show the first node's current
             // values and every change applies to the whole selection. / 配色覆盖对多选同样生效：
             // 字段显示首个节点的当前值，改动应用到整个选区。
-            if (first.NodeType != 3)
+            // Color overrides: box colors apply to key/panel nodes; image nodes get TEXT colors
+            // only at runtime, but the editor shows the text pair for them too (mixed selection
+            // stays uniform — per-type writers skip inapplicable fields). /
+            // 配色覆盖：盒子色作用于按键/面板节点；图片节点运行时只有文本色生效，但编辑器对
+            // 图片节点同样显示文本双色（混合选区保持界面一致——写入方按类型跳过不适用字段）。
             {
                 bool isKps = first.NodeType == 1;
                 bool isTotal = first.NodeType == 2;
+                bool isImage = first.NodeType == 3;
                 Color fbBg = isKps ? Settings.Data.KpsBackground : isTotal ? Settings.Data.TotalBackground : Settings.Data.Background;
                 Color fbOl = isKps ? Settings.Data.KpsOutline : isTotal ? Settings.Data.TotalOutline : Settings.Data.Outline;
                 GUILayout.Space(4f);
@@ -2452,10 +2457,13 @@ namespace JipperKeyViewer.KeyViewer
                 }
                 if (first.UseCustomColor)
                 {
-                    DrawEditorColorField(I18n.Tr("color_bg"), first.Bg, fbBg, arr => { foreach (FmNode n in editorSelection) if (n.NodeType != 3) n.Bg = arr; });
-                    DrawEditorColorField(I18n.Tr("color_bg_clicked"), first.BgPressed, fbBg, arr => { foreach (FmNode n in editorSelection) if (n.NodeType != 3) n.BgPressed = arr; });
-                    DrawEditorColorField(I18n.Tr("color_outline"), first.Outline, fbOl, arr => { foreach (FmNode n in editorSelection) if (n.NodeType != 3) n.Outline = arr; });
-                    DrawEditorColorField(I18n.Tr("color_outline_clicked"), first.OutlinePressed, fbOl, arr => { foreach (FmNode n in editorSelection) if (n.NodeType != 3) n.OutlinePressed = arr; });
+                    if (!isImage)
+                    {
+                        DrawEditorColorField(I18n.Tr("color_bg"), first.Bg, fbBg, arr => { foreach (FmNode n in editorSelection) if (n.NodeType != 3) n.Bg = arr; });
+                        DrawEditorColorField(I18n.Tr("color_bg_clicked"), first.BgPressed, fbBg, arr => { foreach (FmNode n in editorSelection) if (n.NodeType != 3) n.BgPressed = arr; });
+                        DrawEditorColorField(I18n.Tr("color_outline"), first.Outline, fbOl, arr => { foreach (FmNode n in editorSelection) if (n.NodeType != 3) n.Outline = arr; });
+                        DrawEditorColorField(I18n.Tr("color_outline_clicked"), first.OutlinePressed, fbOl, arr => { foreach (FmNode n in editorSelection) if (n.NodeType != 3) n.OutlinePressed = arr; });
+                    }
                     Color fbTxt = isKps ? Settings.Data.KpsText : isTotal ? Settings.Data.TotalText : Settings.Data.Text;
                     Color fbTxtP = isKps || isTotal ? fbTxt : Settings.Data.TextClicked;
                     DrawEditorColorField(I18n.Tr("color_text"), first.TextColor, fbTxt, arr => { foreach (FmNode n in editorSelection) n.TextColor = arr; });

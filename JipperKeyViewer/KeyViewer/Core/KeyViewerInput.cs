@@ -277,6 +277,9 @@ namespace JipperKeyViewer.KeyViewer
                 cachedFootKeys = GetFootKeyCode();
                 cachedFootStyle = d.FootKeyViewerStyle;
             }
+            // Replay-synthesis candidates = this layout's main keys (content-compared inside).
+            // 回放命中合成的候选 = 当前布局的主键（内部按内容比较，重复传零成本）。
+            KeySource.SetReplayKeys(cachedMainKeys);
             ProcessKeyGroup(cachedMainKeys, 0, elapsedMilliseconds);
             // Full keyboard uses indices 0-104 for main keys; foot-key indices (24+) overlap real keys,
             // so never process the foot group here or it corrupts main-key press states.

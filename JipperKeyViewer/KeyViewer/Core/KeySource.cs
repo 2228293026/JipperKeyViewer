@@ -53,10 +53,110 @@ namespace JipperKeyViewer.KeyViewer
         private static volatile bool _running;
         private static Thread _pollThread;
 
+        // ---------------- replay-hit synthesis / 回放命中合成 ----------------
+        // Some replay systems drive the game's judgment directly without touching ANY input
+        // layer (proven by probe: OS state, Unity Input, game masks and event queue all stay
+        // silent during replay). The only observable trace is level progress: each frame the
+        // floor cursor advances is one hit. When no physical key was seen recently, such an
+        // advance flashes one of the layout's main keys (alternating), so counters, KPS and
+        // rain behave like a real press. Auto-floor chains advance without hits and are
+        // skipped. / 某些回放系统直接驱动判定，完全不经过任何输入层（探针已证实：回放期间
+        // OS 状态表、Unity Input、游戏掩码与事件队列全部无动静）。唯一可观测痕迹是关卡进度：
+        // 地板游标推进的那一帧即一次命中。近期无物理按键时，该推进让布局主键之一（交替）闪烁
+        // 一帧，计数、KPS、雨滴与真实按压行为一致。auto 地板链自动推进、无命中，跳过。
+        private static KeyCode[] _replayKeys;
+        private static int _replayParity;
+        private static KeyCode _synthKey;
+        private static int _synthUntilFrame = -1;
+        private static int _lastSeq = -1;
+        private static int _pulseFrame = -1;
+        private static long _lastPhysMs = -1000; // any non-mouse VK down, per poll thread / 轮询线程记录任意非鼠标 VK 按下
+        private const int SynthQuietMs = 150;    // physical input within this window suppresses synthesis / 该窗口内有物理输入则不合成
+        private const int SynthMaxKeys = 12;     // above this a hit can't be attributed to a key / 超过则命中无法归因到键
+
+        /// <summary>Register the layout's main keys as synthesis candidates (mouse-free,
+        /// KeyCode.None-free, ≤12 entries; null/empty clears). Content-compared, so callers
+        /// may pass their per-frame list. / 注册布局主键作为合成候选（不含鼠标与空键、≤12 个；
+        /// null/空清除）。按内容比较，调用方可每帧传列表。</summary>
+        public static void SetReplayKeys(IList<KeyCode> keys)
+        {
+            if (keys == null || keys.Count == 0 || keys.Count > SynthMaxKeys)
+            {
+                _replayKeys = null;
+                return;
+            }
+            if (SameKeys(_replayKeys, keys)) return;
+            var copy = new KeyCode[keys.Count];
+            int n = 0;
+            for (int i = 0; i < keys.Count; i++)
+                if (keys[i] != KeyCode.None) copy[n++] = keys[i];
+            _replayKeys = Shrink(copy, n);
+        }
+
+        private static bool SameKeys(KeyCode[] a, IList<KeyCode> b)
+        {
+            if (a == null || b == null || a.Length != b.Count) return false;
+            for (int i = 0; i < a.Length; i++)
+                if (a[i] != b[i]) return false;
+            return true;
+        }
+
+        private static KeyCode[] Shrink(KeyCode[] src, int n)
+        {
+            if (n == 0) return null;
+            var dst = new KeyCode[n];
+            Array.Copy(src, dst, n);
+            return dst;
+        }
+
+        private static void UpdateReplayPulse(int frame)
+        {
+            if (frame == _pulseFrame || _pulseBroken) return;
+            _pulseFrame = frame;
+            try
+            {
+                var ctl = scrController.instance;
+                if (ctl == null || ctl.state != States.PlayerControl)
+                {
+                    _lastSeq = -1;
+                    _synthKey = KeyCode.None;
+                    return;
+                }
+                int seq = ctl.currentSeqID;
+                if (_lastSeq < 0) { _lastSeq = seq; return; }   // entering state → baseline / 进入状态 → 建立基线
+                bool advanced = seq > _lastSeq;
+                _lastSeq = seq;
+                if (!advanced || _replayKeys == null || _replayKeys.Length == 0) return;
+                // Auto chains advance without hits — same check the game's own progress UI
+                // uses. / auto 链自动推进、无命中——与游戏自身进度界面的判据相同。
+                var floor = ctl.currFloor;
+                if (floor != null && floor.nextfloor != null && floor.nextfloor.auto) return;
+                if (_nowMs - _lastPhysMs < SynthQuietMs) return; // physical play → real keys already flash / 物理游玩 → 真实按键已在闪
+                _replayParity = (_replayParity + 1) % _replayKeys.Length;
+                _synthKey = _replayKeys[_replayParity];
+                _synthUntilFrame = frame + 1; // visible for this frame's polls / 本帧各轮询可见
+            }
+            catch
+            {
+                _pulseBroken = true;   // game internals unavailable → feature off for good / 游戏内部不可用 → 永久停用
+                _synthKey = KeyCode.None;
+            }
+        }
+
+        private static bool _pulseBroken;
+
+        private static bool SynthActive(KeyCode code)
+        {
+            return code == _synthKey
+                && Time.frameCount <= _synthUntilFrame
+                && _nowMs - _lastPhysMs >= SynthQuietMs;
+        }
+
         public static bool GetKey(KeyCode code)
         {
             EnsurePollThread();
             if (ProbeEnabled) ProbeThisFrame();
+            UpdateReplayPulse(Time.frameCount);
             if (IsWindows)
             {
                 int[] vks;
@@ -68,10 +168,12 @@ namespace JipperKeyViewer.KeyViewer
                         if (_down[vk] || now < _visibleUntilMs[vk])
                             return true;
                     }
+                    if (SynthActive(code)) return true;
                     return false;
                 }
                 // unmapped key → legacy poll / 未映射键回落轮询
             }
+            if (SynthActive(code)) return true;
             return Input.GetKey(code);
         }
 
@@ -100,6 +202,7 @@ namespace JipperKeyViewer.KeyViewer
                             _downSinceMs[vk] = now;
                         }
                         _visibleUntilMs[vk] = _downSinceMs[vk] + LatchMs;
+                        if (vk > 0x06) _lastPhysMs = now; // mouse excluded / 排除鼠标
                     }
                     else if (_down[vk])
                     {
@@ -168,7 +271,9 @@ namespace JipperKeyViewer.KeyViewer
                   .Append("|fd=").Append(MaskList(AsyncInputManager.frameDependentKeyMask))
                   .Append("|fdd=").Append(MaskList(AsyncInputManager.frameDependentKeyDownMask));
                 var ctl = scrController.instance;
-                sb.Append("|state=").Append(ctl == null ? "-" : ctl.state.ToString());
+                sb.Append("|state=").Append(ctl == null ? "-" : ctl.state.ToString())
+                  .Append("|seq=").Append(ctl == null ? "-" : ctl.currentSeqID.ToString())
+                  .Append("|synth=").Append(_synthKey == KeyCode.None ? "0" : _synthKey.ToString());
             }
             catch (Exception e)
             {

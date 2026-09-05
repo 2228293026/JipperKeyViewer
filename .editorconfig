@@ -1,0 +1,18 @@
+root = true
+
+# Core/ deliberately keeps the JipperKeyViewer.KeyViewer namespace: the KeyViewer class is
+# partial and its files MUST share one namespace, so the whole folder stays uniform instead
+# of splitting partial files and standalone types across two namespaces.
+# / Core/ 刻意保持 JipperKeyViewer.KeyViewer 命名空间：KeyViewer 是 partial 类，其文件必须
+# 共用同一命名空间；因此整个文件夹保持统一，而不是把 partial 文件与独立类型拆进两个命名空间。
+[JipperKeyViewer/KeyViewer/Core/*.cs]
+dotnet_diagnostic.IDE0130.severity = none
+
+# TgtCompat namespaces intentionally mirror the reference KeyViewer mod's public API
+# (KeyViewer.Core.Input.KeyInput etc.): the replay bootstrap locates and Harmony-patches
+# these members BY FULL NAME, so the namespace must stay exactly this regardless of the
+# local folder layout. / TgtCompat 的命名空间刻意镜像参考版 KeyViewer 的公开 API
+# （KeyViewer.Core.Input.KeyInput 等）：回放引导器按完整名定位并 Harmony 补丁这些成员，
+# 命名空间必须与其完全一致，与本地文件夹结构无关。
+[TgtCompat/*.cs]
+dotnet_diagnostic.IDE0130.severity = none

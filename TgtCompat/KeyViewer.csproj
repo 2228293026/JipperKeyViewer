@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- TGT replay-compat shim / TGT 回放兼容垫片
+       A tiny stand-in with the assembly name, UMM id and public input API of the KeyViewer
+       mod that TogetherBootstrap officially detects and Harmony-patches ("KeyViewer not
+       found, skipping patch"). When the shim is present, TGT's patch feeds replay key
+       state through it; JipperKeyViewer's KeySource picks that up by reflection.
+       / 一个与 TogetherBootstrap 官方检测并打 Harmony 补丁的 KeyViewer 同名同结构的最小替身
+       （日志证据：“KeyViewer not found, skipping patch”）。垫片在场时，TGT 的补丁会把回放按
+       键状态注入其中；JipperKeyViewer 的 KeySource 经反射读取。 -->
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <AssemblyName>KeyViewer</AssemblyName>
+    <RootNamespace>KeyViewer</RootNamespace>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>bin\Release</OutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\libs\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>..\libs\UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityModManager">
+      <HintPath>..\libs\UnityModManager.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>..\libs\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="SkyHook.Unity">
+      <HintPath>..\libs\SkyHook.Unity.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

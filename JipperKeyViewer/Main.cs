@@ -31,6 +31,14 @@ namespace JipperKeyViewer
             if (initialized) return;
             initialized = true;
 
+            // Load the embedded TGT compat shim BEFORE anything else: the replay bootstrap
+            // scans loaded assemblies during startup, so the "KeyViewer" assembly must be in
+            // the AppDomain by then — no separate Mods/KeyViewer folder or mod-list entry.
+            // 尽早加载内嵌的 TGT 兼容垫片：回放引导器在启动期间扫描已加载程序集，"KeyViewer"
+            // 程序集必须在此之前进入 AppDomain——不再需要独立的 Mods/KeyViewer 文件夹或
+            // mod 列表条目。
+            KeyViewer.KeySource.EnsureShimLoaded();
+
             Loader.Instance = loader;
 
             loader.OnToggle += (enabled) =>

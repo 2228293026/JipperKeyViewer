@@ -82,20 +82,16 @@
       <HintPath>..\libs\UnityEngine.UIModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
-    <!-- 诊断探针读取：游戏异步输入掩码与键事件队列（KeySource probe）。
-         Diagnostic probe reads: game async-input masks & key event queue. -->
-    <Reference Include="Assembly-CSharp">
-      <HintPath>..\libs\Assembly-CSharp.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="RDTools">
-      <HintPath>..\libs\RDTools.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="SkyHook.Unity">
-      <HintPath>..\libs\SkyHook.Unity.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- TGT compat shim: build order only (no compile reference); the resulting assembly is
+         embedded below and Assembly.Load-ed at mod init. / TGT 兼容垫片：仅构建顺序（无编译引
+         用）；产物在下方内嵌，mod 初始化时 Assembly.Load。 -->
+    <ProjectReference Include="..\TgtCompat\KeyViewer.csproj" ReferenceOutputAssembly="false" />
+    <EmbeddedResource Include="..\TgtCompat\bin\Release\KeyViewer.dll">
+      <LogicalName>JipperKeyViewer.TgtCompat.KeyViewer.dll</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
 </Project>

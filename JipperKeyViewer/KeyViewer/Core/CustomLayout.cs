@@ -657,10 +657,6 @@ namespace JipperKeyViewer.KeyViewer
         {
             ProfileData d = Settings.Data;
             bool rainEnabled = d.EnableRainEffect;
-            // Replay-synthesis candidates: key nodes only (ghost/stat nodes excluded). Built
-            // into a reused list — zero allocation after warmup. / 回放命中合成候选：仅按键
-            // 节点（鬼键/统计面板除外）。写入复用列表——预热后零分配。
-            _replayKeyScratch.Clear();
             for (int i = 0; i < Keys.Length; i++)
             {
                 Key key = Keys[i];
@@ -669,7 +665,6 @@ namespace JipperKeyViewer.KeyViewer
 
                 if (node.NodeType == 0 || node.NodeType == 3)
                 {
-                    if (key.CustomKeyCode != KeyCode.None) _replayKeyScratch.Add(key.CustomKeyCode);
                     // Cache the parsed binding; reparse only when the raw string changes. /
                     // 缓存解析结果，仅当原始字符串变化时重解析。
                     if (!string.Equals(key.CustomKeyBindCached, node.KeyBind, StringComparison.Ordinal))
@@ -740,13 +735,8 @@ namespace JipperKeyViewer.KeyViewer
                     }
                 }
             }
-            KeySource.SetReplayKeys(_replayKeyScratch);
             if (rainEnabled) rainSystem.UpdateEffects(Keys);
         }
-
-        /// <summary>Reused candidate list for replay-hit synthesis (see KeySource). /
-        /// 回放命中合成的复用候选列表（见 KeySource）。</summary>
-        private readonly List<KeyCode> _replayKeyScratch = new List<KeyCode>();
 
         private void ApplyCustomKeyEdge(Key key, FmNode node, bool down, long timeMs, ProfileData d)
         {

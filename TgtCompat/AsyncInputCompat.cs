@@ -1,0 +1,138 @@
+// Shim mirror of the reference KeyViewer's game-mask reader, reading the game's own
+// AsyncInput state. / 参考版 KeyViewer 游戏掩码读取器的镜像，读取游戏自身的 AsyncInput 状态。
+
+using System.Linq;
+using SkyHook;
+using UnityEngine;
+
+namespace KeyViewer.Core.Input
+{
+    public static class AsyncInputCompat
+    {
+        public static bool AnyKey => AsyncInputManager.keyMask.Any();
+        public static bool AnyKeyUp => AsyncInputManager.keyUpMask.Any();
+        public static bool AnyKeyDown => AsyncInputManager.keyDownMask.Any();
+
+        public static bool GetKey(KeyCode code) => AsyncInput.GetKey(Convert(code));
+        public static bool GetKeyUp(KeyCode code) => AsyncInput.GetKeyUp(Convert(code));
+        public static bool GetKeyDown(KeyCode code) => AsyncInput.GetKeyDown(Convert(code));
+
+        public static KeyCode Convert(KeyLabel label)
+        {
+            return label switch
+            {
+                KeyLabel.Escape => KeyCode.Escape,
+                KeyLabel.F1 => KeyCode.F1, KeyLabel.F2 => KeyCode.F2, KeyLabel.F3 => KeyCode.F3,
+                KeyLabel.F4 => KeyCode.F4, KeyLabel.F5 => KeyCode.F5, KeyLabel.F6 => KeyCode.F6,
+                KeyLabel.F7 => KeyCode.F7, KeyLabel.F8 => KeyCode.F8, KeyLabel.F9 => KeyCode.F9,
+                KeyLabel.F10 => KeyCode.F10, KeyLabel.F11 => KeyCode.F11, KeyLabel.F12 => KeyCode.F12,
+                KeyLabel.Grave => KeyCode.BackQuote,
+                KeyLabel.Alpha1 => KeyCode.Alpha1, KeyLabel.Alpha2 => KeyCode.Alpha2,
+                KeyLabel.Alpha3 => KeyCode.Alpha3, KeyLabel.Alpha4 => KeyCode.Alpha4,
+                KeyLabel.Alpha5 => KeyCode.Alpha5, KeyLabel.Alpha6 => KeyCode.Alpha6,
+                KeyLabel.Alpha7 => KeyCode.Alpha7, KeyLabel.Alpha8 => KeyCode.Alpha8,
+                KeyLabel.Alpha9 => KeyCode.Alpha9, KeyLabel.Alpha0 => KeyCode.Alpha0,
+                KeyLabel.Minus => KeyCode.Minus, KeyLabel.Equal => KeyCode.Equals,
+                KeyLabel.Backspace => KeyCode.Backspace, KeyLabel.Tab => KeyCode.Tab,
+                KeyLabel.Q => KeyCode.Q, KeyLabel.W => KeyCode.W, KeyLabel.E => KeyCode.E,
+                KeyLabel.R => KeyCode.R, KeyLabel.T => KeyCode.T, KeyLabel.Y => KeyCode.Y,
+                KeyLabel.U => KeyCode.U, KeyLabel.I => KeyCode.I, KeyLabel.O => KeyCode.O,
+                KeyLabel.P => KeyCode.P,
+                KeyLabel.LeftBrace => KeyCode.LeftBracket, KeyLabel.RightBrace => KeyCode.RightBracket,
+                KeyLabel.BackSlash => KeyCode.Backslash, KeyLabel.CapsLock => KeyCode.CapsLock,
+                KeyLabel.A => KeyCode.A, KeyLabel.S => KeyCode.S, KeyLabel.D => KeyCode.D,
+                KeyLabel.F => KeyCode.F, KeyLabel.G => KeyCode.G, KeyLabel.H => KeyCode.H,
+                KeyLabel.J => KeyCode.J, KeyLabel.K => KeyCode.K, KeyLabel.L => KeyCode.L,
+                KeyLabel.Semicolon => KeyCode.Semicolon, KeyLabel.Apostrophe => KeyCode.Quote,
+                KeyLabel.Enter => KeyCode.Return,
+                KeyLabel.LShift => KeyCode.LeftShift, KeyLabel.RShift => KeyCode.RightShift,
+                KeyLabel.Z => KeyCode.Z, KeyLabel.X => KeyCode.X, KeyLabel.C => KeyCode.C,
+                KeyLabel.V => KeyCode.V, KeyLabel.B => KeyCode.B, KeyLabel.N => KeyCode.N,
+                KeyLabel.M => KeyCode.M,
+                KeyLabel.Comma => KeyCode.Comma, KeyLabel.Dot => KeyCode.Period, KeyLabel.Slash => KeyCode.Slash,
+                KeyLabel.RControl => KeyCode.RightControl, KeyLabel.LControl => KeyCode.LeftControl,
+                KeyLabel.LAlt => KeyCode.LeftAlt, KeyLabel.RAlt => KeyCode.RightAlt,
+                KeyLabel.Space => KeyCode.Space,
+                KeyLabel.PrintScreen => KeyCode.Print, KeyLabel.ScrollLock => KeyCode.ScrollLock,
+                KeyLabel.PauseBreak => KeyCode.Pause,
+                KeyLabel.Insert => KeyCode.Insert, KeyLabel.Home => KeyCode.Home,
+                KeyLabel.PageUp => KeyCode.PageUp, KeyLabel.Delete => KeyCode.Delete,
+                KeyLabel.End => KeyCode.End, KeyLabel.PageDown => KeyCode.PageDown,
+                KeyLabel.ArrowUp => KeyCode.UpArrow, KeyLabel.ArrowLeft => KeyCode.LeftArrow,
+                KeyLabel.ArrowDown => KeyCode.DownArrow, KeyLabel.ArrowRight => KeyCode.RightArrow,
+                KeyLabel.NumLock => KeyCode.Numlock,
+                KeyLabel.KeypadSlash => KeyCode.KeypadDivide, KeyLabel.KeypadAsterisk => KeyCode.KeypadMultiply,
+                KeyLabel.KeypadMinus => KeyCode.KeypadMinus, KeyLabel.KeypadPlus => KeyCode.KeypadPlus,
+                KeyLabel.KeypadEnter => KeyCode.KeypadEnter, KeyLabel.KeypadDot => KeyCode.KeypadPeriod,
+                KeyLabel.Keypad0 => KeyCode.Keypad0, KeyLabel.Keypad1 => KeyCode.Keypad1,
+                KeyLabel.Keypad2 => KeyCode.Keypad2, KeyLabel.Keypad3 => KeyCode.Keypad3,
+                KeyLabel.Keypad4 => KeyCode.Keypad4, KeyLabel.Keypad5 => KeyCode.Keypad5,
+                KeyLabel.Keypad6 => KeyCode.Keypad6, KeyLabel.Keypad7 => KeyCode.Keypad7,
+                KeyLabel.Keypad8 => KeyCode.Keypad8, KeyLabel.Keypad9 => KeyCode.Keypad9,
+                KeyLabel.MouseLeft => KeyCode.Mouse0, KeyLabel.MouseRight => KeyCode.Mouse1,
+                KeyLabel.MouseMiddle => KeyCode.Mouse2, KeyLabel.MouseX1 => KeyCode.Mouse3,
+                KeyLabel.MouseX2 => KeyCode.Mouse4,
+                _ => KeyCode.None,
+            };
+        }
+
+        public static KeyLabel Convert(KeyCode code)
+        {
+            return code switch
+            {
+                KeyCode.Escape => KeyLabel.Escape,
+                KeyCode.F1 => KeyLabel.F1, KeyCode.F2 => KeyLabel.F2, KeyCode.F3 => KeyLabel.F3,
+                KeyCode.F4 => KeyLabel.F4, KeyCode.F5 => KeyLabel.F5, KeyCode.F6 => KeyLabel.F6,
+                KeyCode.F7 => KeyLabel.F7, KeyCode.F8 => KeyLabel.F8, KeyCode.F9 => KeyLabel.F9,
+                KeyCode.F10 => KeyLabel.F10, KeyCode.F11 => KeyLabel.F11, KeyCode.F12 => KeyLabel.F12,
+                KeyCode.BackQuote => KeyLabel.Grave,
+                KeyCode.Alpha1 => KeyLabel.Alpha1, KeyCode.Alpha2 => KeyLabel.Alpha2,
+                KeyCode.Alpha3 => KeyLabel.Alpha3, KeyCode.Alpha4 => KeyLabel.Alpha4,
+                KeyCode.Alpha5 => KeyLabel.Alpha5, KeyCode.Alpha6 => KeyLabel.Alpha6,
+                KeyCode.Alpha7 => KeyLabel.Alpha7, KeyCode.Alpha8 => KeyLabel.Alpha8,
+                KeyCode.Alpha9 => KeyLabel.Alpha9, KeyCode.Alpha0 => KeyLabel.Alpha0,
+                KeyCode.Minus => KeyLabel.Minus, KeyCode.Equals => KeyLabel.Equal,
+                KeyCode.Backspace => KeyLabel.Backspace, KeyCode.Tab => KeyLabel.Tab,
+                KeyCode.Q => KeyLabel.Q, KeyCode.W => KeyLabel.W, KeyCode.E => KeyLabel.E,
+                KeyCode.R => KeyLabel.R, KeyCode.T => KeyLabel.T, KeyCode.Y => KeyLabel.Y,
+                KeyCode.U => KeyLabel.U, KeyCode.I => KeyLabel.I, KeyCode.O => KeyLabel.O,
+                KeyCode.P => KeyLabel.P,
+                KeyCode.LeftBracket => KeyLabel.LeftBrace, KeyCode.RightBracket => KeyLabel.RightBrace,
+                KeyCode.Backslash => KeyLabel.BackSlash, KeyCode.CapsLock => KeyLabel.CapsLock,
+                KeyCode.A => KeyLabel.A, KeyCode.S => KeyLabel.S, KeyCode.D => KeyLabel.D,
+                KeyCode.F => KeyLabel.F, KeyCode.G => KeyLabel.G, KeyCode.H => KeyLabel.H,
+                KeyCode.J => KeyLabel.J, KeyCode.K => KeyLabel.K, KeyCode.L => KeyLabel.L,
+                KeyCode.Semicolon => KeyLabel.Semicolon, KeyCode.Quote => KeyLabel.Apostrophe,
+                KeyCode.Return => KeyLabel.Enter,
+                KeyCode.LeftShift => KeyLabel.LShift, KeyCode.RightShift => KeyLabel.RShift,
+                KeyCode.Z => KeyLabel.Z, KeyCode.X => KeyLabel.X, KeyCode.C => KeyLabel.C,
+                KeyCode.V => KeyLabel.V, KeyCode.B => KeyLabel.B, KeyCode.N => KeyLabel.N,
+                KeyCode.M => KeyLabel.M,
+                KeyCode.Comma => KeyLabel.Comma, KeyCode.Period => KeyLabel.Dot, KeyCode.Slash => KeyLabel.Slash,
+                KeyCode.RightControl => KeyLabel.RControl, KeyCode.LeftControl => KeyLabel.LControl,
+                KeyCode.LeftAlt => KeyLabel.LAlt, KeyCode.RightAlt => KeyLabel.RAlt,
+                KeyCode.Space => KeyLabel.Space,
+                KeyCode.Print => KeyLabel.PrintScreen, KeyCode.ScrollLock => KeyLabel.ScrollLock,
+                KeyCode.Pause => KeyLabel.PauseBreak,
+                KeyCode.Insert => KeyLabel.Insert, KeyCode.Home => KeyLabel.Home,
+                KeyCode.PageUp => KeyLabel.PageUp, KeyCode.Delete => KeyLabel.Delete,
+                KeyCode.End => KeyLabel.End, KeyCode.PageDown => KeyLabel.PageDown,
+                KeyCode.UpArrow => KeyLabel.ArrowUp, KeyCode.LeftArrow => KeyLabel.ArrowLeft,
+                KeyCode.DownArrow => KeyLabel.ArrowDown, KeyCode.RightArrow => KeyLabel.ArrowRight,
+                KeyCode.Numlock => KeyLabel.NumLock,
+                KeyCode.KeypadDivide => KeyLabel.KeypadSlash, KeyCode.KeypadMultiply => KeyLabel.KeypadAsterisk,
+                KeyCode.KeypadMinus => KeyLabel.KeypadMinus, KeyCode.KeypadPlus => KeyLabel.KeypadPlus,
+                KeyCode.KeypadEnter => KeyLabel.KeypadEnter, KeyCode.KeypadPeriod => KeyLabel.KeypadDot,
+                KeyCode.Keypad0 => KeyLabel.Keypad0, KeyCode.Keypad1 => KeyLabel.Keypad1,
+                KeyCode.Keypad2 => KeyLabel.Keypad2, KeyCode.Keypad3 => KeyLabel.Keypad3,
+                KeyCode.Keypad4 => KeyLabel.Keypad4, KeyCode.Keypad5 => KeyLabel.Keypad5,
+                KeyCode.Keypad6 => KeyLabel.Keypad6, KeyCode.Keypad7 => KeyLabel.Keypad7,
+                KeyCode.Keypad8 => KeyLabel.Keypad8, KeyCode.Keypad9 => KeyLabel.Keypad9,
+                KeyCode.Mouse0 => KeyLabel.MouseLeft, KeyCode.Mouse1 => KeyLabel.MouseRight,
+                KeyCode.Mouse2 => KeyLabel.MouseMiddle, KeyCode.Mouse3 => KeyLabel.MouseX1,
+                KeyCode.Mouse4 => KeyLabel.MouseX2,
+                _ => KeyLabel.Unknown,
+            };
+        }
+    }
+}

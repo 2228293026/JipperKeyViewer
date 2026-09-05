@@ -1,17 +1,25 @@
-// Central key-state source. On Windows while the game window is focused, we poll the
-// OS-level async key state (Win32 GetAsyncKeyState) instead of UnityEngine.Input: the OS
-// state table reflects hardware AND injected presses (replay/macro mods drive user32-level
-// input), which Unity's message-queue Input never reports — this is the same approach the
-// community verified working against replay mods. Non-Windows or unfocused windows fall
-// back to Unity Input. Every mod key poll funnels through this file.
-// / 中心化按键状态源。Windows 且窗口聚焦时轮询操作系统级异步按键状态（Win32
-// GetAsyncKeyState），而非 UnityEngine.Input：系统状态表同时反映硬件与注入按压（回放/
-// 连点类 Mod 走 user32 层输入），而基于消息队列的 Unity Input 看不到它们——该方案已被
-// 社区对回放 Mod 验证可行。非 Windows 或失焦时回落 Unity Input。所有按键轮询统一走本文件。
+// Central key-state source. Two facts drive the design:
+// 1) Windows keeps an OS-level async key-state table (user32 GetAsyncKeyState) that reflects
+//    hardware AND injected presses; Unity's message-queue Input misses the injected ones.
+// 2) Injected replay taps can be shorter than one frame, so per-frame sampling never observes
+//    them — they must be captured on a millisecond-resolution background poller (the approach
+//    community key viewers verified against replay mods), then latched long enough (~35 ms)
+//    for this mod's per-frame consumers to see a full press/release cycle. Genuine holds are
+//    not delayed: the latch window is anchored to the press START, so a hold longer than the
+//    window releases instantly. Non-Windows or unfocused windows fall back to Unity Input.
+// / 中心化按键状态源。设计基于两个事实：
+// 1) Windows 维护操作系统级异步按键状态表（user32 GetAsyncKeyState），硬件与注入按压都
+//    会反映其中；而基于消息队列的 Unity Input 看不到注入的按压。
+// 2) 回放类注入的按压时长可能短于一帧，逐帧采样永远观察不到——必须在毫秒级分辨率的后
+//    台轮询线程上捕获（社区按键显示器已对回放 Mod 验证可行的方案），并闩锁约 35ms，让本
+//    Mod 逐帧消费的组件能看到完整的一次按下/释放。真实长按不会被延迟：闩锁窗口锚定在按
+//    下起点，长于窗口的按压立即释放。非 Windows 或窗口失焦时回落 Unity Input。
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading;
 using UnityEngine;
 
 namespace JipperKeyViewer.KeyViewer
@@ -21,24 +29,77 @@ namespace JipperKeyViewer.KeyViewer
         [DllImport("user32.dll")]
         private static extern short GetAsyncKeyState(int vKey);
 
+        private const int LatchMs = 35;   // min time a press stays visible / 按压最少可见时长
+        private const int PollDelayMs = 1;
+
         private static readonly bool IsWindows =
             Environment.OSVersion.Platform == PlatformID.Win32NT;
 
+        // Written by the poll thread, read by the main thread. Aligned bool/long field access
+        // is atomic on x64; staleness of one poll interval (1-2 ms) is irrelevant here.
+        // 由轮询线程写、主线程读。x64 上对齐的 bool/long 字段访问是原子的；
+        // 一个轮询间隔（1-2ms）的陈旧度在此无关紧要。
+        private static readonly bool[] _down = new bool[256];
+        private static readonly long[] _downSinceMs = new long[256];
+        private static readonly long[] _visibleUntilMs = new long[256];
+        private static long _nowMs; // plain field: aligned 64-bit writes are atomic / 对齐 64 位写为原子操作
+        private static volatile bool _running;
+        private static Thread _pollThread;
+
         public static bool GetKey(KeyCode code)
         {
+            EnsurePollThread();
             if (IsWindows && Application.isFocused)
             {
                 int[] vks;
                 if (VkTable.Value.TryGetValue(code, out vks))
                 {
+                    long now = _nowMs;
                     foreach (int vk in vks)
-                        if ((GetAsyncKeyState(vk) & 0x8000) != 0)
+                    {
+                        if (_down[vk] || now < _visibleUntilMs[vk])
                             return true;
+                    }
                     return false;
                 }
                 // unmapped key → legacy poll / 未映射键回落轮询
             }
             return Input.GetKey(code);
+        }
+
+        private static void EnsurePollThread()
+        {
+            if (!IsWindows || _running) return;
+            _running = true;
+            _pollThread = new Thread(PollLoop) { IsBackground = true, Name = "JipperKeyViewer.KeyPoll" };
+            _pollThread.Start();
+        }
+
+        private static void PollLoop()
+        {
+            var sw = Stopwatch.StartNew();
+            while (_running)
+            {
+                long now = sw.ElapsedMilliseconds;
+                _nowMs = now;
+                for (int vk = 1; vk < _down.Length; vk++)
+                {
+                    if ((GetAsyncKeyState(vk) & 0x8000) != 0)
+                    {
+                        if (!_down[vk])
+                        {
+                            _down[vk] = true;
+                            _downSinceMs[vk] = now;
+                        }
+                        _visibleUntilMs[vk] = _downSinceMs[vk] + LatchMs;
+                    }
+                    else if (_down[vk])
+                    {
+                        _down[vk] = false;
+                    }
+                }
+                Thread.Sleep(PollDelayMs);
+            }
         }
 
         private static Dictionary<KeyCode, int[]> BuildVkTable()

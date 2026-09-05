@@ -758,7 +758,14 @@ namespace JipperKeyViewer.KeyViewer
             // Image keys swap to the pressed texture first. /
             // 图片按键先切换按压贴图（按压语义）。
             if (key.CustomImage != null && key.CustomTexPressed != null)
+            {
                 key.CustomImage.texture = down ? key.CustomTexPressed : key.CustomTexNormal;
+                // Re-apply the node opacity on the swapped texture — the texture swap above
+                // resets nothing, but the RawImage color was set only at creation; keep it
+                // authoritative here so an opacity edit mid-session holds. / 换贴图后重施节点
+                // 不透明度——RawImage 的 color 只在创建时设置过，此处保持其为权威值。
+                key.CustomImage.color = new Color(1f, 1f, 1f, Mathf.Clamp01(node.Opacity));
+            }
             ApplyCustomKeyColors(key, node, down);
             // Pressed-text swap: the label swaps while held, restores on
             // release. / 按压文案切换（按压语义）：按住时替换标签，松开恢复。

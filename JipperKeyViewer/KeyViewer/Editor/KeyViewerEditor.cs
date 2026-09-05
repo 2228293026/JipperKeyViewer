@@ -2053,7 +2053,12 @@ namespace JipperKeyViewer.KeyViewer
                 EditorPropertyChanged();
             }
 
-            if (first.NodeType == 0)
+            // Custom/pressed text + count toggles: keys AND bound image keys (an image key
+            // renders label/count like a key — its runtime consumes CustomText, PressedText,
+            // CountInTotal and PerKeyKps identically). / 自定义/按压文案 + 计数开关：按键与
+            // 绑定了按键的图片按键通用（图片按键与按键同样渲染标签/计数——运行时对
+            // CustomText、PressedText、CountInTotal、PerKeyKps 的消费完全一致）。
+            if (first.NodeType == 0 || (first.NodeType == 3 && !string.IsNullOrWhiteSpace(first.KeyBind)))
             {
                 DrawEditorTextField(I18n.Tr("fm_custom_text"), "fme_ct_" + first.Id, first.CustomText, v =>
                 {

@@ -27,17 +27,6 @@
   <!-- 游戏引用 DLL，仅编译期使用，不拷入输出 /
        Game reference DLLs, compile-time only — never copied to output. -->
   <ItemGroup>
-    <!-- 游戏程序集与 SkyHook：回放键掩码（AsyncInput/AsyncInputManager/AsyncKeyCode）与
-         其供数钩子定义于此，供 KeySource 的 TGT 回放兼容读取。 /
-         Game assembly & SkyHook: define the replay key masks consumed by KeySource. -->
-    <Reference Include="Assembly-CSharp">
-      <HintPath>..\libs\Assembly-CSharp.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="SkyHook.Unity">
-      <HintPath>..\libs\SkyHook.Unity.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
     <Reference Include="Unity.TextMeshPro">
       <HintPath>..\libs\Unity.TextMeshPro.dll</HintPath>
       <Private>false</Private>

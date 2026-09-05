@@ -82,21 +82,6 @@
       <HintPath>..\libs\UnityEngine.UIModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
-    <!-- 游戏（及 TGT/Spectre 回放管线）使用 SkyHook 低延迟键盘钩子：回放注入的按键
-         存在于 AsyncInput 键掩码中，而不在 Unity Input 的物理轮询里。引用它以读取回放状态。 /
-         The game (and the TGT/Spectre replay pipeline) uses the SkyHook low-latency keyboard
-         hook: replay-injected presses land in the AsyncInput masks, not in Unity's physical
-         polling. Referenced so the mod can read replay state. -->
-    <Reference Include="SkyHook.Unity">
-      <HintPath>..\libs\SkyHook.Unity.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <!-- 游戏程序集：AsyncInput / AsyncInputManager / AsyncKeyCode（回放键掩码）定义于此。
-         Game assembly: defines AsyncInput / AsyncInputManager / AsyncKeyCode (replay masks). -->
-    <Reference Include="Assembly-CSharp">
-      <HintPath>..\libs\Assembly-CSharp.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
   </ItemGroup>
 
 </Project>

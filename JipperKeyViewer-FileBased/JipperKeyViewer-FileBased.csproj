@@ -27,6 +27,20 @@
   <!-- 游戏引用 DLL，仅编译期使用，不拷入输出 /
        Game reference DLLs, compile-time only — never copied to output. -->
   <ItemGroup>
+    <!-- 诊断探针读取：游戏异步输入掩码与键事件队列（KeySource probe）。
+         Diagnostic probe reads: game async-input masks & key event queue. -->
+    <Reference Include="Assembly-CSharp">
+      <HintPath>..\libs\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="RDTools">
+      <HintPath>..\libs\RDTools.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="SkyHook.Unity">
+      <HintPath>..\libs\SkyHook.Unity.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="Unity.TextMeshPro">
       <HintPath>..\libs\Unity.TextMeshPro.dll</HintPath>
       <Private>false</Private>

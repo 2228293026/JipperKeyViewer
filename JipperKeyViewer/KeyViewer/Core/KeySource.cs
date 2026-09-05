@@ -18,7 +18,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using UnityEngine;
 
@@ -30,7 +32,12 @@ namespace JipperKeyViewer.KeyViewer
         private static extern short GetAsyncKeyState(int vKey);
 
         private const int LatchMs = 35;   // min time a press stays visible / 按压最少可见时长
-        private const int PollDelayMs = 1;
+
+        // Diagnostic probe (temporary): per-frame dump of every input layer to
+        // Mods/JipperKeyViewer/keysource-probe.log. Leave on until replay visibility is
+        // confirmed, then remove. / 诊断探针（临时）：逐帧转储全部输入层到
+        // Mods/JipperKeyViewer/keysource-probe.log。回放可见性确认后移除。
+        private const bool ProbeEnabled = true;
 
         private static readonly bool IsWindows =
             Environment.OSVersion.Platform == PlatformID.Win32NT;
@@ -49,7 +56,8 @@ namespace JipperKeyViewer.KeyViewer
         public static bool GetKey(KeyCode code)
         {
             EnsurePollThread();
-            if (IsWindows && Application.isFocused)
+            if (ProbeEnabled) ProbeThisFrame();
+            if (IsWindows)
             {
                 int[] vks;
                 if (VkTable.Value.TryGetValue(code, out vks))
@@ -98,8 +106,104 @@ namespace JipperKeyViewer.KeyViewer
                         _down[vk] = false;
                     }
                 }
-                Thread.Sleep(PollDelayMs);
+                // Spin-yield to the next millisecond: Thread.Sleep(1) can round up to the OS
+                // timer resolution (~15.6 ms) and miss multi-millisecond injected taps.
+                // 自旋让出到下一毫秒：Thread.Sleep(1) 会取整到系统定时器分辨率（约15.6ms），
+                // 从而漏掉仅数毫秒的注入按压。
+                while (_running && sw.ElapsedMilliseconds == now)
+                    Thread.Yield();
             }
+        }
+
+        // ---------------- diagnostic probe / 诊断探针 ----------------
+        // One line per frame (on change, plus heartbeat) recording every input layer, so a
+        // single replay run pinpoints where replay-injected presses actually surface.
+        // 每帧一行（有变化时记录，另加心跳），覆盖全部输入层——一次回放即可定位注入按压
+        // 真正出现的位置。
+        private static int _probeFrame = -1;
+        private static int _probeBeat;
+        private static string _probeLast = "";
+        private static StreamWriter _probeWriter;
+        private static bool _probeBroken;
+
+        private static void ProbeThisFrame()
+        {
+            int frame = Time.frameCount;
+            if (frame == _probeFrame) return;
+            _probeFrame = frame;
+            if (_probeBroken) return;
+            try
+            {
+                string line = BuildProbeLine(frame);
+                if (line == _probeLast && ++_probeBeat % 120 != 0) return;
+                _probeLast = line;
+                if (_probeWriter == null)
+                {
+                    string path = Path.Combine(Loader.ModPath ?? ".", "keysource-probe.log");
+                    _probeWriter = new StreamWriter(path, false) { AutoFlush = true };
+                }
+                _probeWriter.WriteLine(line);
+            }
+            catch (Exception e)
+            {
+                _probeBroken = true;
+                try { Loader.Warning("KeySource probe disabled: " + e.Message); } catch { }
+            }
+        }
+
+        private static string BuildProbeLine(int frame)
+        {
+            var sb = new StringBuilder(160);
+            sb.Append("t=").Append(frame)
+              .Append("|foc=").Append(Application.isFocused ? 1 : 0)
+              .Append("|uAny=").Append(Input.anyKey ? 1 : 0)
+              .Append("|uAnyD=").Append(Input.anyKeyDown ? 1 : 0)
+              .Append("|os=").Append(OsHeldList());
+            try
+            {
+                sb.Append("|hook=").Append(AsyncInputManager.isActive ? 1 : 0)
+                  .Append("|q=").Append(AsyncInputManager.keyQueue.Count)
+                  .Append("|held=").Append(MaskList(AsyncInputManager.keyMask))
+                  .Append("|down=").Append(MaskList(AsyncInputManager.keyDownMask))
+                  .Append("|fd=").Append(MaskList(AsyncInputManager.frameDependentKeyMask))
+                  .Append("|fdd=").Append(MaskList(AsyncInputManager.frameDependentKeyDownMask));
+                var ctl = scrController.instance;
+                sb.Append("|state=").Append(ctl == null ? "-" : ctl.state.ToString());
+            }
+            catch (Exception e)
+            {
+                sb.Append("|gameErr=").Append(e.GetType().Name);
+            }
+            return sb.ToString();
+        }
+
+        private static string OsHeldList()
+        {
+            int count = 0;
+            var sb = new StringBuilder(48);
+            for (int vk = 1; vk < _down.Length && count < 8; vk++)
+            {
+                if (!_down[vk]) continue;
+                if (count > 0) sb.Append(',');
+                sb.Append(vk.ToString("X2"));
+                count++;
+            }
+            return count == 0 ? "0" : sb.ToString();
+        }
+
+        private static string MaskList(HashSet<AsyncKeyCode> mask)
+        {
+            if (mask == null || mask.Count == 0) return "0";
+            var sb = new StringBuilder(64);
+            int count = 0;
+            foreach (var code in mask)
+            {
+                if (count >= 8) { sb.Append("…"); break; }
+                if (count > 0) sb.Append(',');
+                sb.Append(code.label.ToString());
+                count++;
+            }
+            return sb.ToString();
         }
 
         private static Dictionary<KeyCode, int[]> BuildVkTable()

@@ -1348,9 +1348,8 @@ namespace JipperKeyViewer.KeyViewer
 
         private void DrawEditorGroupManager()
         {
-            // Button-style foldout (◢/▶) matching the settings window — a checkbox-looking
-            // toggle here read as an "enable groups" switch. / 与设置窗一致的按钮式折叠
-            // （◢/▶）——此前复选框样式看起来像"启用图层组"的功能开关。
+            // Button-style foldout (◢/▶) matching the settings window. /
+            // 与设置窗一致的按钮式折叠（◢/▶）。
             fmGroupsExpanded = DrawFoldoutButton(I18n.Tr("fm_groups"), fmGroupsExpanded);
             if (!fmGroupsExpanded) return;
             GUILayout.Label("<i>" + I18n.Tr("fm_groups_hint") + "</i>");
@@ -1359,24 +1358,25 @@ namespace JipperKeyViewer.KeyViewer
             {
                 FmLayerGroup g = groups[i];
                 GUILayout.BeginHorizontal();
-                string name = TextInputField("fme_g_" + g.Id, g.Name ?? "", GUILayout.MinWidth(70f));
+                string name = TextInputField("fme_g_" + g.Id, g.Name ?? "", GUILayout.MinWidth(90f));
                 if (!string.Equals(name, g.Name ?? "", StringComparison.Ordinal))
                 {
                     g.Name = name;
                     SaveSettingsFromGui();
                 }
-                bool vis = GUILayout.Toggle(g.Visible, I18n.Tr("fm_group_show"), GUILayout.MinWidth(52f));
+                bool vis = GUILayout.Toggle(g.Visible, I18n.Tr("fm_group_show"), GUILayout.MinWidth(48f));
                 if (vis != g.Visible)
                 {
                     g.Visible = vis;
                     EditorMutated();
                 }
                 bool isActive = g.Id == fmActiveGroupId;
-                if (GUILayout.Button(isActive ? "◢" : "○", GUILayout.Width(26f)))
+                string targetTip = isActive ? I18n.Tr("fm_gtip_target_on") : I18n.Tr("fm_gtip_target_off");
+                if (GUILayout.Button(new GUIContent(isActive ? "◆" : "◇", targetTip), GUILayout.Width(30f)))
                 {
                     fmActiveGroupId = isActive ? "" : g.Id;
                 }
-                if (GUILayout.Button(I18n.Tr("fm_group_select"), GUILayout.MinWidth(52f)))
+                if (GUILayout.Button(new GUIContent("▣", I18n.Tr("fm_gtip_select")), GUILayout.Width(30f)))
                 {
                     editorSelection.Clear();
                     foreach (FmNode n in Settings.Data.CustomNodes)
@@ -1384,14 +1384,15 @@ namespace JipperKeyViewer.KeyViewer
                     fmActiveNode = editorSelection.Count > 0 ? editorSelection[0] : null;
                 }
                 GUI.enabled = editorSelection.Count > 0;
-                if (GUILayout.Button(I18n.Tr("fm_group_assign") + "(" + editorSelection.Count + ")", GUILayout.MinWidth(80f)))
+                string assignTip = string.Format(I18n.Tr("fm_gtip_assign"), editorSelection.Count, g.Name);
+                if (GUILayout.Button(new GUIContent("＋" + editorSelection.Count, assignTip), GUILayout.Width(52f)))
                 {
                     PushEditorHistory();
                     foreach (FmNode n in editorSelection) n.GroupId = g.Id;
                     EditorMutated();
                 }
                 GUI.enabled = true;
-                if (GUILayout.Button(I18n.Tr("fm_group_del"), GUILayout.MinWidth(52f)))
+                if (GUILayout.Button(new GUIContent("✕", I18n.Tr("fm_gtip_del")), GUILayout.Width(30f)))
                 {
                     PushEditorHistory();
                     string deadId = g.Id;
